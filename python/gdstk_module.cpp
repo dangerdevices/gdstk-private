@@ -738,6 +738,80 @@ static Array<Vec2> custom_bend_function(double radius, double initial_angle, dou
     return array;
 }
 
+const double DEFAULT_SCALING = 1 / 0.001;
+const double DEFAULT_TOLERANCE = 2;
+
+static bool references_short(const Reference* r1, const Reference* r2, const Set<Tag>* tags) {
+    Array<Polygon*> r1_polys = {0};
+    Array<Polygon*> r2_polys = {0};
+    Array<Polygon*> result = {0};
+    Set<Tag> shared_tags = {0};
+
+    // Caller did not supply tag list; find shared layers in r1 & r2.
+    if (tags == NULL) {
+        Set<Tag> r2_tags = {0};
+
+        r1->cell->get_shape_tags(shared_tags);
+        r2->cell->get_shape_tags(r2_tags);
+
+        // My kingdom for set operations!
+        for (SetItem<Tag>* item = shared_tags.next(NULL); item; item = shared_tags.next(item)) {
+            if (!r2_tags.has_value(item->value)) {
+                shared_tags.del(item->value);
+            }
+        }
+
+        tags = &shared_tags;
+    }
+
+    ErrorCode err = ErrorCode::NoError;
+    bool shorted = false;
+
+    for (SetItem<Tag>* item = tags->next(NULL); item; item = tags->next(item)) {
+        r1->polygons(true, true, -1, true, item->value, r1_polys);
+        r2->polygons(true, true, -1, true, item->value, r2_polys);
+
+        Array<Polygon*>* polys = (r1_polys.count < r2_polys.count) ? &r1_polys : &r2_polys;
+        Array<Polygon*> offset_result = {0};
+        err = offset(*polys, 0.01, OffsetJoin::Miter, DEFAULT_TOLERANCE, DEFAULT_SCALING, false,
+                     offset_result);
+        if (err != ErrorCode::NoError) {
+            r1_polys.clear();
+            r2_polys.clear();
+            offset_result.clear();
+            shared_tags.clear();
+            return_error(err);
+        }
+
+        if (polys == &r1_polys) {
+            r1_polys.clear();
+            r1_polys = offset_result;
+        } else {
+            r2_polys.clear();
+            r2_polys = offset_result;
+        }
+
+        ErrorCode err = boolean(r1_polys, r2_polys, Operation::And, DEFAULT_SCALING, result);
+        shorted = result.count > 0;
+
+        r1_polys.clear();
+        r2_polys.clear();
+        result.clear();
+
+        if (err != ErrorCode::NoError) {
+            shared_tags.clear();
+            return_error(err);
+        }
+
+        if (shorted) {
+            break;
+        }
+    }
+
+    shared_tags.clear();
+    return shorted;
+}
+
 #include "cell_object.cpp"
 #include "curve_object.cpp"
 #include "flexpath_object.cpp"
@@ -1384,6 +1458,46 @@ static PyObject* any_inside_function(PyObject* mod, PyObject* args, PyObject* kw
     return result;
 }
 
+static PyObject* references_short_function(PyObject* mod, PyObject* args, PyObject* kwds) {
+    PyObject* py_r1;
+    PyObject* py_r2;
+    PyObject* layers = Py_None;
+    const char* keywords[] = {"ref1", "ref2", "layers", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|O:references_shorted", (char**)keywords,
+                                     &py_r1, &py_r2, &layers)) {
+        return NULL;
+    }
+
+    if (!ReferenceObject_Check(py_r1) || !ReferenceObject_Check(py_r2)) {
+        PyErr_Format(PyExc_TypeError, "Arguments must be References.");
+        return NULL;
+    }
+
+    Set<Tag> tags = {0};
+    Set<Tag>* tags_ptr = NULL;
+
+    if (layers != Py_None) {
+        if (parse_tag_sequence(layers, tags, "layers") < 0) {
+            tags.clear();
+            Py_DECREF(py_r1);
+            Py_DECREF(py_r2);
+            Py_DECREF(layers);
+            return NULL;
+        }
+        tags_ptr = &tags;
+    }
+
+    PyObject* result = references_short(((ReferenceObject*)py_r1)->reference,
+                                        ((ReferenceObject*)py_r2)->reference, tags_ptr)
+                           ? Py_True
+                           : Py_False;
+
+    tags.clear();
+
+    Py_INCREF(result);
+    return result;
+}
+
 static PyObject* create_library_objects(Library* library) {
     LibraryObject* result = PyObject_New(LibraryObject, &library_object_type);
     result = (LibraryObject*)PyObject_Init((PyObject*)result, &library_object_type);
@@ -1667,7 +1781,8 @@ static PyObject* gds_info_function(PyObject* mod, PyObject* args) {
         return NULL;
     }
     if (PyDict_SetItemString(result, "layers_and_datatypes", item) < 0) {
-        PyErr_SetString(PyExc_RuntimeError, "Unable to add layers_and_datatypes to return dictionary.");
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Unable to add layers_and_datatypes to return dictionary.");
         Py_DECREF(item);
         Py_DECREF(result);
         info.clear();
@@ -1681,7 +1796,8 @@ static PyObject* gds_info_function(PyObject* mod, PyObject* args) {
         return NULL;
     }
     if (PyDict_SetItemString(result, "layers_and_texttypes", item) < 0) {
-        PyErr_SetString(PyExc_RuntimeError, "Unable to add layers_and_texttypes to return dictionary.");
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Unable to add layers_and_texttypes to return dictionary.");
         Py_DECREF(item);
         Py_DECREF(result);
         info.clear();
@@ -1833,6 +1949,8 @@ static PyMethodDef gdstk_methods[] = {
     {"all_inside", (PyCFunction)all_inside_function, METH_VARARGS | METH_KEYWORDS,
      all_inside_function_doc},
     {"any_inside", (PyCFunction)any_inside_function, METH_VARARGS | METH_KEYWORDS,
+     any_inside_function_doc},
+    {"references_short", (PyCFunction)references_short_function, METH_VARARGS | METH_KEYWORDS,
      any_inside_function_doc},
     {"read_gds", (PyCFunction)read_gds_function, METH_VARARGS | METH_KEYWORDS,
      read_gds_function_doc},
