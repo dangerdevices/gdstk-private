@@ -46,3 +46,29 @@ def test_inside():
     ):
         assert gdstk.any_inside(pts, polys) == _any
         assert gdstk.all_inside(pts, polys) == _all
+
+
+def test_references_shorted():
+    c1 = gdstk.Cell("c1")
+    c1.add(gdstk.rectangle((0, 0), (5, 5), layer=1))
+
+    r1 = gdstk.Reference(c1, origin=(0, 0))
+    r2 = gdstk.Reference(c1, origin=(2, 2))
+    r3 = gdstk.Reference(c1, origin=(10, 10))
+
+    assert gdstk.references_short(r1, r2)
+    assert not gdstk.references_short(r1, r3)
+    assert not gdstk.references_short(r2, r3)
+
+    c2 = gdstk.Cell("c2")
+    c2.add(
+        gdstk.rectangle((10, 10), (20, 20), layer=1),
+        gdstk.rectangle((-5, -5), (5, 5), layer=2),
+    )
+
+    r4 = gdstk.Reference(c2, origin=(0, 0))
+    r5 = gdstk.Reference(c2, origin=(-7, -7))
+
+    assert not gdstk.references_short(r1, r4)
+    assert gdstk.references_short(r1, r5)
+    assert not gdstk.references_short(r1, r5, layers=((2, 0),))
