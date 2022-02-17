@@ -760,6 +760,7 @@ static bool references_short(const Reference* r1, const Reference* r2, const Set
                 shared_tags.del(item->value);
             }
         }
+        r2_tags.clear();
 
         tags = &shared_tags;
     }
