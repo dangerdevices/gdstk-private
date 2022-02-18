@@ -743,7 +743,9 @@ const double DEFAULT_TOLERANCE = 2;
 
 static bool references_short(const Reference* r1, const Reference* r2, const Set<Tag>* tags) {
     Array<Polygon*> r1_polys = {0};
+    Array<Polygon*>* r1_polys_ptr = &r1_polys;
     Array<Polygon*> r2_polys = {0};
+    Array<Polygon*>* r2_polys_ptr = &r2_polys;
     Array<Polygon*> result = {0};
     Set<Tag> shared_tags = {0};
 
@@ -772,7 +774,7 @@ static bool references_short(const Reference* r1, const Reference* r2, const Set
         r1->polygons(true, true, -1, true, item->value, r1_polys);
         r2->polygons(true, true, -1, true, item->value, r2_polys);
 
-        Array<Polygon*>* polys = (r1_polys.count < r2_polys.count) ? &r1_polys : &r2_polys;
+        Array<Polygon*>* polys = (r1_polys.count < r2_polys.count) ? r1_polys_ptr : r2_polys_ptr;
         Array<Polygon*> offset_result = {0};
         err = offset(*polys, 0.01, OffsetJoin::Miter, DEFAULT_TOLERANCE, DEFAULT_SCALING, false,
                      offset_result);
@@ -784,19 +786,20 @@ static bool references_short(const Reference* r1, const Reference* r2, const Set
             return_error(err);
         }
 
-        if (polys == &r1_polys) {
+        if (polys == r1_polys_ptr) {
             r1_polys.clear();
-            r1_polys = offset_result;
+            r1_polys_ptr = &offset_result;
         } else {
             r2_polys.clear();
-            r2_polys = offset_result;
+            r2_polys_ptr = &offset_result;
         }
 
-        ErrorCode err = boolean(r1_polys, r2_polys, Operation::And, DEFAULT_SCALING, result);
+        ErrorCode err =
+            boolean(*r1_polys_ptr, *r2_polys_ptr, Operation::And, DEFAULT_SCALING, result);
         shorted = result.count > 0;
 
-        r1_polys.clear();
-        r2_polys.clear();
+        r1_polys_ptr->clear();
+        r2_polys_ptr->clear();
         result.clear();
 
         if (err != ErrorCode::NoError) {
