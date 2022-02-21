@@ -24,12 +24,9 @@ jobs:
           CXX: /usr/bin/clang++-12
           CMAKE_CXX_FLAGS_DEBUG: "-O1 -fsanitize=leak -stdlib=libc++"
           LDFLAGS: "-fsanitize=leak"
-      - name: Set sanitizer ignore path
+      - name: Set up sanitizer ignore patterns
         run: |
-          echo "LSAN_IGNORE=${RUNNER_TEMP}/lsan-ignore" >> $GITHUB_ENV
-          echo "LSAN_OPTIONS=suppressions=${LSAN_IGNORE}" >> $GITHUB_ENV
-
-          cat <<EOF > "$LSAN_IGNORE"
+          cat <<EOF > "/tmp/lsan-ignore"
           # If Python is allocating the memory itself, using its own allocator,
           # assume that everything's cool.
           leak:PyObject_Malloc
@@ -49,6 +46,7 @@ jobs:
         env:
           ASAN_OPTIONS: "detect_leaks=1"
           LD_PRELOAD: "/usr/lib/clang/12.0.0/lib/linux/libclang_rt.asan-x86_64.so"
+          LSAN_OPTIONS: "suppressions=/tmp/lsan-ignore"
       - name: Upload leak sanitizer log
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
