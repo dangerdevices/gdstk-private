@@ -22,7 +22,9 @@ jobs:
           python setup.py build --debug
           python setup.py install --user
         env:
-          CMAKE_CXX_FLAGS_DEBUG: "-O1 -fsanitize=leak"
+          CC: /usr/bin/clang
+          CXX: /usr/bin/clang++
+          CMAKE_CXX_FLAGS_DEBUG: "-O1 -fsanitize=leak -stdlib=libc++"
           LDFLAGS: "-fsanitize=leak"
       - name: Run tests
         run: |
