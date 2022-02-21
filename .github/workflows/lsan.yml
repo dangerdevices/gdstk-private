@@ -18,13 +18,10 @@ jobs:
           pip install pytest
           pip install -r requirements.txt
       - name: Build gdstk with leak sanitizer enabled
-        run: |
-          python setup.py build --debug
-          python setup.py install --user
+        run: python setup.py build --debug develop
         env:
           CC: /usr/bin/clang-12
           CXX: /usr/bin/clang++-12
-          CMAKE_BUILD_TYPE: "Debug"
           CMAKE_CXX_FLAGS_DEBUG: "-O1 -fsanitize=leak -stdlib=libc++"
           LDFLAGS: "-fsanitize=leak"
       - name: Run tests
