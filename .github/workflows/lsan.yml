@@ -40,7 +40,7 @@ jobs:
           # Also, NumPy. See https://github.com/numpy/numpy/issues/18271.
           leak:__pyx_pymod_exec__
           EOF
-          python -m pytest 2> >(tee lsan.log >&2)
+          ${pythonLocation}/bin/python -m pytest 2> >(tee lsan.log >&2)
         env:
           ASAN_OPTIONS: "detect_leaks=1"
           LSAN_OPTIONS: "suppressions=$RUNNER_TEMP/lsan-ignore"
