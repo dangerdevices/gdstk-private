@@ -43,6 +43,7 @@ jobs:
           ${pythonLocation}/bin/python -m pytest 2> >(tee lsan.log >&2)
         env:
           ASAN_OPTIONS: "detect_leaks=1"
+          LD_PRELOAD: "/usr/lib/clang/12.0.0/lib/linux/libclang_rt.asan-x86_64.so"
           LSAN_OPTIONS: "suppressions=$RUNNER_TEMP/lsan-ignore"
       - name: Upload leak sanitizer log
         if: ${{ failure() }}
