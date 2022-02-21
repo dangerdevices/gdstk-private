@@ -1,0 +1,52 @@
+name: Leak Sanitizer
+on: [push, pull_request]
+jobs:
+  leak-sanitizer:
+    runs-on: ubuntu-latest
+    name:
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10.1"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install pytest
+          pip install -r requirements.txt
+      - name: Build gdstk with leak sanitizer enabled
+        run: |
+          python setup.py build --debug
+          python setup.py install --user
+        env:
+          CMAKE_CXX_FLAGS_DEBUG: "-O1 -fsanitize=leak"
+          LDFLAGS: "-fsanitize=leak"
+      - name: Run tests
+        run: |
+          cat <<EOF > "$RUNNER_TEMP/lsan-ignore"
+          # If Python is allocating the memory itself, using its own allocator,
+          # assume that everything's cool.
+          leak:PyObject_Malloc
+
+          # Also assume Python will take care of memory allocated during module load.
+          leak:PyImport_LoadDynamicModule
+
+          # ...and time objects it creates.
+          leak:PyTime_localtime
+
+          # Also, NumPy. See https://github.com/numpy/numpy/issues/18271.
+          leak:__pyx_pymod_exec__
+          EOF
+          python -m pytest 2> >(tee lsan.log >&2)
+        env:
+          ASAN_OPTIONS: "detect_leaks=1"
+          LSAN_OPTIONS: "suppressions=$RUNNER_TEMP/lsan-ignore"
+      - name: Upload leak sanitizer log
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: leak-sanitizer-report
+          path: lsan.log
