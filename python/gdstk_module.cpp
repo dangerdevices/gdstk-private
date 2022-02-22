@@ -1891,7 +1891,7 @@ static PyMethodDef gdstk_methods[] = {
     {"any_inside", (PyCFunction)any_inside_function, METH_VARARGS | METH_KEYWORDS,
      any_inside_function_doc},
     {"references_short", (PyCFunction)references_short_function, METH_VARARGS | METH_KEYWORDS,
-     any_inside_function_doc},
+     references_short_function_doc},
     {"read_gds", (PyCFunction)read_gds_function, METH_VARARGS | METH_KEYWORDS,
      read_gds_function_doc},
     {"read_oas", (PyCFunction)read_oas_function, METH_VARARGS | METH_KEYWORDS,
