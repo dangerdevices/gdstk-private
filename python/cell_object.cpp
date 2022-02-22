@@ -276,6 +276,8 @@ static PyObject* cell_object_get_polygons(CellObject* self, PyObject* args, PyOb
         poly->owner = obj;
         PyList_SET_ITEM(result, i, (PyObject*)obj);
     }
+
+    array.clear();
     return result;
 }
 
@@ -352,8 +354,11 @@ static PyObject* cell_object_get_paths(CellObject* self, PyObject* args, PyObjec
         obj = (RobustPathObject*)PyObject_Init((PyObject*)obj, &robustpath_object_type);
         obj->robustpath = path;
         path->owner = obj;
-        PyList_SET_ITEM(result, i, (PyObject*)obj);
+        PyList_SET_ITEM(result, i + fp_array.count, (PyObject*)obj);
     }
+
+    fp_array.clear();
+    rp_array.clear();
     return result;
 }
 
@@ -414,6 +419,8 @@ static PyObject* cell_object_get_labels(CellObject* self, PyObject* args, PyObje
         label->owner = obj;
         PyList_SET_ITEM(result, i, (PyObject*)obj);
     }
+
+    array.clear();
     return result;
 }
 
