@@ -48,7 +48,7 @@ def test_inside():
         assert gdstk.all_inside(pts, polys) == _all
 
 
-def test_references_shorted():
+def test_references_short():
     c1 = gdstk.Cell("c1")
     c1.add(gdstk.rectangle((0, 0), (5, 5), layer=1))
 
