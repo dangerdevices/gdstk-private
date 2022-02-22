@@ -560,10 +560,13 @@ ErrorCode Reference::to_svg(FILE* out, double scaling, uint32_t precision) const
 }
 
 bool references_short(const Reference* r1, const Reference* r2, const Set<Tag>* tags,
-                      double offset_tolerance, double offset_scaling, double boolean_scaling,
-                      ErrorCode* error_code) {
+                      double offset_distance, double offset_tolerance, double offset_scaling,
+                      double boolean_scaling, ErrorCode* error_code) {
     Array<Polygon*> r1_polys = {0};
+    Array<Polygon*>* r1_polys_ptr = &r1_polys;
     Array<Polygon*> r2_polys = {0};
+    Array<Polygon*>* r2_polys_ptr = &r2_polys;
+    Array<Polygon*> offset_result = {0};
     ErrorCode err = ErrorCode::NoError;
     bool shorted = false;
 
@@ -589,12 +592,12 @@ bool references_short(const Reference* r1, const Reference* r2, const Set<Tag>* 
         r1->polygons(true, true, -1, true, item->value, r1_polys);
         r2->polygons(true, true, -1, true, item->value, r2_polys);
 
-        if (offset_tolerance > 0 && offset_scaling > 0) {
+        if (offset_distance > 0 && offset_tolerance > 0 && offset_scaling > 0) {
             // For better performance, offset the fewest polys possible.
-            Array<Polygon*>* polys = (r1_polys.count < r2_polys.count) ? &r1_polys : &r2_polys;
-            Array<Polygon*> offset_result = {0};
-            err = offset(*polys, 0.01, OffsetJoin::Miter, offset_tolerance, offset_scaling, false,
-                         offset_result);
+            Array<Polygon*>* polys =
+                (r1_polys.count < r2_polys.count) ? r1_polys_ptr : r2_polys_ptr;
+            err = offset(*polys, offset_distance, OffsetJoin::Miter, offset_tolerance,
+                         offset_scaling, false, offset_result);
             if (err != ErrorCode::NoError) {
                 for (uint64_t i = 0; i < r1_polys.count; i++) {
                     r1_polys[i]->clear();
@@ -616,37 +619,40 @@ bool references_short(const Reference* r1, const Reference* r2, const Set<Tag>* 
                 return false;
             }
 
-            if (polys == &r1_polys) {
+            if (polys == r1_polys_ptr) {
                 for (uint64_t i = 0; i < r1_polys.count; i++) {
                     r1_polys[i]->clear();
                     free_allocation(r1_polys[i]);
                 }
                 r1_polys.clear();
-                r1_polys = offset_result;
+                r1_polys_ptr = &offset_result;
             } else {
                 for (uint64_t i = 0; i < r2_polys.count; i++) {
                     r2_polys[i]->clear();
                     free_allocation(r2_polys[i]);
                 }
                 r2_polys.clear();
-                r2_polys = offset_result;
+                r2_polys_ptr = &offset_result;
             }
         }
 
         Array<Polygon*> boolean_result = {0};
-        err = boolean(r1_polys, r2_polys, Operation::And, boolean_scaling, boolean_result);
+        err =
+            boolean(*r1_polys_ptr, *r2_polys_ptr, Operation::And, boolean_scaling, boolean_result);
         shorted = boolean_result.count > 0;
 
-        for (uint64_t i = 0; i < r1_polys.count; i++) {
-            r1_polys[i]->clear();
-            free_allocation(r1_polys[i]);
+        Polygon** p = r1_polys_ptr->items;
+        for (uint64_t i = 0; i < r1_polys_ptr->count; i++, p++) {
+            (*p)->clear();
+            free_allocation(*p);
         }
-        r1_polys.clear();
-        for (uint64_t i = 0; i < r2_polys.count; i++) {
-            r2_polys[i]->clear();
-            free_allocation(r2_polys[i]);
+        r1_polys_ptr->clear();
+        p = r2_polys_ptr->items;
+        for (uint64_t i = 0; i < r2_polys_ptr->count; i++, p++) {
+            (*p)->clear();
+            free_allocation(*p);
         }
-        r2_polys.clear();
+        r2_polys_ptr->clear();
         for (uint64_t i = 0; i < boolean_result.count; i++) {
             boolean_result[i]->clear();
             free_allocation(boolean_result[i]);

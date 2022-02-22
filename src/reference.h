@@ -122,8 +122,8 @@ struct Reference {
 };
 
 bool references_short(const Reference* r1, const Reference* r2, const Set<Tag>* tags,
-                      double offset_tolerance, double offset_scaling, double boolean_scaling,
-                      ErrorCode* error_code);
+                      double offset_distance, double offset_tolerance, double offset_scaling,
+                      double boolean_scaling, ErrorCode* error_code);
 
 }  // namespace gdstk
 

@@ -1388,15 +1388,21 @@ static PyObject* references_short_function(PyObject* mod, PyObject* args, PyObje
     PyObject* ref1;
     PyObject* ref2;
     PyObject* layers = Py_None;
+    double offset_distance = 0.01;
     double offset_tolerance = 2;
     double offset_precision = 0.001;
     double boolean_precision = 0.001;
-    const char* keywords[] = {
-        "ref1", "ref2", "layers", "offset_tolerance", "offset_precision", "boolean_precision",
-        NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|Odd:references_shorted", (char**)keywords,
-                                     &ref1, &ref2, &layers, &offset_tolerance, &offset_precision,
-                                     &boolean_precision)) {
+    const char* keywords[] = {"ref1",
+                              "ref2",
+                              "layers",
+                              "offset_distance",
+                              "offset_tolerance",
+                              "offset_precision",
+                              "boolean_precision",
+                              NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|Oddd:references_shorted", (char**)keywords,
+                                     &ref1, &ref2, &layers, &offset_distance, &offset_tolerance,
+                                     &offset_precision, &boolean_precision)) {
         return NULL;
     }
 
@@ -1419,8 +1425,8 @@ static PyObject* references_short_function(PyObject* mod, PyObject* args, PyObje
     ErrorCode error_code = ErrorCode::NoError;
     bool shorted =
         references_short(((ReferenceObject*)ref1)->reference, ((ReferenceObject*)ref2)->reference,
-                         tags.count > 0 ? &tags : NULL, offset_tolerance, 1 / offset_precision,
-                         1 / boolean_precision, &error_code);
+                         tags.count > 0 ? &tags : NULL, offset_distance, offset_tolerance,
+                         1 / offset_precision, 1 / boolean_precision, &error_code);
     tags.clear();
 
     if (return_error(error_code)) {
