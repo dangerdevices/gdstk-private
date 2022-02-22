@@ -15,8 +15,10 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
 #include "allocator.h"
 #include "cell.h"
+#include "clipper_tools.h"
 #include "gdsii.h"
 #include "rawcell.h"
+#include "set.h"
 #include "utils.h"
 
 namespace gdstk {
@@ -555,6 +557,114 @@ ErrorCode Reference::to_svg(FILE* out, double scaling, uint32_t precision) const
     free_allocation(ref_name);
     if (repetition.type != RepetitionType::None) offsets.clear();
     return ErrorCode::NoError;
+}
+
+bool references_short(const Reference* r1, const Reference* r2, const Set<Tag>* tags,
+                      double offset_tolerance, double offset_scaling, double boolean_scaling,
+                      ErrorCode* error_code) {
+    Array<Polygon*> r1_polys = {0};
+    Array<Polygon*> r2_polys = {0};
+    ErrorCode err = ErrorCode::NoError;
+    bool shorted = false;
+
+    // Caller did not supply tag list; find shared layers in r1 & r2.
+    Set<Tag> shared_tags = {0};
+    if (tags == NULL) {
+        Set<Tag> r2_tags = {0};
+
+        r1->cell->get_shape_tags(shared_tags);
+        r2->cell->get_shape_tags(r2_tags);
+
+        for (SetItem<Tag>* item = shared_tags.next(NULL); item; item = shared_tags.next(item)) {
+            if (!r2_tags.has_value(item->value)) {
+                shared_tags.del(item->value);
+            }
+        }
+        r2_tags.clear();
+
+        tags = &shared_tags;
+    }
+
+    for (SetItem<Tag>* item = tags->next(NULL); item; item = tags->next(item)) {
+        r1->polygons(true, true, -1, true, item->value, r1_polys);
+        r2->polygons(true, true, -1, true, item->value, r2_polys);
+
+        if (offset_tolerance > 0 && offset_scaling > 0) {
+            // For better performance, offset the fewest polys possible.
+            Array<Polygon*>* polys = (r1_polys.count < r2_polys.count) ? &r1_polys : &r2_polys;
+            Array<Polygon*> offset_result = {0};
+            err = offset(*polys, 0.01, OffsetJoin::Miter, offset_tolerance, offset_scaling, false,
+                         offset_result);
+            if (err != ErrorCode::NoError) {
+                for (uint64_t i = 0; i < r1_polys.count; i++) {
+                    r1_polys[i]->clear();
+                    free_allocation(r1_polys[i]);
+                }
+                r1_polys.clear();
+                for (uint64_t i = 0; i < r2_polys.count; i++) {
+                    r2_polys[i]->clear();
+                    free_allocation(r2_polys[i]);
+                }
+                r2_polys.clear();
+                for (uint64_t i = 0; i < offset_result.count; i++) {
+                    offset_result[i]->clear();
+                    free_allocation(offset_result[i]);
+                }
+                offset_result.clear();
+                shared_tags.clear();
+                if (error_code) *error_code = err;
+                return false;
+            }
+
+            if (polys == &r1_polys) {
+                for (uint64_t i = 0; i < r1_polys.count; i++) {
+                    r1_polys[i]->clear();
+                    free_allocation(r1_polys[i]);
+                }
+                r1_polys.clear();
+                r1_polys = offset_result;
+            } else {
+                for (uint64_t i = 0; i < r2_polys.count; i++) {
+                    r2_polys[i]->clear();
+                    free_allocation(r2_polys[i]);
+                }
+                r2_polys.clear();
+                r2_polys = offset_result;
+            }
+        }
+
+        Array<Polygon*> boolean_result = {0};
+        err = boolean(r1_polys, r2_polys, Operation::And, boolean_scaling, boolean_result);
+        shorted = boolean_result.count > 0;
+
+        for (uint64_t i = 0; i < r1_polys.count; i++) {
+            r1_polys[i]->clear();
+            free_allocation(r1_polys[i]);
+        }
+        r1_polys.clear();
+        for (uint64_t i = 0; i < r2_polys.count; i++) {
+            r2_polys[i]->clear();
+            free_allocation(r2_polys[i]);
+        }
+        r2_polys.clear();
+        for (uint64_t i = 0; i < boolean_result.count; i++) {
+            boolean_result[i]->clear();
+            free_allocation(boolean_result[i]);
+        }
+        boolean_result.clear();
+
+        if (err != ErrorCode::NoError) {
+            shared_tags.clear();
+            if (error_code) *error_code = err;
+            return false;
+        }
+
+        if (shorted) break;
+    }
+
+    shared_tags.clear();
+    if (error_code) *error_code = err;
+    return shorted;
 }
 
 }  // namespace gdstk

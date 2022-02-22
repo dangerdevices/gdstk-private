@@ -738,84 +738,6 @@ static Array<Vec2> custom_bend_function(double radius, double initial_angle, dou
     return array;
 }
 
-const double DEFAULT_SCALING = 1 / 0.001;
-const double DEFAULT_TOLERANCE = 2;
-
-static bool references_short(const Reference* r1, const Reference* r2, const Set<Tag>* tags) {
-    Array<Polygon*> r1_polys = {0};
-    Array<Polygon*>* r1_polys_ptr = &r1_polys;
-    Array<Polygon*> r2_polys = {0};
-    Array<Polygon*>* r2_polys_ptr = &r2_polys;
-    Array<Polygon*> result = {0};
-    Set<Tag> shared_tags = {0};
-
-    // Caller did not supply tag list; find shared layers in r1 & r2.
-    if (tags == NULL) {
-        Set<Tag> r2_tags = {0};
-
-        r1->cell->get_shape_tags(shared_tags);
-        r2->cell->get_shape_tags(r2_tags);
-
-        // My kingdom for set operations!
-        for (SetItem<Tag>* item = shared_tags.next(NULL); item; item = shared_tags.next(item)) {
-            if (!r2_tags.has_value(item->value)) {
-                shared_tags.del(item->value);
-            }
-        }
-        r2_tags.clear();
-
-        tags = &shared_tags;
-    }
-
-    ErrorCode err = ErrorCode::NoError;
-    bool shorted = false;
-
-    for (SetItem<Tag>* item = tags->next(NULL); item; item = tags->next(item)) {
-        r1->polygons(true, true, -1, true, item->value, r1_polys);
-        r2->polygons(true, true, -1, true, item->value, r2_polys);
-
-        Array<Polygon*>* polys = (r1_polys.count < r2_polys.count) ? r1_polys_ptr : r2_polys_ptr;
-        Array<Polygon*> offset_result = {0};
-        err = offset(*polys, 0.01, OffsetJoin::Miter, DEFAULT_TOLERANCE, DEFAULT_SCALING, false,
-                     offset_result);
-        if (err != ErrorCode::NoError) {
-            r1_polys.clear();
-            r2_polys.clear();
-            offset_result.clear();
-            shared_tags.clear();
-            return_error(err);
-        }
-
-        if (polys == r1_polys_ptr) {
-            r1_polys.clear();
-            r1_polys_ptr = &offset_result;
-        } else {
-            r2_polys.clear();
-            r2_polys_ptr = &offset_result;
-        }
-
-        ErrorCode err =
-            boolean(*r1_polys_ptr, *r2_polys_ptr, Operation::And, DEFAULT_SCALING, result);
-        shorted = result.count > 0;
-
-        r1_polys_ptr->clear();
-        r2_polys_ptr->clear();
-        result.clear();
-
-        if (err != ErrorCode::NoError) {
-            shared_tags.clear();
-            return_error(err);
-        }
-
-        if (shorted) {
-            break;
-        }
-    }
-
-    shared_tags.clear();
-    return shorted;
-}
-
 #include "cell_object.cpp"
 #include "curve_object.cpp"
 #include "flexpath_object.cpp"
@@ -1463,41 +1385,49 @@ static PyObject* any_inside_function(PyObject* mod, PyObject* args, PyObject* kw
 }
 
 static PyObject* references_short_function(PyObject* mod, PyObject* args, PyObject* kwds) {
-    PyObject* py_r1;
-    PyObject* py_r2;
+    PyObject* ref1;
+    PyObject* ref2;
     PyObject* layers = Py_None;
-    const char* keywords[] = {"ref1", "ref2", "layers", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|O:references_shorted", (char**)keywords,
-                                     &py_r1, &py_r2, &layers)) {
+    double offset_tolerance = 2;
+    double offset_precision = 0.001;
+    double boolean_precision = 0.001;
+    const char* keywords[] = {
+        "ref1", "ref2", "layers", "offset_tolerance", "offset_precision", "boolean_precision",
+        NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|Odd:references_shorted", (char**)keywords,
+                                     &ref1, &ref2, &layers, &offset_tolerance, &offset_precision,
+                                     &boolean_precision)) {
         return NULL;
     }
 
-    if (!ReferenceObject_Check(py_r1) || !ReferenceObject_Check(py_r2)) {
+    if (!ReferenceObject_Check(ref1) || !ReferenceObject_Check(ref2)) {
         PyErr_Format(PyExc_TypeError, "Arguments must be References.");
         return NULL;
     }
 
     Set<Tag> tags = {0};
-    Set<Tag>* tags_ptr = NULL;
-
     if (layers != Py_None) {
         if (parse_tag_sequence(layers, tags, "layers") < 0) {
             tags.clear();
-            Py_DECREF(py_r1);
-            Py_DECREF(py_r2);
+            Py_DECREF(ref1);
+            Py_DECREF(ref2);
             Py_DECREF(layers);
             return NULL;
         }
-        tags_ptr = &tags;
     }
 
-    PyObject* result = references_short(((ReferenceObject*)py_r1)->reference,
-                                        ((ReferenceObject*)py_r2)->reference, tags_ptr)
-                           ? Py_True
-                           : Py_False;
-
+    ErrorCode error_code = ErrorCode::NoError;
+    bool shorted =
+        references_short(((ReferenceObject*)ref1)->reference, ((ReferenceObject*)ref2)->reference,
+                         tags.count > 0 ? &tags : NULL, offset_tolerance, 1 / offset_precision,
+                         1 / boolean_precision, &error_code);
     tags.clear();
 
+    if (return_error(error_code)) {
+        return NULL;
+    }
+
+    PyObject* result = shorted ? Py_True : Py_False;
     Py_INCREF(result);
     return result;
 }
