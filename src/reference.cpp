@@ -562,11 +562,6 @@ ErrorCode Reference::to_svg(FILE* out, double scaling, uint32_t precision) const
 bool references_short(const Reference* r1, const Reference* r2, const Set<Tag>* tags,
                       double offset_distance, double offset_tolerance, double offset_scaling,
                       double boolean_scaling, ErrorCode* error_code) {
-    Array<Polygon*> r1_polys = {0};
-    Array<Polygon*> r2_polys = {0};
-    Array<Polygon*>* r1_polys_ptr = &r1_polys;
-    Array<Polygon*>* r2_polys_ptr = &r2_polys;
-    Array<Polygon*> offset_result = {0};
     ErrorCode err = ErrorCode::NoError;
     bool shorted = false;
 
@@ -588,14 +583,15 @@ bool references_short(const Reference* r1, const Reference* r2, const Set<Tag>* 
     }
 
     for (SetItem<Tag>* item = tags->next(NULL); item; item = tags->next(item)) {
+        Array<Polygon*> r1_polys = {0};
+        Array<Polygon*> r2_polys = {0};
         r1->polygons(true, true, -1, true, item->value, r1_polys);
         r2->polygons(true, true, -1, true, item->value, r2_polys);
 
-        if (r1_polys.count == 0 || r2_polys.count == 0) continue;
+        Array<Polygon*>* r1_polys_ptr = &r1_polys;
+        Array<Polygon*>* r2_polys_ptr = &r2_polys;
 
-        r1_polys_ptr = &r1_polys;
-        r2_polys_ptr = &r2_polys;
-
+        Array<Polygon*> offset_result = {0};
         if (offset_distance > 0 && offset_tolerance > 0 && offset_scaling > 0) {
             // For better performance, offset the fewest polys possible.
             Array<Polygon*>* polys =
