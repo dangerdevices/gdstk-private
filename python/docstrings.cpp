@@ -3309,6 +3309,10 @@ PyDoc_STRVAR(
 
 Check whether the two references short together.
 
+An electrical short occurs when a polygon or path from the first reference
+intersects a polygon or path in the second reference, and both
+shapes have the same layer & datatype.
+
 Args:
     layers: A sequence of (layer, datatype) pairs to check for shorting
       shapes on. If None, all layers will be checked.
