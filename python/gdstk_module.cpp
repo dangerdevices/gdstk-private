@@ -1384,6 +1384,60 @@ static PyObject* any_inside_function(PyObject* mod, PyObject* args, PyObject* kw
     return result;
 }
 
+static PyObject* references_short_function(PyObject* mod, PyObject* args, PyObject* kwds) {
+    PyObject* ref1;
+    PyObject* ref2;
+    PyObject* layers = Py_None;
+    double offset_distance = 0.01;
+    double offset_tolerance = 2;
+    double offset_precision = 0.001;
+    double boolean_precision = 0.001;
+    const char* keywords[] = {"ref1",
+                              "ref2",
+                              "layers",
+                              "offset_distance",
+                              "offset_tolerance",
+                              "offset_precision",
+                              "boolean_precision",
+                              NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|Oddd:references_shorted", (char**)keywords,
+                                     &ref1, &ref2, &layers, &offset_distance, &offset_tolerance,
+                                     &offset_precision, &boolean_precision)) {
+        return NULL;
+    }
+
+    if (!ReferenceObject_Check(ref1) || !ReferenceObject_Check(ref2)) {
+        PyErr_Format(PyExc_TypeError, "Arguments must be References.");
+        return NULL;
+    }
+
+    Set<Tag> tags = {0};
+    if (layers != Py_None) {
+        if (parse_tag_sequence(layers, tags, "layers") < 0) {
+            tags.clear();
+            Py_DECREF(ref1);
+            Py_DECREF(ref2);
+            Py_DECREF(layers);
+            return NULL;
+        }
+    }
+
+    ErrorCode error_code = ErrorCode::NoError;
+    bool shorted =
+        references_short(((ReferenceObject*)ref1)->reference, ((ReferenceObject*)ref2)->reference,
+                         tags.count > 0 ? &tags : NULL, offset_distance, offset_tolerance,
+                         1 / offset_precision, 1 / boolean_precision, &error_code);
+    tags.clear();
+
+    if (return_error(error_code)) {
+        return NULL;
+    }
+
+    PyObject* result = shorted ? Py_True : Py_False;
+    Py_INCREF(result);
+    return result;
+}
+
 static PyObject* create_library_objects(Library* library) {
     LibraryObject* result = PyObject_New(LibraryObject, &library_object_type);
     result = (LibraryObject*)PyObject_Init((PyObject*)result, &library_object_type);
@@ -1834,6 +1888,8 @@ static PyMethodDef gdstk_methods[] = {
      all_inside_function_doc},
     {"any_inside", (PyCFunction)any_inside_function, METH_VARARGS | METH_KEYWORDS,
      any_inside_function_doc},
+    {"references_short", (PyCFunction)references_short_function, METH_VARARGS | METH_KEYWORDS,
+     references_short_function_doc},
     {"read_gds", (PyCFunction)read_gds_function, METH_VARARGS | METH_KEYWORDS,
      read_gds_function_doc},
     {"read_oas", (PyCFunction)read_oas_function, METH_VARARGS | METH_KEYWORDS,
