@@ -16,3 +16,27 @@ jobs:
         git fetch upstream
         git merge --ff-only upstream/master
         git push
+
+  dangerdevices:
+    needs: heitzmann
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        ref: master
+        token: ${{ secrets.DD_GITHUB_REPO_TOKEN }}
+    - env:
+        GITHUB_TOKEN: ${{ secrets.DD_GITHUB_REPO_TOKEN }}
+    - run: |
+        [[ -z "$(git rev-list master ^dangerdevices)" ]] && {
+          echo "up to date! nothing to do..."
+          exit
+        }
+
+        branch="from-master-$(date +%s)"
+        git switch -c "${branch}"
+        gh pr create \
+          --title 'Merge latest `master` into `dangerdevices`' \
+          --body-file "${body}" \
+          --head "${branch}" \
+          --base dangerdevices
