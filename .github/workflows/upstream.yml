@@ -23,39 +23,21 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        ref: dangerdevices
+        ref: master
         token: ${{ secrets.DD_GITHUB_REPO_TOKEN }}
     - env:
         GITHUB_TOKEN: ${{ secrets.DD_GITHUB_REPO_TOKEN }}
     - run: |
-        current=$(git rev-parse HEAD)
-
-        conflicts=false
-        branch="from-master-$(date +%s)"
-        git switch -c "${branch}"
-        git merge origin/master || {
-          # merge conflicts \o/
-          conflicts=true
-          git ls-files --unmerged | while read -r conflict; do
-            git add "${conflict}"
-            git commit --quiet --no-edit
-          done
-        }
-
-        [[ "${current}" == $(git rev-parse HEAD) ]] && {
+        latest=$(git rev-parse HEAD)
+        [[ "${latest}" == $(git rev-parse dangerdevices) ]] && {
           echo "up to date! nothing to do..."
           exit
         }
-        git push -u "${branch}"
 
-        body=$(mktemp)
-        [[ "${conflicts}" == true ]] && {
-          echo -e ":cry:, unfortunately, there were merge conflicts..." >"${body}"
-        }
-        cat .dd/upstream-dangerdevices.md" >>"${body}"
-
+        branch="from-master-$(date +%s)"
+        git switch -c "${branch}"
         gh pr create \
-          --title 'merge latest `master` into `dangerdevices`' \
+          --title 'Merge latest `master` into `dangerdevices`' \
           --body-file "${body}" \
           --head "${branch}" \
           --base dangerdevices
