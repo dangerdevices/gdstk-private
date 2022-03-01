@@ -28,8 +28,7 @@ jobs:
     - env:
         GITHUB_TOKEN: ${{ secrets.DD_GITHUB_REPO_TOKEN }}
     - run: |
-        latest=$(git rev-parse HEAD)
-        [[ "${latest}" == "$(git rev-parse dangerdevices)" ]] && {
+        [[ -z "$(git rev-list master ^dangerdevices)" ]] && {
           echo "up to date! nothing to do..."
           exit
         }
