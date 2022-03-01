@@ -33,7 +33,6 @@ If you're planning to release a new version, please follow:
 [PEP 440]: https://www.python.org/dev/peps/pep-0440/#local-version-identifiers
 [`v0.8.1+dd1` release]: https://github.com/dangerdevices/gdstk-private/releases/tag/v0.8.1%2Bdd1
 
-_This pull request was automatically created via [`upstream.yml`], a GitHub
-Action._
+_This pull request was automatically created via [`upstream.yml`], a GitHub Action._
 
 [`upstream.yml`]: https://github.com/dangerdevices/gdstk-private/blob/dangerdevices/.github/workflows/upstream.yml
