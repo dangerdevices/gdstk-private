@@ -23,6 +23,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
+        fetch-depth: 0
         ref: master
         token: ${{ secrets.DD_GITHUB_REPO_TOKEN }}
     - env:
