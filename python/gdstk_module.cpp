@@ -1420,6 +1420,13 @@ static PyObject* references_short_function(PyObject* mod, PyObject* args, PyObje
             Py_DECREF(layers);
             return NULL;
         }
+
+        // Caller provided an empty layer list; nothing to do.
+        if (tags.count == 0) {
+            PyObject* result = Py_False;
+            Py_INCREF(result);
+            return result;
+        }
     }
 
     ErrorCode error_code = ErrorCode::NoError;
