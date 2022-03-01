@@ -34,10 +34,13 @@ jobs:
           exit
         }
 
+        pr_body_file=$(mktemp) || exit 1
+        git show dangerdevices:.dd/upstream-dangerdevices.md > "$pr_body_file"
+
         branch="from-master-$(date +%s)"
         git switch -c "${branch}"
         gh pr create \
           --title 'Merge latest `master` into `dangerdevices`' \
-          --body-file "$(pwd)/.dd/upstream-dangerdevices.md" \
+          --body-file "$pr_body_file" \
           --head "${branch}" \
           --base dangerdevices
