@@ -23,20 +23,25 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
+        fetch-depth: 0
         ref: master
         token: ${{ secrets.DD_GITHUB_REPO_TOKEN }}
     - env:
         GITHUB_TOKEN: ${{ secrets.DD_GITHUB_REPO_TOKEN }}
       run: |
-        [[ -z "$(git rev-list master ^dangerdevices)" ]] && {
+        [[ -z "$(git rev-list master ^origin/dangerdevices)" ]] && {
           echo "up to date! nothing to do..."
           exit
         }
 
+        pr_body_file="$(mktemp)"
+        git show origin/dangerdevices:.dd/upstream-dangerdevices.md > "${pr_body_file}"
+
         branch="from-master-$(date +%s)"
         git switch -c "${branch}"
+        git push origin "${branch}"
         gh pr create \
           --title 'Merge latest `master` into `dangerdevices`' \
-          --body-file "${body}" \
+          --body-file "${pr_body_file}" \
           --head "${branch}" \
           --base dangerdevices
