@@ -34,8 +34,8 @@ jobs:
           exit
         }
 
-        pr_body_file=$(mktemp) || exit 1
-        git show dangerdevices:.dd/upstream-dangerdevices.md > "$pr_body_file"
+        pr_body_file="$(mktemp)" || exit 1
+        git show origin/dangerdevices:.dd/upstream-dangerdevices.md > "$pr_body_file"
 
         branch="from-master-$(date +%s)"
         git switch -c "${branch}"
