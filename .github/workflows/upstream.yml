@@ -27,7 +27,7 @@ jobs:
         token: ${{ secrets.DD_GITHUB_REPO_TOKEN }}
     - env:
         GITHUB_TOKEN: ${{ secrets.DD_GITHUB_REPO_TOKEN }}
-    - run: |
+      run: |
         [[ -z "$(git rev-list master ^dangerdevices)" ]] && {
           echo "up to date! nothing to do..."
           exit
