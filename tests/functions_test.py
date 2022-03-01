@@ -57,6 +57,7 @@ def test_references_short():
     r3 = gdstk.Reference(c1, origin=(10, 10))
 
     assert gdstk.references_short(r1, r2)
+    assert not gdstk.references_short(r1, r2, layers=())
     assert not gdstk.references_short(r1, r3)
     assert not gdstk.references_short(r2, r3)
 
