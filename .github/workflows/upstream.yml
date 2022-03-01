@@ -38,6 +38,6 @@ jobs:
         git switch -c "${branch}"
         gh pr create \
           --title 'Merge latest `master` into `dangerdevices`' \
-          --body-file "${body}" \
+          --body-file ".dd/upstream-dangerdevices.md" \
           --head "${branch}" \
           --base dangerdevices
