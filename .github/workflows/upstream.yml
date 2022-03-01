@@ -55,7 +55,7 @@ jobs:
         cat .dd/upstream-dangerdevices.md" >>"${body}"
 
         gh pr create \
-          --title 'merge latest `master` into `dangerdevices`' \
+          --title 'Merge latest `master` into `dangerdevices`' \
           --body-file "${body}" \
           --head "${branch}" \
           --base dangerdevices
