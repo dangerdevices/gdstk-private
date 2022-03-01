@@ -34,7 +34,7 @@ jobs:
           exit
         }
 
-        pr_body_file="$(mktemp)" || exit 1
+        pr_body_file="$(mktemp)"
         git show origin/dangerdevices:.dd/upstream-dangerdevices.md > "${pr_body_file}"
 
         branch="from-master-$(date +%s)"
