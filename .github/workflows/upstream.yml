@@ -34,6 +34,21 @@ jobs:
           exit
         }
 
+        head_sha="$(git rev-parse HEAD)"
+        open_prs=$(gh pr list \
+          --base dangerdevices \
+          --limit 1 \
+          --search "${head_sha}" \
+          --state open \
+          --json number,title \
+          --template '{{range .}}{{.title}} (#{{.number}}){{end}}'
+        )
+        [[ -n "${open_prs}" ]] && {
+          echo "A PR is already open containing ${head_sha}:"
+          echo "  ${open_prs}"
+          exit
+        }
+
         pr_body_file="$(mktemp)"
         git show origin/dangerdevices:.dd/upstream-dangerdevices.md > "${pr_body_file}"
 
