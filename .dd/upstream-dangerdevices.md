@@ -4,7 +4,7 @@ If you're planning to release a new version, please follow:
 
 ## Update this pull request
 
-1. Merge the latest `dangerdevices`[^1] branch.
+1. Merge the latest `dangerdevices`[^1] branch into this pull request's branch.
 
 2. Update `src/gdstk.h` with the incremented version. As a friendly reminder, we're following [PEP 440] so the version should be:
 
