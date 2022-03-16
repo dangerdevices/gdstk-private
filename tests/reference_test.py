@@ -24,6 +24,18 @@ def test_noreference():
     assert ref.x_reflection == True
 
 
+def test_x_reflection():
+    c = gdstk.Cell("test")
+    ref = gdstk.Reference(c, x_reflection=False)
+    assert not ref.x_reflection
+
+    ref.x_reflection = True
+    assert ref.x_reflection
+
+    ref.x_reflection = False
+    assert not ref.x_reflection
+
+
 def test_empty():
     name = "ca_empty"
     c = gdstk.Cell(name)
@@ -63,3 +75,29 @@ def test_label_bounding_box():
     bb = ref.bounding_box()
     assert_close(bb, ((x, y), (x, y)))
 
+
+def _create_cell_reference(raw=False):
+    if raw:
+        c = gdstk.RawCell("CELL")
+    else:
+        c = gdstk.Cell("CELL")
+    return gdstk.Reference(c)
+
+
+def _copy_and_set_properties(ref):
+    ref_copy = ref.copy()
+    ref_copy.set_gds_property(101, "test")
+    return ref_copy
+
+
+def test_copy_with_cell():
+    ref_copy = _copy_and_set_properties(_create_cell_reference(raw=False))
+
+    assert ref_copy.get_gds_property(101) == "test"
+    assert ref_copy.cell.name == "CELL"
+
+def test_copy_with_rawcell():
+    ref_copy = _copy_and_set_properties(_create_cell_reference(raw=True))
+
+    assert ref_copy.get_gds_property(101) == "test"
+    assert ref_copy.cell.name == "CELL"

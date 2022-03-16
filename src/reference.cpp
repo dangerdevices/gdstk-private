@@ -15,8 +15,10 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
 #include "allocator.h"
 #include "cell.h"
+#include "clipper_tools.h"
 #include "gdsii.h"
 #include "rawcell.h"
+#include "set.h"
 #include "utils.h"
 
 namespace gdstk {
@@ -379,29 +381,42 @@ ErrorCode Reference::to_gds(FILE* out, double scaling) const {
     big_endian_swap16(buffer_single, COUNT(buffer_single));
 
     if (repetition.type != RepetitionType::None) {
-        if (repetition.type == RepetitionType::Rectangular && !x_reflection && rotation == 0) {
-            array = true;
-            x2 = origin.x + repetition.columns * repetition.spacing.x;
-            y2 = origin.y;
-            x3 = origin.x;
-            y3 = origin.y + repetition.rows * repetition.spacing.y;
-        } else if (repetition.type == RepetitionType::Regular) {
-            Vec2 u1 = repetition.v1;
-            Vec2 u2 = repetition.v2;
-            u1.normalize();
-            u2.normalize();
-            if (x_reflection) u2 = -u2;
+        int64_t m = 0;
+        if (repetition.type == RepetitionType::Regular ||
+            (repetition.type == RepetitionType::Rectangular &&
+             is_multiple_of_pi_over_2(rotation, m))) {
+            Vec2 v1, v2;
+            if (repetition.type == RepetitionType::Rectangular) {
+                if (m % 2) {
+                    v1.x = 0;
+                    v1.y = repetition.spacing.x;
+                    v2.x = repetition.spacing.y;
+                    v2.y = 0;
+                } else {
+                    v1.x = repetition.spacing.x;
+                    v1.y = 0;
+                    v2.x = 0;
+                    v2.y = repetition.spacing.y;
+                }
+            } else {
+                v1 = repetition.v1;
+                v2 = repetition.v2;
+            }
+            Vec2 u1 = v1;
+            Vec2 u2 = v2;
+            double len1 = u1.normalize();
+            double len2 = u2.normalize();
             double sa = sin(rotation);
             double ca = cos(rotation);
-            if (fabs(u1.x - ca) < GDSTK_REFERENCE_REPETITION_TOLERANCE &&
-                fabs(u1.y - sa) < GDSTK_REFERENCE_REPETITION_TOLERANCE &&
-                fabs(u2.x + sa) < GDSTK_REFERENCE_REPETITION_TOLERANCE &&
-                fabs(u2.y - ca) < GDSTK_REFERENCE_REPETITION_TOLERANCE) {
+            double p1 = u1.inner(Vec2{ca, sa});
+            double p2 = u2.inner(Vec2{-sa, ca});
+            if ((len1 == 0 || fabs(fabs(p1) - 1.0) < GDSTK_REFERENCE_REPETITION_TOLERANCE) &&
+                (len2 == 0 || fabs(fabs(p2) - 1.0) < GDSTK_REFERENCE_REPETITION_TOLERANCE)) {
                 array = true;
-                x2 = origin.x + repetition.columns * repetition.v1.x;
-                y2 = origin.y + repetition.columns * repetition.v1.y;
-                x3 = origin.x + repetition.rows * repetition.v2.x;
-                y3 = origin.y + repetition.rows * repetition.v2.y;
+                x2 = origin.x + repetition.columns * v1.x;
+                y2 = origin.y + repetition.columns * v1.y;
+                x3 = origin.x + repetition.rows * v2.x;
+                y3 = origin.y + repetition.rows * v2.y;
             }
         }
 
@@ -555,6 +570,120 @@ ErrorCode Reference::to_svg(FILE* out, double scaling, uint32_t precision) const
     free_allocation(ref_name);
     if (repetition.type != RepetitionType::None) offsets.clear();
     return ErrorCode::NoError;
+}
+
+bool references_short(const Reference* r1, const Reference* r2, const Set<Tag>* tags,
+                      double offset_distance, double offset_tolerance, double offset_scaling,
+                      double boolean_scaling, ErrorCode* error_code) {
+    ErrorCode err = ErrorCode::NoError;
+    bool shorted = false;
+
+    // Caller did not supply tag list; find shared layers in r1 & r2.
+    Set<Tag> shared_tags = {0};
+    if (tags == NULL) {
+        Set<Tag> r2_tags = {0};
+
+        r1->cell->get_shape_tags(shared_tags);
+        r2->cell->get_shape_tags(r2_tags);
+        for (SetItem<Tag>* item = shared_tags.next(NULL); item; item = shared_tags.next(item)) {
+            if (!r2_tags.has_value(item->value)) {
+                shared_tags.del(item->value);
+            }
+        }
+        r2_tags.clear();
+
+        tags = &shared_tags;
+    }
+
+    for (SetItem<Tag>* item = tags->next(NULL); item; item = tags->next(item)) {
+        Array<Polygon*> r1_polys = {0};
+        Array<Polygon*> r2_polys = {0};
+        r1->polygons(true, true, -1, true, item->value, r1_polys);
+        r2->polygons(true, true, -1, true, item->value, r2_polys);
+
+        Array<Polygon*>* r1_polys_ptr = &r1_polys;
+        Array<Polygon*>* r2_polys_ptr = &r2_polys;
+
+        Array<Polygon*> offset_result = {0};
+        if (offset_distance > 0 && offset_tolerance > 0 && offset_scaling > 0) {
+            // For better performance, offset the fewest polys possible.
+            Array<Polygon*>* polys =
+                (r1_polys.count < r2_polys.count) ? r1_polys_ptr : r2_polys_ptr;
+            err = offset(*polys, offset_distance, OffsetJoin::Miter, offset_tolerance,
+                         offset_scaling, false, offset_result);
+            if (err != ErrorCode::NoError) {
+                for (uint64_t i = 0; i < r1_polys.count; i++) {
+                    r1_polys[i]->clear();
+                    free_allocation(r1_polys[i]);
+                }
+                r1_polys.clear();
+                for (uint64_t i = 0; i < r2_polys.count; i++) {
+                    r2_polys[i]->clear();
+                    free_allocation(r2_polys[i]);
+                }
+                r2_polys.clear();
+                for (uint64_t i = 0; i < offset_result.count; i++) {
+                    offset_result[i]->clear();
+                    free_allocation(offset_result[i]);
+                }
+                offset_result.clear();
+                shared_tags.clear();
+                if (error_code) *error_code = err;
+                return false;
+            }
+
+            if (polys == r1_polys_ptr) {
+                for (uint64_t i = 0; i < r1_polys.count; i++) {
+                    r1_polys[i]->clear();
+                    free_allocation(r1_polys[i]);
+                }
+                r1_polys.clear();
+                r1_polys_ptr = &offset_result;
+            } else {
+                for (uint64_t i = 0; i < r2_polys.count; i++) {
+                    r2_polys[i]->clear();
+                    free_allocation(r2_polys[i]);
+                }
+                r2_polys.clear();
+                r2_polys_ptr = &offset_result;
+            }
+        }
+
+        Array<Polygon*> boolean_result = {0};
+        err =
+            boolean(*r1_polys_ptr, *r2_polys_ptr, Operation::And, boolean_scaling, boolean_result);
+        shorted = boolean_result.count > 0;
+
+        Polygon** p = r1_polys_ptr->items;
+        for (uint64_t i = 0; i < r1_polys_ptr->count; i++, p++) {
+            (*p)->clear();
+            free_allocation(*p);
+        }
+        r1_polys_ptr->clear();
+        p = r2_polys_ptr->items;
+        for (uint64_t i = 0; i < r2_polys_ptr->count; i++, p++) {
+            (*p)->clear();
+            free_allocation(*p);
+        }
+        r2_polys_ptr->clear();
+        for (uint64_t i = 0; i < boolean_result.count; i++) {
+            boolean_result[i]->clear();
+            free_allocation(boolean_result[i]);
+        }
+        boolean_result.clear();
+
+        if (err != ErrorCode::NoError) {
+            shared_tags.clear();
+            if (error_code) *error_code = err;
+            return false;
+        }
+
+        if (shorted) break;
+    }
+
+    shared_tags.clear();
+    if (error_code) *error_code = err;
+    return shorted;
 }
 
 }  // namespace gdstk
