@@ -15,7 +15,7 @@ Cell* example_boolean(const char* name) {
     Cell* out_cell = (Cell*)allocate_clear(sizeof(Cell));
     out_cell->name = copy_string(name, NULL);
 
-    Array<Polygon*> txt = {0};
+    Array<Polygon*> txt = {};
     text("GDSTK", 4, Vec2{0, 0}, false, 0, txt);
 
     Polygon rect = rectangle(Vec2{-1, -1}, Vec2{5 * 4 * 9 / 16 + 1, 4 + 1}, 0);
@@ -42,8 +42,8 @@ Cell* example_slice(const char* name) {
     ring[2] = ellipse(Vec2{6, 0}, 6, 6, 4, 4, 0, 0, 0.01, 0);
 
     double x[] = {-3, 3};
-    Array<double> cuts = {.count = 1, .items = x};
-    Array<Polygon*> result[3] = {0};
+    Array<double> cuts = {.capacity = 0, .count = 1, .items = x};
+    Array<Polygon*> result[3] = {};
     slice(ring[0], cuts, true, 1000, result);
     out_cell->polygon_array.extend(result[0]);
     for (uint64_t i = 0; i < result[1].count; i++) {
@@ -112,18 +112,18 @@ Cell* example_fillet(const char* name) {
     Cell* out_cell = (Cell*)allocate_clear(sizeof(Cell));
     out_cell->name = copy_string(name, NULL);
 
-    FlexPath flexpath = {0};
+    FlexPath flexpath = {};
     flexpath.init(Vec2{-8, -4}, 1, 4, 0, 0.01, 0);
     Vec2 points[] = {{0, -4}, {0, 4}, {8, 4}};
-    flexpath.segment({.count = COUNT(points), .items = points}, NULL, NULL, false);
+    flexpath.segment({.capacity = 0, .count = COUNT(points), .items = points}, NULL, NULL, false);
 
-    Array<Polygon*> poly_array = {0};
+    Array<Polygon*> poly_array = {};
     flexpath.to_polygons(false, 0, poly_array);
     flexpath.clear();
 
     double r = 1.5;
     for (int i = 0; i < poly_array.count; i++)
-        poly_array[i]->fillet({.count = 1, .items = &r}, 0.01);
+        poly_array[i]->fillet({.capacity = 0, .count = 1, .items = &r}, 0.01);
 
     out_cell->polygon_array.extend(poly_array);
     poly_array.clear();
@@ -132,8 +132,8 @@ Cell* example_fillet(const char* name) {
 }
 
 int main(int argc, char* argv[]) {
-    Library lib = {.unit = 1e-6, .precision = 1e-9};
-    lib.name = copy_string("library", NULL);
+    Library lib = {};
+    lib.init("library", 1e-6, 1e-9);
 
     Cell* boolean_cell = example_boolean("Boolean");
     lib.cell_array.append(boolean_cell);

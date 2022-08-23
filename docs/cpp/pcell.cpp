@@ -31,8 +31,8 @@ Cell* grating(double period, double fill_frac, double length, double width, Tag 
 }
 
 int main(int argc, char* argv[]) {
-    Library lib = {.unit = 1e-6, .precision = 1e-9};
-    lib.name = copy_string("library", NULL);
+    Library lib = {};
+    lib.init("library", 1e-6, 1e-9);
 
     double length = 20;
 
@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
     main_cell->polygon_array.append(rect);
 
     Reference* ref1 = (Reference*)allocate_clear(sizeof(Reference));
-    ref1->init(grat1, 1);
+    ref1->init(grat1);
     ref1->origin = Vec2{length, 0};
     ref1->rotation = M_PI / 2;
     main_cell->reference_array.append(ref1);
