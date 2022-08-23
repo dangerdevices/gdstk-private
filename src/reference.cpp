@@ -604,8 +604,8 @@ bool references_short(const Reference* r1, const Reference* r2, const Set<Tag>* 
     for (SetItem<Tag>* item = tags->next(NULL); item; item = tags->next(item)) {
         Array<Polygon*> r1_polys = {0};
         Array<Polygon*> r2_polys = {0};
-        r1->polygons(true, true, -1, true, item->value, r1_polys);
-        r2->polygons(true, true, -1, true, item->value, r2_polys);
+        r1->get_polygons(true, true, -1, true, item->value, r1_polys);
+        r2->get_polygons(true, true, -1, true, item->value, r2_polys);
 
         Array<Polygon*>* r1_polys_ptr = &r1_polys;
         Array<Polygon*>* r2_polys_ptr = &r2_polys;
