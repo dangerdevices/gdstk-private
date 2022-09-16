@@ -1103,7 +1103,7 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
             case GdsiiRecord::XY:
                 if (polygon) {
                     polygon->point_array.ensure_slots(data_length / 2);
-                    double* d = (double*)polygon->point_array.items + polygon->point_array.count;
+                    double* d = (double*)(polygon->point_array.items + polygon->point_array.count);
                     int32_t* s = data32;
                     for (uint64_t i = data_length; i > 0; i--) *d++ = factor * (*s++);
                     polygon->point_array.count += data_length / 2;
@@ -1155,7 +1155,9 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
             case GdsiiRecord::ENDEL:
                 if (polygon) {
                     // Polygons are closed in GDSII (first and last points are the same)
-                    polygon->point_array.count--;
+                    Array<Vec2>& pa = polygon->point_array;
+                    if (pa[0] == pa[pa.count-1])
+                        pa.count--;
                     if (shape_tags && !shape_tags->has_value(polygon->tag) && cell) {
                         Array<Polygon*>* array = &cell->polygon_array;
                         uint64_t index = array->count - 1;
