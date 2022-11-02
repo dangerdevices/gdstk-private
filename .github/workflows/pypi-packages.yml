@@ -1,9 +1,10 @@
 name: Build & publish PyPI packages
 
-on:
-  push:
-    tags:
-      - v[0-9]+.**
+# Disabled; we do not want to be publishing to PyPI from this internal fork.
+# on:
+#   push:
+#     tags:
+#       - v[0-9]+.**
 
 jobs:
   build-sdist:
