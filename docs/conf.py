@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 # Copyright 2020 Lucas Heitzmann Gabrielli.
 # This file is part of gdstk, distributed under the terms of the
@@ -23,7 +22,15 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autosummary",
     "sphinx_inline_tabs",
+    "myst_parser",
 ]
+
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".txt": "markdown",
+    ".md": "markdown",
+}
+
 
 autosummary_generate = True
 autosummary_imported_members = True
@@ -40,9 +47,9 @@ napoleon_use_ivar = True
 napoleon_use_param = True
 napoleon_use_rtype = True
 
-exclude_patterns = ['Thumbs.db', '.DS_Store']
+exclude_patterns = ["Thumbs.db", ".DS_Store"]
 
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 templates_path = ["_templates"]
 

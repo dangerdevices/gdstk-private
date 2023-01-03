@@ -1,4 +1,4 @@
-# GDSTK README
+# GDSTK 0.9.35
 
 [![Boost Software License - Version 1.0](https://img.shields.io/github/license/heitzmann/gdstk.svg)](https://www.boost.org/LICENSE_1_0.txt)
 [![Tests Runner](https://github.com/heitzmann/gdstk/workflows/Tests%20Runner/badge.svg)](https://github.com/heitzmann/gdstk/actions)
@@ -41,7 +41,7 @@ The library depends on [zlib](https://zlib.net/).
 
 ### Python wrapper
 
-The Python module can be installed via Conda (recommended) or compiled directly from source.
+The Python module can be installed via pip, Conda or compiled directly from source.
 It depends on:
 
 * [zlib](https://zlib.net/)
@@ -49,6 +49,16 @@ It depends on:
 * [Python](https://www.python.org/)
 * [Numpy](https://numpy.org/)
 * [Sphinx](https://www.sphinx-doc.org/), [Read the Docs Theme](https://sphinx-rtd-theme.readthedocs.io/), and [Sphinx Inline Tabs](https://sphinx-inline-tabs.readthedocs.io/) (to build the [documentation](http://heitzmann.github.io/gdstk))
+
+#### From PyPI
+
+Simply run the following to install the package for the current user:
+
+```sh
+pip install --user gdstk
+```
+
+Or download and install the available wheels manually.
 
 #### Conda
 
