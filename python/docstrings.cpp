@@ -3391,6 +3391,29 @@ Args:
 Returns:
     `True` if any point is inside the polygon set, `False` otherwise.)!");
 
+PyDoc_STRVAR(
+    references_short_function_doc,
+    R"!(references_short(ref1, ref2, layers=None, offset_distance=0.01, offset_tolerance=2, offset_precision=1e-3, boolean_precision=1e-3) -> bool
+
+Check whether the two references short together.
+
+An electrical short occurs when a polygon or path from the first reference
+intersects a polygon or path in the second reference, and both
+shapes have the same layer & datatype.
+
+Args:
+    layers: A sequence of (layer, datatype) pairs to check for shorting
+      shapes on. If None, all layers will be checked.
+    offset_distance: If positive, one of the references' shapes will be
+      offset by this amount before checking for shorting shapes. Set to
+      a negative number to disable offset.
+    offset_tolerance, offset_precision: See the definition of these
+      parameters in offset().
+    boolean_precision: See the definition of precision in boolean().
+
+Returns:
+    `True` if the references short together, `False` otherwise.)!");
+
 PyDoc_STRVAR(read_gds_function_doc,
              R"!(read_gds(infile, unit=0, tolerance=0, filter=None) -> gdstk.Library
 
