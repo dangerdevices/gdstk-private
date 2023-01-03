@@ -11,11 +11,7 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #define __STDC_FORMAT_MACROS
 #define _USE_MATH_DEFINES
 
-<<<<<<< HEAD
 #define GDSTK_VERSION "0.9.35"
-=======
-#define GDSTK_VERSION "0.9.1+dd10"
->>>>>>> dangerdevices
 
 // If GDSTK_CUSTOM_ALLOCATOR is defined, the user must supply implementations
 // for the following dynamic memory management functions:
