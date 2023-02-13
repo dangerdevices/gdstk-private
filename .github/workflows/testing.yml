@@ -21,7 +21,7 @@ jobs:
           pip install pytest
           pip install -r requirements.txt
       - name: Build and install
-        run: python setup.py install --user
+        run: pip install .
       - name: Test
         run: pytest
   windows-test:
@@ -45,7 +45,7 @@ jobs:
       - name: Install dependencies
         run: conda install cmake zlib numpy pytest
       - name: Build
-        run: python setup.py install --user
+        run: pip install .
       - name: Test
         run: pytest
   macos-test:
