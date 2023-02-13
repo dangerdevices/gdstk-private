@@ -71,7 +71,6 @@ jobs:
           pip install -r requirements.txt
       - name: Build and install
         run: |
-          python setup.py bdist_wheel
           pip install .
       - name: Test
         run: pytest
