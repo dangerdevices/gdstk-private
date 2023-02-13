@@ -1,10 +1,12 @@
 name: release gdstk installer
-on:
-  release:
-    types: [created, published]
-  push:
-    branches: [master]
-    tags: [v*]
+
+# Disabled; we do not want to be publishing releases from this internal fork.
+# on:
+#   release:
+#     types: [created, published]
+#   push:
+#     branches: [master]
+#     tags: [v*]
 
 jobs:
   release_add:

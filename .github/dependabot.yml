@@ -1,11 +1,13 @@
-version: 2
-updates:
-  - package-ecosystem: "pip"
-    directory: "/" # Location of package manifests
-    schedule:
-      interval: "weekly"
+# Disabled - we shouldn't update dependencies here in this private fork.
 
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: monthly
+# version: 2
+# updates:
+#   - package-ecosystem: "pip"
+#     directory: "/" # Location of package manifests
+#     schedule:
+#       interval: "weekly"
+
+#   - package-ecosystem: github-actions
+#     directory: /
+#     schedule:
+#       interval: monthly
