@@ -8,6 +8,7 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #include "oasis.h"
 
 #include <assert.h>
+#include <limits.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -67,7 +68,16 @@ size_t oasis_write(const void* buffer, size_t size, size_t count, OasisStream& o
         return total;
     }
     if (out.crc32) {
-        out.signature = crc32_z(out.signature, (uint8_t*)buffer, size * count);
+        uint64_t remaining = size * count;
+        uint8_t* b = (uint8_t*)buffer;
+        while (remaining > UINT_MAX) {
+            out.signature = crc32(out.signature, b, UINT_MAX);
+            remaining -= UINT64_MAX;
+            b += UINT64_MAX;
+        }
+        if (remaining > 0) {
+            out.signature = crc32(out.signature, b, (unsigned int)remaining);
+        }
     } else if (out.checksum32) {
         out.signature = checksum32(out.signature, (uint8_t*)buffer, size * count);
     }
@@ -89,7 +99,7 @@ int oasis_putc(int c, OasisStream& out) {
     }
     if (out.crc32) {
         uint8_t c_cast = (uint8_t)c;
-        out.signature = crc32_z(out.signature, &c_cast, 1);
+        out.signature = crc32(out.signature, &c_cast, 1);
     } else if (out.checksum32) {
         uint8_t c_cast = (uint8_t)c;
         out.signature = checksum32(out.signature, &c_cast, 1);
