@@ -1,8 +1,11 @@
 name: Publish Docs
-on:
-  push:
-    branches:
-      - master
+
+# Disabled; we do not want to be publishing docs from this internal fork.
+# on:
+#   push:
+#     branches:
+#       - master
+
 jobs:
   deploy-docs:
     runs-on: ubuntu-latest
