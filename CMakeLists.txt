@@ -4,6 +4,11 @@ file(READ src/gdstk.h HEADER_CONTENTS)
 string(REGEX MATCH "GDSTK_VERSION \"([^\"]*)\"" _ ${HEADER_CONTENTS})
 set(GDSTK_VERSION ${CMAKE_MATCH_1})
 
+# Releases from this private fork include PEP 440 local
+# version identifiers, but CMAKE only allows `[0-9.]` in
+# the project version string.
+string(REPLACE "+dd" "." GDSTK_VERSION ${GDSTK_VERSION})
+
 project(gdstk VERSION ${GDSTK_VERSION})
 
 if(NOT CMAKE_BUILD_TYPE)
