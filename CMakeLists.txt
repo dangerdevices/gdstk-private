@@ -19,6 +19,8 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /nologo /W3 /MD /EHsc /wd4996")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi")
@@ -43,7 +45,7 @@ if(NOT ZLIB_FOUND)
     # But give precedence to user-set library path
     if(DEFINED ENV{ZLIB_LIBRARIES})
         set(ZLIB_LIBRARIES $ENV{ZLIB_LIBRARIES})
-    # This would be set if find_library succedes, e.g. the library is on PATH, but no env-var was set.
+    # This would be set if find_library succeeds, e.g. the library is on PATH, but no env-var was set.
     elseif(NOT ZLIB_LIBRARIES)
         message(FATAL_ERROR "ZLIB could not be found, either via find_package, find_library, or env variable.")
     endif()

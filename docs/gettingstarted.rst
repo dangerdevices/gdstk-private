@@ -249,7 +249,7 @@ arguments to control the shape of the curve.
 Transformations
 ===============
 
-All polygons can be transformed trough :meth:`gdstk.Polygon.translate`,
+All polygons can be transformed through :meth:`gdstk.Polygon.translate`,
 :meth:`gdstk.Polygon.rotate`, :meth:`gdstk.Polygon.scale`, and
 :meth:`gdstk.Polygon.mirror`.  The transformations are applied in-place, i.e.,
 no new polygons are created.
@@ -724,13 +724,19 @@ existing GDSII or OASIS file into a new instance of :class:`gdstk.Library`.
       // Convert to new unit
       Library lib2 = read_gds("filename.gds", 1e-9);
 
-      // Use deafult OASIS unit (1e-6)
+      // Use default OASIS unit (1e-6)
       Library lib3 = read_oas("filename.oas");
 
-Access to the cells in the loaded library is provided through the list
-:attr:`gdstk.Library.cells`.  The method :meth:`gdstk.Library.top_level` can be
-used to find the top-level cells in the library (cells on the top of the
-hierarchy, i.e., cell that are not referenced by any other cells).
+Access to the cells in the loaded library is primarily provided through the
+list :attr:`gdstk.Library.cells`.  As a shorthand, if the desired cell name is
+know, the idiom ``lib1["CELL_NAME"]`` can be used, although it is not as
+efficient as building a cell dictionary if a large number of queries is
+expected.
+
+Additionally, the method :meth:`gdstk.Library.top_level` can be used to find
+the top-level cells in the library (cells on the top of the hierarchy, i.e.,
+cell that are not referenced by any other cells).
+
 
 Raw Cells
 =========

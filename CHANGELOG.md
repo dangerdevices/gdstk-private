@@ -1,4 +1,10 @@
 # Changelog
+## Unreleased
+### Added
+- Dictionary-like access to library cells by name.
+- `len(Library)` returns the number of cells in the library
+- `Reference.cell_name` to directly access a referenced cell's name
+
 ## 0.9.37 - 2023002-12
 ### Changed
 - Build system changes for lower numpy version requirements
@@ -16,11 +22,11 @@
 
 ## 0.9.1 - 2022-10-12
 ### Fixed
-- Reading polygons with extremelly large number of vertices
+- Reading polygons with extremely large number of vertices
 - Integer overflow in boolean operations
 - `GdsWriter` C++ API fix
 - Properly read zlib path from environment during build
-- Ensure polygons are closed when laoding GDSII files
+- Ensure polygons are closed when loading GDSII files
 - Reference counting in `Reference.apply_repetition` and `Cell.flatten`
 
 ## 0.9.0 - 2022-08-20
