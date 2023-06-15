@@ -1,9 +1,11 @@
 name: Create release
 
+# Disabled via the GitHub UI -- we do not publish public releases from our internal fork.
+
 on:
   push:
     tags:
-      - 'v*.*'
+      - "v*.*"
 
 jobs:
   release_add:
