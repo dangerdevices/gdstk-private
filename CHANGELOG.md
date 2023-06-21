@@ -1,11 +1,18 @@
 # Changelog
-## Unreleased
+
+## 0.9.42 - 2023-06-14
+### Fixed
+- `racetrack` bug in inner radius
+
+## 0.9.41 - 2023-05-24
 ### Added
 - Dictionary-like access to library cells by name.
 - `len(Library)` returns the number of cells in the library
 - `Reference.cell_name` to directly access a referenced cell's name
+### Fixed
+- `RobustPath` accepts width of 0 at the path end
 
-## 0.9.37 - 2023002-12
+## 0.9.37 - 2023-02-12
 ### Changed
 - Build system changes for lower numpy version requirements
 
@@ -14,7 +21,6 @@
 - Downgrade the zlib version dependency to support manylinux2014
 - Minor documentation improvements
 
-# Changelog
 ## 0.9.35 - 2022-12-16
 ### Fixed
 - Segfaults caused by class inheritance in Python
