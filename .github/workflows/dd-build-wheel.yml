@@ -1,4 +1,4 @@
-name: PyPI Packages
+name: DD PyPI Packages
 
 on:
   release:
