@@ -1,0 +1,22 @@
+name: PyPI Packages
+
+on:
+  release:
+      types: [published]
+  workflow_dispatch:
+
+jobs:
+  build_wheels:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          docker run quay.io/pypa/manylinux2014_x86_64 -v $(pwd):/gdstk:rw 'cd /gdstk ; python3.11 -m pip wheel .'
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./gdstk*.whl
