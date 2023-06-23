@@ -2,7 +2,7 @@ name: DD Build Wheels
 
 on:
   release:
-      types: [published]
+    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -13,8 +13,7 @@ jobs:
       - uses: actions/checkout@v3
       - run: |
           set -x
-          docker run quay.io/pypa/manylinux2014_x86_64 $(pwd):/gdstk 'cd /gdstk ; python3.11 -m pip wheel .'
+          docker run quay.io/pypa/manylinux2014_x86_64 -v $(pwd):/gdstk "/bin/bash -c 'cd /gdstk ; python3.11 -m pip wheel .'"
       - uses: actions/upload-artifact@v3
         with:
           path: ./gdstk*.whl
-
