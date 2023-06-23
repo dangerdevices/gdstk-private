@@ -14,4 +14,4 @@ jobs:
         - "${{github.workspace}}:/gdstk"
     steps:
       - name: Build wheel
-        run: cd /gdstk; python3.11 -m pip wheel .
+        run: cd /gdstk; ls -lah; python3.11 -m pip wheel .
