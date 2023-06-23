@@ -7,13 +7,11 @@ on:
 
 jobs:
   build_wheels:
-    runs-on: [ubuntu-latest]
-    name: Build wheels
+    runs-on: ubuntu-latest
+    container:
+      image: quay.io/pypa/manylinux2014_x86_64
+      volumes:
+        - my_docker_volume:/volume_mount
     steps:
-      - uses: actions/checkout@v3
-      - run: |
-          set -x
-          docker run quay.io/pypa/manylinux2014_x86_64 -v $(pwd):/gdstk "/bin/bash -c 'cd /gdstk ; python3.11 -m pip wheel .'"
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./gdstk*.whl
+      - name: Build wheel
+        run: cd /_work; python3.11 -m pip wheel .
