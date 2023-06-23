@@ -11,7 +11,7 @@ jobs:
     container:
       image: quay.io/pypa/manylinux2014_x86_64
       volumes:
-        - my_docker_volume:/volume_mount
+        - "${{github.workspace}}:/gdstk"
     steps:
       - name: Build wheel
-        run: ls -alh .; python3.11 -m pip wheel .
+        run: cd /gdstk; python3.11 -m pip wheel .
