@@ -14,4 +14,4 @@ jobs:
         - my_docker_volume:/volume_mount
     steps:
       - name: Build wheel
-        run: python3.11 -m pip wheel .
+        run: cd /__w; python3.11 -m pip wheel .
