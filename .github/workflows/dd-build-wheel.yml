@@ -6,11 +6,16 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_wheels:
+  build_wheel:
     runs-on: ubuntu-latest
     container:
       image: quay.io/pypa/manylinux2014_x86_64
     steps:
-      - uses: actions/checkout@v3
+      - name: Check out source
+        uses: actions/checkout@v3
       - name: Build wheel
         run: python3.11 -m pip wheel .
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3.1.1
+        with:
+          path: gdstk-*.whl
