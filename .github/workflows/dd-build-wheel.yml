@@ -10,8 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: quay.io/pypa/manylinux2014_x86_64
-      volumes:
-        - "${{github.workspace}}:/gdstk"
     steps:
+      - uses: actions/checkout@v3
       - name: Build wheel
-        run: cd /gdstk; ls -lah; python3.11 -m pip wheel .
+        run: python3.11 -m pip wheel .
