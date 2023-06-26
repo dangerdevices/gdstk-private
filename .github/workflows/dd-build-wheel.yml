@@ -15,7 +15,11 @@ jobs:
         uses: actions/checkout@v3
       - name: Build wheel
         run: python3.11 -m pip wheel .
+      - name: Find wheel name
+        run: |
+          wheel_path=$(find . -name 'gdstk-*.whl' | head -n1)
+          echo "wheel_path=$wheel_path" >> "$GITHUB_ENV"
       - name: Upload artifact
-        uses: actions/upload-artifact@v3.1.1
+        uses: actions/upload-artifact@v3
         with:
-          path: gdstk-*.whl
+          path: ${{ env.wheel_path }}
