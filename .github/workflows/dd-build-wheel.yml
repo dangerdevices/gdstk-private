@@ -26,6 +26,7 @@ jobs:
           path: ${{ env.wheel_path }}
   upload_release_file:
     if: github.ref_type == 'tag'
+    needs: build_wheel
     runs-on: ubuntu-latest
     steps:
       - name: Retrieve artifact
