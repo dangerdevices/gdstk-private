@@ -25,7 +25,7 @@ jobs:
           name: gdstk_manylinux2014_x86_64_wheel
           path: ${{ env.wheel_path }}
   upload_release_file:
-    if: ${{ github.ref_type }} == "tag"
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
       - name: Retrieve artifact
