@@ -6,14 +6,33 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_wheels:
-    runs-on: [ubuntu-latest]
-    name: Build wheels
+  build_wheel:
+    runs-on: ubuntu-latest
+    container:
+      image: quay.io/pypa/manylinux2014_x86_64
     steps:
-      - uses: actions/checkout@v3
-      - run: |
-          set -x
-          docker run quay.io/pypa/manylinux2014_x86_64 -v $(pwd):/gdstk "/bin/bash -c 'cd /gdstk ; python3.11 -m pip wheel .'"
-      - uses: actions/upload-artifact@v3
+      - name: Check out source
+        uses: actions/checkout@v3
+      - name: Build wheel
+        run: python3.11 -m pip wheel .
+      - name: Find wheel name
+        run: |
+          wheel_path=$(find . -name 'gdstk-*.whl' | head -n1)
+          echo "wheel_path=$wheel_path" >> "$GITHUB_ENV"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
         with:
-          path: ./gdstk*.whl
+          name: gdstk_manylinux2014_x86_64_wheel
+          path: ${{ env.wheel_path }}
+  upload_release_file:
+    if: github.ref_type == 'tag'
+    needs: build_wheel
+    runs-on: ubuntu-latest
+    steps:
+      - name: Retrieve artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: gdstk_manylinux2014_x86_64_wheel
+      - name: Upload release file
+        run: |
+          gh release upload "${{ github.ref_name }}" gdstk-*.whl --clobber
