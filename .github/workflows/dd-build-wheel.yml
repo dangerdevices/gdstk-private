@@ -34,5 +34,7 @@ jobs:
         with:
           name: gdstk_manylinux2014_x86_64_wheel
       - name: Upload release file
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "${{ github.ref_name }}" gdstk-*.whl --clobber
