@@ -1,0 +1,42 @@
+name: DD Build Wheels
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build_wheel:
+    runs-on: ubuntu-latest
+    container:
+      image: quay.io/pypa/manylinux2014_x86_64
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v3
+      - name: Build wheel
+        run: python3.11 -m pip wheel .
+      - name: Find wheel name
+        run: |
+          wheel_path=$(find . -name 'gdstk-*.whl' | head -n1)
+          echo "wheel_path=$wheel_path" >> "$GITHUB_ENV"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: gdstk_manylinux2014_x86_64_wheel
+          path: ${{ env.wheel_path }}
+  upload_release_file:
+    if: github.ref_type == 'tag'
+    needs: build_wheel
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Retrieve artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: gdstk_manylinux2014_x86_64_wheel
+      - name: Upload release file
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" gdstk-*.whl --repo dangerdevices/gdstk-private --clobber

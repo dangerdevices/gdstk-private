@@ -1,5 +1,7 @@
 name: Publish Docs
 
+# Disabled via the GitHub UI -- we do not publish docs from this internal fork.
+
 on:
   push:
     branches: [main]
@@ -16,7 +18,7 @@ jobs:
         with:
           python-version: 3.11
           architecture: x64
-          cache: 'pip'
+          cache: "pip"
       - name: Install Python dependencies
         run: |
           pip install pip-tools
