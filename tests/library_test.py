@@ -518,6 +518,5 @@ def test_roundtrip_path_ends(tmpdir: pathlib.Path):
         gds_path = gdstk.read_gds(tmpdir / "path_test.gds").top_level()[0].get_paths()[0]
         oas_path = gdstk.read_oas(tmpdir / "path_test.oas").top_level()[0].get_paths()[0]
 
-        assert (
-            path.ends == gds_path.ends and path.ends == oas_path.ends
-        ), f"expected: {path.ends}, gds: {gds_path.ends}, oas: {oas_path.ends}"
+        assert path.ends == gds_path.ends
+        assert path.ends == oas_path.ends
