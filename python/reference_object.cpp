@@ -137,6 +137,10 @@ static PyObject* reference_object_bounding_box(ReferenceObject* self, PyObject*)
 static PyObject* reference_object_convex_hull(ReferenceObject* self, PyObject*) {
     Array<Vec2> points = {};
     self->reference->convex_hull(points);
+    if (points.count == 0) {
+        points.clear();
+        Py_RETURN_NONE;
+    }
     npy_intp dims[] = {(npy_intp)points.count, 2};
     PyObject* result = PyArray_SimpleNew(2, dims, NPY_DOUBLE);
     if (!result) {
