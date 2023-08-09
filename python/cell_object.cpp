@@ -230,6 +230,10 @@ static PyObject* cell_object_bounding_box(CellObject* self, PyObject*) {
 static PyObject* cell_object_convex_hull(CellObject* self, PyObject*) {
     Array<Vec2> points = {};
     self->cell->convex_hull(points);
+    if (points.count == 0) {
+        points.clear();
+        Py_RETURN_NONE;
+    }
     npy_intp dims[] = {(npy_intp)points.count, 2};
     PyObject* result = PyArray_SimpleNew(2, dims, NPY_DOUBLE);
     if (!result) {
