@@ -330,7 +330,7 @@ double oasis_read_real_by_type(OasisStream& in, OasisDataType type) {
     return 0;
 }
 
-uint64_t oasis_read_point_list(OasisStream& in, double scaling, bool closed, Array<Vec2>& result) {
+uint64_t oasis_read_point_list(OasisStream& in, bool closed, Array<IntVec2>& result) {
     assert(result.count > 0);
 
     uint8_t byte;
@@ -343,18 +343,18 @@ uint64_t oasis_read_point_list(OasisStream& in, double scaling, bool closed, Arr
         case OasisPointList::ManhattanHorizontalFirst:
         case OasisPointList::ManhattanVerticalFirst: {
             result.ensure_slots(closed ? num + 1 : num);
-            Vec2* cur = result.items + result.count;
-            Vec2* ref = cur - 1;
-            Vec2 initial = *ref;
+            IntVec2* cur = result.items + result.count;
+            IntVec2* ref = cur - 1;
+            IntVec2 initial = *ref;
             bool horizontal = (OasisPointList)byte == OasisPointList::ManhattanHorizontalFirst;
             for (uint64_t i = num; i > 0; i--) {
                 if (horizontal) {
-                    cur->x = ref->x + oasis_read_1delta(in) * scaling;
+                    cur->x = ref->x + oasis_read_1delta(in);
                     cur->y = ref->y;
                     horizontal = false;
                 } else {
                     cur->x = ref->x;
-                    cur->y = ref->y + oasis_read_1delta(in) * scaling;
+                    cur->y = ref->y + oasis_read_1delta(in);
                     horizontal = true;
                 }
                 cur++;
@@ -370,51 +370,49 @@ uint64_t oasis_read_point_list(OasisStream& in, double scaling, bool closed, Arr
                 }
                 num++;
             }
+            // TODO: need `closed ? num + 1 : num` here?
             result.count += num;
         } break;
         case OasisPointList::Manhattan: {
             result.ensure_slots(num);
-            Vec2* cur = result.items + result.count;
-            Vec2* ref = cur - 1;
+            IntVec2* cur = result.items + result.count;
+            IntVec2* ref = cur - 1;
             for (uint64_t i = num; i > 0; i--) {
                 int64_t x, y;
                 oasis_read_2delta(in, x, y);
-                *cur++ = Vec2{scaling * x, scaling * y} + *ref++;
+                *cur++ = IntVec2{x, y} + *ref++;
             }
             result.count += num;
         } break;
         case OasisPointList::Octangular: {
             result.ensure_slots(num);
-            Vec2* cur = result.items + result.count;
-            Vec2* ref = cur - 1;
+            IntVec2* cur = result.items + result.count;
+            IntVec2* ref = cur - 1;
             for (uint64_t i = num; i > 0; i--) {
                 int64_t x, y;
                 oasis_read_3delta(in, x, y);
-                *cur++ = Vec2{scaling * x, scaling * y} + *ref++;
+                *cur++ = IntVec2{x, y} + *ref++;
             }
             result.count += num;
         } break;
         case OasisPointList::General: {
             result.ensure_slots(num);
-            Vec2* cur = result.items + result.count;
-            Vec2* ref = cur - 1;
+            IntVec2* cur = result.items + result.count;
+            IntVec2* ref = cur - 1;
             for (uint64_t i = num; i > 0; i--) {
                 int64_t x, y;
                 oasis_read_gdelta(in, x, y);
-                *cur++ = Vec2{scaling * x, scaling * y} + *ref++;
+                *cur++ = IntVec2{x, y} + *ref++;
             }
             result.count += num;
         } break;
         case OasisPointList::Relative: {
-            Vec2 delta = {0, 0};
             result.ensure_slots(num);
-            Vec2* cur = result.items + result.count;
-            Vec2* ref = cur - 1;
+            IntVec2 delta = {0, 0};
+            IntVec2* cur = result.items + result.count;
+            IntVec2* ref = cur - 1;
             for (uint64_t i = num; i > 0; i--) {
-                int64_t x, y;
-                oasis_read_gdelta(in, x, y);
-                delta.x += scaling * x;
-                delta.y += scaling * y;
+                oasis_read_gdelta(in, delta.x, delta.y);
                 *cur++ = delta + *ref++;
             }
             result.count += num;
@@ -425,6 +423,22 @@ uint64_t oasis_read_point_list(OasisStream& in, double scaling, bool closed, Arr
             return 0;
     }
     return num;
+}
+
+inline Vec2 oasis_point_to_microns(IntVec2& in, double scaling) {
+    return Vec2 {
+        in.x * scaling,
+        in.y * scaling
+    };
+}
+
+// See utils.cpp::scale_and_round_array().
+void oasis_point_list_to_microns(Array<IntVec2>& in, double scaling, Array<Vec2>& out) {
+    out.ensure_slots(in.count);
+
+    for(uint64_t i = 0; i < in.count; i++) {
+        out.append_unsafe(oasis_point_to_microns(in[i], scaling));
+    }
 }
 
 void oasis_read_repetition(OasisStream& in, double scaling, Repetition& repetition) {

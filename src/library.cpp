@@ -1394,10 +1394,10 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
     Repetition modal_repetition = {RepetitionType::None};
     Label* modal_text_string = NULL;
     Reference* modal_placement_cell = NULL;
-    Array<Vec2> modal_polygon_points = {};
-    modal_polygon_points.append(Vec2{0, 0});
-    Array<Vec2> modal_path_points = {};
-    modal_path_points.append(Vec2{0, 0});
+    Array<IntVec2> modal_polygon_points = {};
+    modal_polygon_points.append(IntVec2{0, 0});
+    Array<IntVec2> modal_path_points = {};
+    modal_path_points.append(IntVec2{0, 0});
     double modal_path_halfwidth = 0;
     Vec2 modal_path_extensions = {0, 0};
     uint8_t modal_ctrapezoid_type = 0;
@@ -1870,9 +1870,9 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 set_type(polygon->tag, modal_datatype);
                 if (info & 0x20) {
                     modal_polygon_points.count = 1;
-                    oasis_read_point_list(in, factor, true, modal_polygon_points);
+                    oasis_read_point_list(in, true, modal_polygon_points);
                 }
-                polygon->point_array.copy_from(modal_polygon_points);
+                oasis_point_list_to_microns(modal_polygon_points, factor, polygon->point_array);
                 if (info & 0x10) {
                     double x = factor * oasis_read_integer(in);
                     if (modal_absolute_pos) {
@@ -1958,7 +1958,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 }
                 if (info & 0x20) {
                     modal_path_points.count = 1;
-                    oasis_read_point_list(in, factor, false, modal_path_points);
+                    oasis_read_point_list(in, false, modal_path_points);
                 }
                 if (info & 0x10) {
                     double x = factor * oasis_read_integer(in);
@@ -1977,8 +1977,12 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 path->spine.append(modal_geom_pos);
-                const Array<Vec2> skip_first = {0, modal_path_points.count - 1,
-                                                modal_path_points.items + 1};
+
+                Array<Vec2> path_points = {0};
+                oasis_point_list_to_microns(modal_path_points, factor, path_points);
+
+                const Array<Vec2> skip_first = {0, path_points.count - 1,
+                                                path_points.items + 1};
                 path->segment(skip_first, NULL, NULL, true);
                 if (info & 0x04) {
                     oasis_read_repetition(in, factor, modal_repetition);
