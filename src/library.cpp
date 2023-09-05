@@ -1387,7 +1387,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
     uint32_t modal_datatype = 0;
     uint32_t modal_textlayer = 0;
     uint32_t modal_texttype = 0;
-    Vec2 modal_placement_pos = {0, 0};
+    IntVec2 modal_placement_pos = {0, 0};
     Vec2 modal_text_pos = {0, 0};
     IntVec2 modal_geom_pos = {0, 0};
     Vec2 modal_geom_dim = {0, 0};
@@ -1672,7 +1672,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     cell->name = (char*)oasis_read_string(in, true, len);
                 }
                 modal_absolute_pos = true;
-                modal_placement_pos = Vec2{0, 0};
+                modal_placement_pos = IntVec2{0, 0};
                 modal_geom_pos = IntVec2{0, 0};
                 modal_text_pos = Vec2{0, 0};
             } break;
@@ -1735,7 +1735,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 }
                 reference->x_reflection = info & 0x01;
                 if (info & 0x20) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_placement_pos.x = x;
                     } else {
@@ -1743,14 +1743,14 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x10) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_placement_pos.y = y;
                     } else {
                         modal_placement_pos.y += y;
                     }
                 }
-                reference->origin = modal_placement_pos;
+                reference->origin = oasis_point_to_microns(modal_placement_pos, factor);
                 if (info & 0x08) {
                     oasis_read_repetition(in, factor, modal_repetition);
                     reference->repetition.copy_from(modal_repetition);
