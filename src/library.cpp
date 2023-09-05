@@ -1388,7 +1388,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
     uint32_t modal_textlayer = 0;
     uint32_t modal_texttype = 0;
     IntVec2 modal_placement_pos = {0, 0};
-    Vec2 modal_text_pos = {0, 0};
+    IntVec2 modal_text_pos = {0, 0};
     IntVec2 modal_geom_pos = {0, 0};
     Vec2 modal_geom_dim = {0, 0};
     Repetition modal_repetition = {RepetitionType::None};
@@ -1674,7 +1674,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 modal_absolute_pos = true;
                 modal_placement_pos = IntVec2{0, 0};
                 modal_geom_pos = IntVec2{0, 0};
-                modal_text_pos = Vec2{0, 0};
+                modal_text_pos = IntVec2{0, 0};
             } break;
             case OasisRecord::XYABSOLUTE:
                 modal_absolute_pos = true;
@@ -1790,7 +1790,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 }
                 set_type(label->tag, modal_texttype);
                 if (info & 0x10) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_text_pos.x = x;
                     } else {
@@ -1798,14 +1798,14 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x08) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_text_pos.y = y;
                     } else {
                         modal_text_pos.y += y;
                     }
                 }
-                label->origin = modal_text_pos;
+                label->origin = oasis_point_to_microns(modal_text_pos, factor);
                 if (info & 0x04) {
                     oasis_read_repetition(in, factor, modal_repetition);
                     label->repetition.copy_from(modal_repetition);
