@@ -425,13 +425,6 @@ uint64_t oasis_read_point_list(OasisStream& in, bool closed, Array<IntVec2>& res
     return num;
 }
 
-inline Vec2 oasis_point_to_microns(IntVec2& in, double scaling) {
-    return Vec2 {
-        in.x * scaling,
-        in.y * scaling
-    };
-}
-
 // See utils.cpp::scale_and_round_array().
 void oasis_point_list_to_microns(Array<IntVec2>& in, double scaling, Array<Vec2>& out) {
     out.ensure_slots(in.count);

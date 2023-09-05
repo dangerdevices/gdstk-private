@@ -1389,7 +1389,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
     uint32_t modal_texttype = 0;
     Vec2 modal_placement_pos = {0, 0};
     Vec2 modal_text_pos = {0, 0};
-    Vec2 modal_geom_pos = {0, 0};
+    IntVec2 modal_geom_pos = {0, 0};
     Vec2 modal_geom_dim = {0, 0};
     Repetition modal_repetition = {RepetitionType::None};
     Label* modal_text_string = NULL;
@@ -1673,7 +1673,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 }
                 modal_absolute_pos = true;
                 modal_placement_pos = Vec2{0, 0};
-                modal_geom_pos = Vec2{0, 0};
+                modal_geom_pos = IntVec2{0, 0};
                 modal_text_pos = Vec2{0, 0};
             } break;
             case OasisRecord::XYABSOLUTE:
@@ -1832,7 +1832,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     modal_geom_dim.y = modal_geom_dim.x;
                 }
                 if (info & 0x10) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.x = x;
                     } else {
@@ -1840,14 +1840,15 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x08) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.y = y;
                     } else {
                         modal_geom_pos.y += y;
                     }
                 }
-                *polygon = rectangle(modal_geom_pos, modal_geom_pos + modal_geom_dim,
+                Vec2 geom_pos = oasis_point_to_microns(modal_geom_pos, factor);
+                *polygon = rectangle(geom_pos, geom_pos + modal_geom_dim,
                                      make_tag(modal_layer, modal_datatype));
                 if (info & 0x04) {
                     oasis_read_repetition(in, factor, modal_repetition);
@@ -1872,9 +1873,8 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     modal_polygon_points.count = 1;
                     oasis_read_point_list(in, true, modal_polygon_points);
                 }
-                oasis_point_list_to_microns(modal_polygon_points, factor, polygon->point_array);
                 if (info & 0x10) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.x = x;
                     } else {
@@ -1882,16 +1882,20 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x08) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.y = y;
                     } else {
                         modal_geom_pos.y += y;
                     }
                 }
-                Vec2* v = polygon->point_array.items;
-                for (uint64_t i = polygon->point_array.count; i > 0; i--) {
-                    *v++ += modal_geom_pos;
+                polygon->point_array.ensure_slots(modal_polygon_points.count);
+                const IntVec2* v = modal_polygon_points.items;
+                for (uint64_t i = modal_polygon_points.count; i > 0; i--) {
+                    IntVec2 op = *v++ + modal_geom_pos;
+                    polygon->point_array.append_unsafe(
+                        oasis_point_to_microns(op, factor)
+                    );
                 }
                 if (info & 0x04) {
                     oasis_read_repetition(in, factor, modal_repetition);
@@ -1961,7 +1965,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     oasis_read_point_list(in, false, modal_path_points);
                 }
                 if (info & 0x10) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.x = x;
                     } else {
@@ -1969,14 +1973,14 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x08) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.y = y;
                     } else {
                         modal_geom_pos.y += y;
                     }
                 }
-                path->spine.append(modal_geom_pos);
+                path->spine.append(oasis_point_to_microns(modal_geom_pos, factor));
 
                 Array<Vec2> path_points = {0};
                 oasis_point_list_to_microns(modal_path_points, factor, path_points);
@@ -2023,7 +2027,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     delta_b = factor * oasis_read_1delta(in);
                 }
                 if (info & 0x10) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.x = x;
                     } else {
@@ -2031,7 +2035,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x08) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.y = y;
                     } else {
@@ -2045,38 +2049,39 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 Vec2* s = r + 1;
                 Vec2* q = s + 1;
                 Vec2* p = q + 1;
+                Vec2 geom_pos = oasis_point_to_microns(modal_geom_pos, factor);
                 if (info & 0x80) {
-                    p->x = q->x = modal_geom_pos.x;
-                    r->x = s->x = modal_geom_pos.x + modal_geom_dim.x;
+                    p->x = q->x = geom_pos.x;
+                    r->x = s->x = geom_pos.x + modal_geom_dim.x;
                     if (delta_a < 0) {
-                        p->y = modal_geom_pos.y;
+                        p->y = geom_pos.y;
                         r->y = p->y - delta_a;
                     } else {
-                        r->y = modal_geom_pos.y;
+                        r->y = geom_pos.y;
                         p->y = r->y + delta_a;
                     }
                     if (delta_b < 0) {
-                        s->y = modal_geom_pos.y + modal_geom_dim.y;
+                        s->y = geom_pos.y + modal_geom_dim.y;
                         q->y = s->y + delta_b;
                     } else {
-                        q->y = modal_geom_pos.y + modal_geom_dim.y;
+                        q->y = geom_pos.y + modal_geom_dim.y;
                         s->y = q->y - delta_b;
                     }
                 } else {
-                    p->y = q->y = modal_geom_pos.y + modal_geom_dim.y;
-                    r->y = s->y = modal_geom_pos.y;
+                    p->y = q->y = geom_pos.y + modal_geom_dim.y;
+                    r->y = s->y = geom_pos.y;
                     if (delta_a < 0) {
-                        p->x = modal_geom_pos.x;
+                        p->x = geom_pos.x;
                         r->x = p->x - delta_a;
                     } else {
-                        r->x = modal_geom_pos.x;
+                        r->x = geom_pos.x;
                         p->x = r->x + delta_a;
                     }
                     if (delta_b < 0) {
-                        s->x = modal_geom_pos.x + modal_geom_dim.x;
+                        s->x = geom_pos.x + modal_geom_dim.x;
                         q->x = s->x + delta_b;
                     } else {
-                        q->x = modal_geom_pos.x + modal_geom_dim.x;
+                        q->x = geom_pos.x + modal_geom_dim.x;
                         s->x = q->x - delta_b;
                     }
                 }
@@ -2109,7 +2114,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     modal_geom_dim.y = factor * oasis_read_unsigned_integer(in);
                 }
                 if (info & 0x10) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.x = x;
                     } else {
@@ -2117,7 +2122,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x08) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.y = y;
                     } else {
@@ -2126,21 +2131,22 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 }
                 Array<Vec2>* point_array = &polygon->point_array;
                 Vec2* v;
+                Vec2 geom_pos = oasis_point_to_microns(modal_geom_pos, factor);
                 if (modal_ctrapezoid_type > 15 && modal_ctrapezoid_type < 24) {
                     point_array->ensure_slots(3);
                     point_array->count = 3;
                     v = point_array->items;
-                    v[0] = modal_geom_pos;
-                    v[1] = modal_geom_pos;
-                    v[2] = modal_geom_pos;
+                    v[0] = geom_pos;
+                    v[1] = geom_pos;
+                    v[2] = geom_pos;
                 } else {
                     point_array->ensure_slots(4);
                     point_array->count = 4;
                     v = point_array->items;
-                    v[0] = modal_geom_pos;
-                    v[1] = modal_geom_pos + Vec2{modal_geom_dim.x, 0};
-                    v[2] = modal_geom_pos + modal_geom_dim;
-                    v[3] = modal_geom_pos + Vec2{0, modal_geom_dim.y};
+                    v[0] = geom_pos;
+                    v[1] = geom_pos + Vec2{modal_geom_dim.x, 0};
+                    v[2] = geom_pos + modal_geom_dim;
+                    v[3] = geom_pos + Vec2{0, modal_geom_dim.y};
                 }
                 switch (modal_ctrapezoid_type) {
                     case 0:
@@ -2237,7 +2243,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                         v[2].y += modal_geom_dim.x;
                         break;
                     case 25:
-                        v[2].y = v[3].y = modal_geom_pos.y + modal_geom_dim.x;
+                        v[2].y = v[3].y = geom_pos.y + modal_geom_dim.x;
                         break;
                 }
                 if (info & 0x04) {
@@ -2261,7 +2267,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     modal_circle_radius = factor * oasis_read_unsigned_integer(in);
                 }
                 if (info & 0x10) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.x = x;
                     } else {
@@ -2269,14 +2275,15 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x08) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.y = y;
                     } else {
                         modal_geom_pos.y += y;
                     }
                 }
-                *polygon = ellipse(modal_geom_pos, modal_circle_radius, modal_circle_radius, 0, 0,
+                *polygon = ellipse(oasis_point_to_microns(modal_geom_pos, factor),
+                                   modal_circle_radius, modal_circle_radius, 0, 0,
                                    0, 0, tolerance, make_tag(modal_layer, modal_datatype));
                 if (info & 0x04) {
                     oasis_read_repetition(in, factor, modal_repetition);
