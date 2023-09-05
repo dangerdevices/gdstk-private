@@ -370,7 +370,6 @@ uint64_t oasis_read_point_list(OasisStream& in, bool closed, Array<IntVec2>& res
                 }
                 num++;
             }
-            // TODO: need `closed ? num + 1 : num` here?
             result.count += num;
         } break;
         case OasisPointList::Manhattan: {
