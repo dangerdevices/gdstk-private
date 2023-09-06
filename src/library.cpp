@@ -1988,6 +1988,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 const Array<Vec2> skip_first = {0, path_points.count - 1,
                                                 path_points.items + 1};
                 path->segment(skip_first, NULL, NULL, true);
+                path_points.clear();
                 if (info & 0x04) {
                     oasis_read_repetition(in, factor, modal_repetition);
                     path->repetition.copy_from(modal_repetition);
