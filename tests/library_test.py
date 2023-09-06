@@ -5,12 +5,13 @@
 # Boost Software License - Version 1.0.  See the accompanying
 # LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
-from datetime import datetime
 import hashlib
 import pathlib
-import pytest
-import numpy
+from datetime import datetime
+
 import gdstk
+import numpy
+import pytest
 
 
 @pytest.fixture
@@ -520,3 +521,13 @@ def test_roundtrip_path_ends(tmpdir: pathlib.Path):
 
         assert path.ends == gds_path.ends
         assert path.ends == oas_path.ends
+
+
+def test_oasis_polygon_points(complex_polygon_oasis_lib: gdstk.Library):
+    poly = complex_polygon_oasis_lib.top_level()[0].polygons[0]
+    numpy.testing.assert_allclose(
+        [3203.64, 2445.91],
+        poly.points[-1],
+        rtol=0,
+        atol=1e-13
+    )

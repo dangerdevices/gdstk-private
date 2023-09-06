@@ -195,7 +195,15 @@ inline double oasis_read_real(OasisStream& in) {
 // result must have at least 1 point in it, which will be used as reference for the relative deltas.
 // polygon indicates whether this is supposed to be a polygon point list (in which case there will
 // be an implicit extra delta for Manhattan types).
-uint64_t oasis_read_point_list(OasisStream& in, double scaling, bool closed, Array<Vec2>& result);
+uint64_t oasis_read_point_list(OasisStream& in, bool closed, Array<IntVec2>& result);
+
+void oasis_point_list_to_microns(Array<IntVec2>& in, double scaling, Array<Vec2>& out);
+inline Vec2 oasis_point_to_microns(IntVec2& in, double scaling) {
+      return Vec2 {
+        in.x * scaling,
+        in.y * scaling
+    };
+}
 
 void oasis_read_repetition(OasisStream& in, double scaling, Repetition& repetition);
 
