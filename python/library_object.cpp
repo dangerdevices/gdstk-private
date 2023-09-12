@@ -68,9 +68,10 @@ static int library_object_init(LibraryObject* self, PyObject* args, PyObject* kw
 }
 
 static PyObject* library_object_copy(LibraryObject* self,  PyObject* args, PyObject* kwds) {
+    char *name = NULL;
     int deep_copy = 1;
-    const char* keywords[] = {"deep_copy", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|p:copy", (char**)keywords, &deep_copy))
+    const char* keywords[] = {"name", "deep_copy", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|sp:copy", (char**)keywords, &name, &deep_copy))
         return NULL;
 
     LibraryObject* result = PyObject_New(LibraryObject, &library_object_type);
@@ -78,6 +79,8 @@ static PyObject* library_object_copy(LibraryObject* self,  PyObject* args, PyObj
     Library* library = result->library;
     library->owner = result;
     library->copy_from(*self->library, deep_copy > 0);
+
+    if (name) library->name = copy_string(name, NULL);
 
     Array<Cell*>* cell_array = &library->cell_array;
     if (deep_copy) {

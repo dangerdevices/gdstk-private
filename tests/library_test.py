@@ -451,11 +451,11 @@ def test_layers_and_types(sample_library):
 
 
 def test_shallow_copy(sample_library):
-    library = sample_library.copy(deep_copy=False)
+    library = sample_library.copy(name="foo", deep_copy=False)
 
     assert id(library) != id(sample_library)
 
-    assert library.name == sample_library.name
+    assert library.name == "foo"
     assert library.unit == sample_library.unit
     assert library.precision == sample_library.precision
     assert library.layers_and_datatypes() == sample_library.layers_and_datatypes()
