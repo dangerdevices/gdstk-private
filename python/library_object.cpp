@@ -141,7 +141,25 @@ static PyObject* library_object_copy(LibraryObject* self,  PyObject* args, PyObj
             }
         }
     } else {
-        for (uint64_t i = 0; i < cell_array->count; i++) Py_INCREF((*cell_array)[i]->owner);
+        for (uint64_t i = 0; i < cell_array->count; i++) {
+            Cell* cell = (*cell_array)[i];
+            Py_INCREF(cell->owner);
+
+            Array<Polygon*>* polygon_array = &cell->polygon_array;
+            for (uint64_t i = 0; i < polygon_array->count; i++) Py_INCREF((*polygon_array)[i]->owner);
+
+            Array<Reference*>* reference_array = &cell->reference_array;
+            for (uint64_t i = 0; i < reference_array->count; i++) Py_INCREF((*reference_array)[i]->owner);
+
+            Array<FlexPath*>* flexpath_array = &cell->flexpath_array;
+            for (uint64_t i = 0; i < flexpath_array->count; i++) Py_INCREF((*flexpath_array)[i]->owner);
+
+            Array<RobustPath*>* robustpath_array = &cell->robustpath_array;
+            for (uint64_t i = 0; i < robustpath_array->count; i++) Py_INCREF((*robustpath_array)[i]->owner);
+
+            Array<Label*>* label_array = &cell->label_array;
+            for (uint64_t i = 0; i < label_array->count; i++) Py_INCREF((*label_array)[i]->owner);
+        }
     }
 
     // raw cells should be immutable, so there's no need to perform a deep copy
