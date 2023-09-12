@@ -473,6 +473,7 @@ def test_deep_copy(sample_library):
     assert sample_library.unit == lib.unit
     assert sample_library.precision == lib.precision
 
+
 def test_rename_cell():
     c1 = gdstk.Cell("C1")
     c2 = gdstk.Cell("C2")

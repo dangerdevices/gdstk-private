@@ -70,6 +70,17 @@ void Library::copy_from(const Library& library, bool deep_copy) {
             *dst = (Cell*)allocate_clear(sizeof(Cell));
             (*dst)->copy_from(**src, NULL, true);
         }
+
+        src = library.cell_array.items;
+        dst = cell_array.items;
+        for (uint64_t i = 0; i < library.cell_array.count; i++, src++, dst++) {
+            Reference **srcref = (*src)->reference_array.items;
+            Reference **dstref = (*dst)->reference_array.items;
+            for (uint64_t j = 0; j < (*src)->reference_array.count; j++, srcref++, dstref++) {
+                if ((*dstref)->type == ReferenceType::Cell)
+                    (*dstref)->cell = get_cell((*srcref)->cell->name);
+            }
+        }
     } else {
         cell_array.copy_from(library.cell_array);
     }
