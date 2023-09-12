@@ -80,6 +80,8 @@ void Library::copy_from(const Library& library, bool deep_copy) {
             for (uint64_t j = 0; j < (*src)->reference_array.count; j++, srcref++, dstref++) {
                 if ((*dstref)->type == ReferenceType::Cell)
                     (*dstref)->cell = get_cell((*srcref)->cell->name);
+                else if ((*dstref)->type == ReferenceType::RawCell)
+                    (*dstref)->rawcell = get_rawcell((*srcref)->rawcell->name);
             }
         }
     } else {
