@@ -100,19 +100,6 @@ static PyObject* library_object_copy(LibraryObject* self,  PyObject* args, PyObj
                 new_obj->polygon = polygon;
             }
 
-            Array<Reference*>* reference_array = &cell->reference_array;
-            for (uint64_t i = 0; i < reference_array->count; i++) {
-                ReferenceObject* new_obj = PyObject_New(ReferenceObject, &reference_object_type);
-                new_obj = (ReferenceObject*)PyObject_Init((PyObject*)new_obj, &reference_object_type);
-                Reference* reference = (*reference_array)[i];
-                reference->owner = new_obj;
-                new_obj->reference = reference;
-                if (reference->type == ReferenceType::Cell)
-                    Py_INCREF(reference->cell->owner);
-                else if (reference->type == ReferenceType::RawCell)
-                    Py_INCREF(reference->rawcell->owner);
-            }
-
             Array<FlexPath*>* flexpath_array = &cell->flexpath_array;
             for (uint64_t i = 0; i < flexpath_array->count; i++) {
                 FlexPathObject* new_obj = PyObject_New(FlexPathObject, &flexpath_object_type);
@@ -159,6 +146,27 @@ static PyObject* library_object_copy(LibraryObject* self,  PyObject* args, PyObj
 
             Array<Label*>* label_array = &cell->label_array;
             for (uint64_t i = 0; i < label_array->count; i++) Py_INCREF((*label_array)[i]->owner);
+        }
+    }
+
+    // must update references after all cells have been assigned a new owner
+    if (deep_copy) {
+        cell_array = &library->cell_array;
+        for (uint64_t i = 0; i < cell_array->count; i++) {
+            Cell* cell = (*cell_array)[i];
+            Array<Reference*>* reference_array = &cell->reference_array;
+            for (uint64_t i = 0; i < reference_array->count; i++) {
+                ReferenceObject* new_obj = PyObject_New(ReferenceObject, &reference_object_type);
+                new_obj = (ReferenceObject*)PyObject_Init((PyObject*)new_obj, &reference_object_type);
+                Reference* reference = (*reference_array)[i];
+                reference->owner = new_obj;
+                new_obj->reference = reference;
+
+                if (reference->type == ReferenceType::Cell)
+                    Py_INCREF(reference->cell->owner);
+                else if (reference->type == ReferenceType::RawCell)
+                    Py_INCREF(reference->rawcell->owner);
+            }
         }
     }
 
