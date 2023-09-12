@@ -64,6 +64,7 @@ void Library::copy_from(const Library& library, bool deep_copy) {
         cell_array.capacity = library.cell_array.capacity;
         cell_array.count = library.cell_array.count;
         cell_array.items = (Cell**)allocate(sizeof(Cell*) * cell_array.capacity);
+
         Cell** src = library.cell_array.items;
         Cell** dst = cell_array.items;
         for (uint64_t i = 0; i < library.cell_array.count; i++, src++, dst++) {

@@ -87,23 +87,64 @@ static PyObject* library_object_copy(LibraryObject* self,  PyObject* args, PyObj
             Cell* cell = (*cell_array)[i];
             cell->owner = new_obj;
             new_obj->cell = cell;
+
+            Array<Polygon*>* polygon_array = &cell->polygon_array;
+            for (uint64_t i = 0; i < polygon_array->count; i++) {
+                PolygonObject* new_obj = PyObject_New(PolygonObject, &polygon_object_type);
+                new_obj = (PolygonObject*)PyObject_Init((PyObject*)new_obj, &polygon_object_type);
+                Polygon* polygon = (*polygon_array)[i];
+                polygon->owner = new_obj;
+                new_obj->polygon = polygon;
+            }
+
+            Array<Reference*>* reference_array = &cell->reference_array;
+            for (uint64_t i = 0; i < reference_array->count; i++) {
+                ReferenceObject* new_obj = PyObject_New(ReferenceObject, &reference_object_type);
+                new_obj = (ReferenceObject*)PyObject_Init((PyObject*)new_obj, &reference_object_type);
+                Reference* reference = (*reference_array)[i];
+                reference->owner = new_obj;
+                new_obj->reference = reference;
+                if (reference->type == ReferenceType::Cell)
+                    Py_INCREF(reference->cell->owner);
+                else if (reference->type == ReferenceType::RawCell)
+                    Py_INCREF(reference->rawcell->owner);
+            }
+
+            Array<FlexPath*>* flexpath_array = &cell->flexpath_array;
+            for (uint64_t i = 0; i < flexpath_array->count; i++) {
+                FlexPathObject* new_obj = PyObject_New(FlexPathObject, &flexpath_object_type);
+                new_obj = (FlexPathObject*)PyObject_Init((PyObject*)new_obj, &flexpath_object_type);
+                FlexPath* path = (*flexpath_array)[i];
+                path->owner = new_obj;
+                new_obj->flexpath = path;
+            }
+
+            Array<RobustPath*>* robustpath_array = &cell->robustpath_array;
+            for (uint64_t i = 0; i < robustpath_array->count; i++) {
+                RobustPathObject* new_obj = PyObject_New(RobustPathObject, &robustpath_object_type);
+                new_obj = (RobustPathObject*)PyObject_Init((PyObject*)new_obj, &robustpath_object_type);
+                RobustPath* path = (*robustpath_array)[i];
+                path->owner = new_obj;
+                new_obj->robustpath = path;
+            }
+
+            Array<Label*>* label_array = &cell->label_array;
+            for (uint64_t i = 0; i < label_array->count; i++) {
+                LabelObject* new_obj = PyObject_New(LabelObject, &label_object_type);
+                new_obj = (LabelObject*)PyObject_Init((PyObject*)new_obj, &label_object_type);
+                Label* label = (*label_array)[i];
+                label->owner = new_obj;
+                new_obj->label = label;
+            }
         }
     } else {
         for (uint64_t i = 0; i < cell_array->count; i++) Py_INCREF((*cell_array)[i]->owner);
     }
 
+    // raw cells should be immutable, so there's no need to perform a deep copy
     Array<RawCell*>* rawcell_array = &library->rawcell_array;
-    if (deep_copy) {
-        for (uint64_t i = 0; i < rawcell_array->count; i++) {
-            RawCellObject* new_obj = PyObject_New(RawCellObject, &rawcell_object_type);
-            new_obj = (RawCellObject*)PyObject_Init((PyObject*)new_obj, &rawcell_object_type);
-            RawCell* rawcell = (*rawcell_array)[i];
-            rawcell->owner = new_obj;
-            new_obj->rawcell = rawcell;
-        }
-    } else {
-        for (uint64_t i = 0; i < rawcell_array->count; i++) Py_INCREF((*rawcell_array)[i]->owner);
-    }
+    for (uint64_t i = 0; i < rawcell_array->count; i++)
+        Py_INCREF((*rawcell_array)[i]->owner);
 
     return (PyObject*)result;
 }
