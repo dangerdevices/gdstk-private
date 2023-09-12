@@ -518,6 +518,7 @@ static PyObject* library_object_delete_property(LibraryObject* self, PyObject* a
 
 static PyMethodDef library_object_methods[] = {
     {"add", (PyCFunction)library_object_add, METH_VARARGS, library_object_add_doc},
+    {"copy", (PyCFunction)library_object_copy, METH_VARARGS | METH_KEYWORDS, library_object_copy_doc},
     {"remove", (PyCFunction)library_object_remove, METH_VARARGS, library_object_remove_doc},
     {"replace", (PyCFunction)library_object_replace, METH_VARARGS, library_object_replace_doc},
     {"new_cell", (PyCFunction)library_object_new_cell, METH_VARARGS, library_object_new_cell_doc},
@@ -528,7 +529,6 @@ static PyMethodDef library_object_methods[] = {
      library_object_layers_and_datatypes_doc},
     {"layers_and_texttypes", (PyCFunction)library_object_layers_and_texttypes, METH_NOARGS,
      library_object_layers_and_texttypes_doc},
-    {"copy", (PyCFunction)library_object_copy, METH_VARARGS | METH_KEYWORDS, /* TODO */ cell_object_copy_doc},
     {"write_gds", (PyCFunction)library_object_write_gds, METH_VARARGS | METH_KEYWORDS,
      library_object_write_gds_doc},
     {"write_oas", (PyCFunction)library_object_write_oas, METH_VARARGS | METH_KEYWORDS,

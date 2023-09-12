@@ -2814,6 +2814,18 @@ Examples:
     >>> lib = gdstk.read_gds("layout.gds")
     >>> lib.replace(cell))!");
 
+PyDoc_STRVAR(library_object_copy_doc, R"!(copy([name=None, deep_copy=True]) -> gdstk.Library
+
+Create a copy of this library.
+
+Args:
+    name (str): Name of the new library, or ``None`` to keep the same
+      name as the copied library.
+    deep_copy: If ``True``, the library's cells are also deep-copied.
+
+Returns:
+    Copy of this library.)!");
+
 PyDoc_STRVAR(library_object_new_cell_doc, R"!(new_cell(name) -> gdstk.Cell
 
 Create a new cell and add it to this library.
