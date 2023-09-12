@@ -450,6 +450,29 @@ def test_layers_and_types(sample_library):
     assert lt == {(5, 6)}
 
 
+def test_shallow_copy(sample_library):
+    lib = sample_library.copy(deep_copy=False)
+
+    assert id(sample_library) != id(lib)
+
+    assert sample_library.layers_and_datatypes() == lib.layers_and_datatypes()
+    assert sample_library.layers_and_texttypes() == lib.layers_and_texttypes()
+    assert len(sample_library.top_level()) == len(lib.top_level())
+    assert sample_library.unit == lib.unit
+    assert sample_library.precision == lib.precision
+
+
+def test_deep_copy(sample_library):
+    lib = sample_library.copy(deep_copy=True)
+
+    assert id(sample_library) != id(lib)
+
+    assert sample_library.layers_and_datatypes() == lib.layers_and_datatypes()
+    assert sample_library.layers_and_texttypes() == lib.layers_and_texttypes()
+    assert len(sample_library.top_level()) == len(lib.top_level())
+    assert sample_library.unit == lib.unit
+    assert sample_library.precision == lib.precision
+
 def test_rename_cell():
     c1 = gdstk.Cell("C1")
     c2 = gdstk.Cell("C2")

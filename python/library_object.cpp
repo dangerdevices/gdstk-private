@@ -67,6 +67,47 @@ static int library_object_init(LibraryObject* self, PyObject* args, PyObject* kw
     return 0;
 }
 
+static PyObject* library_object_copy(LibraryObject* self,  PyObject* args, PyObject* kwds) {
+    int deep_copy = 1;
+    const char* keywords[] = {"deep_copy", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|p:copy", (char**)keywords, &deep_copy))
+        return NULL;
+
+    LibraryObject* result = PyObject_New(LibraryObject, &library_object_type);
+    result->library = (Library*)allocate_clear(sizeof(Library));
+    Library* library = result->library;
+    library->owner = result;
+    library->copy_from(*self->library, deep_copy > 0);
+
+    Array<Cell*>* cell_array = &library->cell_array;
+    if (deep_copy) {
+        for (uint64_t i = 0; i < cell_array->count; i++) {
+            CellObject* new_obj = PyObject_New(CellObject, &cell_object_type);
+            new_obj = (CellObject*)PyObject_Init((PyObject*)new_obj, &cell_object_type);
+            Cell* cell = (*cell_array)[i];
+            cell->owner = new_obj;
+            new_obj->cell = cell;
+        }
+    } else {
+        for (uint64_t i = 0; i < cell_array->count; i++) Py_INCREF((*cell_array)[i]->owner);
+    }
+
+    Array<RawCell*>* rawcell_array = &library->rawcell_array;
+    if (deep_copy) {
+        for (uint64_t i = 0; i < rawcell_array->count; i++) {
+            RawCellObject* new_obj = PyObject_New(RawCellObject, &rawcell_object_type);
+            new_obj = (RawCellObject*)PyObject_Init((PyObject*)new_obj, &rawcell_object_type);
+            RawCell* rawcell = (*rawcell_array)[i];
+            rawcell->owner = new_obj;
+            new_obj->rawcell = rawcell;
+        }
+    } else {
+        for (uint64_t i = 0; i < rawcell_array->count; i++) Py_INCREF((*rawcell_array)[i]->owner);
+    }
+
+    return (PyObject*)result;
+}
+
 static PyObject* library_object_add(LibraryObject* self, PyObject* args) {
     uint64_t len = PyTuple_GET_SIZE(args);
     Library* library = self->library;
@@ -443,6 +484,7 @@ static PyMethodDef library_object_methods[] = {
      library_object_layers_and_datatypes_doc},
     {"layers_and_texttypes", (PyCFunction)library_object_layers_and_texttypes, METH_NOARGS,
      library_object_layers_and_texttypes_doc},
+    {"copy", (PyCFunction)library_object_copy, METH_VARARGS | METH_KEYWORDS, /* TODO */ cell_object_copy_doc},
     {"write_gds", (PyCFunction)library_object_write_gds, METH_VARARGS | METH_KEYWORDS,
      library_object_write_gds_doc},
     {"write_oas", (PyCFunction)library_object_write_oas, METH_VARARGS | METH_KEYWORDS,
