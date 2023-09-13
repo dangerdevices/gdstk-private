@@ -450,6 +450,65 @@ def test_layers_and_types(sample_library):
     assert lt == {(5, 6)}
 
 
+def test_shallow_copy(sample_library):
+    sample_library.set_property("foo", "bar")
+    library = sample_library.copy(name="foo", deep_copy=False)
+
+    assert id(library) != id(sample_library)
+
+    assert library.name == "foo"
+    assert library.unit == sample_library.unit
+    assert library.precision == sample_library.precision
+    assert library.layers_and_datatypes() == sample_library.layers_and_datatypes()
+    assert library.layers_and_texttypes() == sample_library.layers_and_texttypes()
+    assert library.properties == sample_library.properties
+
+    library_top_cells = {c.name for c in library.top_level()}
+    sample_library_top_cells = {c.name for c in sample_library.top_level()}
+    assert library_top_cells == sample_library_top_cells
+
+    library_cells = {c.name: c for c in library.cells}
+    sample_library_cells = {c.name: c for c in sample_library.cells}
+    assert set(library_cells.keys()) == set(sample_library_cells.keys())
+
+    # Copy is shallow
+    assert library.cells is not sample_library.cells
+    assert all(cell in sample_library.cells for cell in library.cells)
+
+    assert library_cells["gl_rw_gds_3"].references[0].x_reflection == True
+    sample_library_cells["gl_rw_gds_3"].references[0].x_reflection = False
+    assert library_cells["gl_rw_gds_3"].references[0].x_reflection == False
+
+
+def test_deep_copy(sample_library):
+    sample_library.set_property("foo", "bar")
+    library = sample_library.copy(deep_copy=True)
+
+    assert id(library) != id(sample_library)
+
+    assert library.name == sample_library.name
+    assert library.unit == sample_library.unit
+    assert library.precision == sample_library.precision
+    assert library.layers_and_datatypes() == sample_library.layers_and_datatypes()
+    assert library.layers_and_texttypes() == sample_library.layers_and_texttypes()
+
+    library_top_cells = {c.name for c in library.top_level()}
+    sample_library_top_cells = {c.name for c in sample_library.top_level()}
+    assert library_top_cells == sample_library_top_cells
+
+    library_cells = {c.name: c for c in library.cells}
+    sample_library_cells = {c.name: c for c in sample_library.cells}
+    assert set(library_cells.keys()) == set(sample_library_cells.keys())
+
+    # Copy is deep
+    assert library.cells is not sample_library.cells
+    assert not any(cell in sample_library.cells for cell in library.cells)
+
+    assert library_cells["gl_rw_gds_3"].references[0].x_reflection == True
+    sample_library_cells["gl_rw_gds_3"].references[0].x_reflection = False
+    assert library_cells["gl_rw_gds_3"].references[0].x_reflection == True
+
+
 def test_rename_cell():
     c1 = gdstk.Cell("C1")
     c2 = gdstk.Cell("C2")

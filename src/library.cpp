@@ -58,17 +58,32 @@ void Library::print(bool all) const {
 
 void Library::copy_from(const Library& library, bool deep_copy) {
     name = copy_string(library.name, NULL);
+    properties = properties_copy(library.properties);
     unit = library.unit;
     precision = library.precision;
     if (deep_copy) {
         cell_array.capacity = library.cell_array.capacity;
         cell_array.count = library.cell_array.count;
         cell_array.items = (Cell**)allocate(sizeof(Cell*) * cell_array.capacity);
+
         Cell** src = library.cell_array.items;
         Cell** dst = cell_array.items;
         for (uint64_t i = 0; i < library.cell_array.count; i++, src++, dst++) {
             *dst = (Cell*)allocate_clear(sizeof(Cell));
             (*dst)->copy_from(**src, NULL, true);
+        }
+
+        src = library.cell_array.items;
+        dst = cell_array.items;
+        for (uint64_t i = 0; i < library.cell_array.count; i++, src++, dst++) {
+            Reference **srcref = (*src)->reference_array.items;
+            Reference **dstref = (*dst)->reference_array.items;
+            for (uint64_t j = 0; j < (*src)->reference_array.count; j++, srcref++, dstref++) {
+                if ((*dstref)->type == ReferenceType::Cell)
+                    (*dstref)->cell = get_cell((*srcref)->cell->name);
+                else if ((*dstref)->type == ReferenceType::RawCell)
+                    (*dstref)->rawcell = get_rawcell((*srcref)->rawcell->name);
+            }
         }
     } else {
         cell_array.copy_from(library.cell_array);
