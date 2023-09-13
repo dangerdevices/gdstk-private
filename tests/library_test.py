@@ -472,6 +472,9 @@ def test_shallow_copy(sample_library):
     assert set(library_cells.keys()) == set(sample_library_cells.keys())
 
     # Copy is shallow
+    assert library.cells is not sample_library.cells
+    assert all(cell in sample_library.cells for cell in library.cells)
+
     assert library_cells["gl_rw_gds_3"].references[0].x_reflection == True
     sample_library_cells["gl_rw_gds_3"].references[0].x_reflection = False
     assert library_cells["gl_rw_gds_3"].references[0].x_reflection == False
@@ -498,6 +501,9 @@ def test_deep_copy(sample_library):
     assert set(library_cells.keys()) == set(sample_library_cells.keys())
 
     # Copy is deep
+    assert library.cells is not sample_library.cells
+    assert not any(cell in sample_library.cells for cell in library.cells)
+
     assert library_cells["gl_rw_gds_3"].references[0].x_reflection == True
     sample_library_cells["gl_rw_gds_3"].references[0].x_reflection = False
     assert library_cells["gl_rw_gds_3"].references[0].x_reflection == True
