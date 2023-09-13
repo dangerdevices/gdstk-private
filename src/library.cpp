@@ -58,6 +58,7 @@ void Library::print(bool all) const {
 
 void Library::copy_from(const Library& library, bool deep_copy) {
     name = copy_string(library.name, NULL);
+    properties = properties_copy(library.properties);
     unit = library.unit;
     precision = library.precision;
     if (deep_copy) {

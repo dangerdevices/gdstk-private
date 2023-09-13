@@ -451,6 +451,7 @@ def test_layers_and_types(sample_library):
 
 
 def test_shallow_copy(sample_library):
+    sample_library.set_property("foo", "bar")
     library = sample_library.copy(name="foo", deep_copy=False)
 
     assert id(library) != id(sample_library)
@@ -460,6 +461,7 @@ def test_shallow_copy(sample_library):
     assert library.precision == sample_library.precision
     assert library.layers_and_datatypes() == sample_library.layers_and_datatypes()
     assert library.layers_and_texttypes() == sample_library.layers_and_texttypes()
+    assert library.properties == sample_library.properties
 
     library_top_cells = {c.name for c in library.top_level()}
     sample_library_top_cells = {c.name for c in sample_library.top_level()}
@@ -476,6 +478,7 @@ def test_shallow_copy(sample_library):
 
 
 def test_deep_copy(sample_library):
+    sample_library.set_property("foo", "bar")
     library = sample_library.copy(deep_copy=True)
 
     assert id(library) != id(sample_library)
