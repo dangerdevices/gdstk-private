@@ -2821,7 +2821,10 @@ Create a copy of this library.
 Args:
     name (str): Name of the new library, or ``None`` to keep the same
       name as the copied library.
-    deep_copy: If ``True``, the library's cells are also deep-copied.
+    deep_copy (bool): If ``True`` (the default), the library's cells are also deep-copied, and the
+      resulting library is completely self-contained. If ``False``, the list of cells will be copied
+      but any changes to the contents of cells in the original library will also be reflected in
+      the copied library.
 
 Returns:
     Copy of this library.)!");
