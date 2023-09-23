@@ -1048,9 +1048,6 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
                             reference->cell = cp;
                         } else {
                             if (error_code) *error_code = ErrorCode::MissingReference;
-                            if (error_logger)
-                                fprintf(error_logger, "[GDSTK] Missing referenced cell %s\n",
-                                        reference->name);
                         }
                     }
                 }
@@ -1551,9 +1548,6 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                                 ref->name = (char*)allocate(cell_name->count);
                                 memcpy(ref->name, cell_name->bytes, cell_name->count);
                                 if (error_code) *error_code = ErrorCode::MissingReference;
-                                if (error_logger)
-                                    fprintf(error_logger, "[GDSTK] Missing referenced cell %s\n",
-                                            ref->name);
                             }
                         } else {
                             // Using name
@@ -1564,9 +1558,6 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                                 ref->type = ReferenceType::Cell;
                             } else {
                                 if (error_code) *error_code = ErrorCode::MissingReference;
-                                if (error_logger)
-                                    fprintf(error_logger, "[GDSTK] Missing referenced cell %s\n",
-                                            ref->name);
                             }
                         }
                     }
