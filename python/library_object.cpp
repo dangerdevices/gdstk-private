@@ -80,9 +80,34 @@ static PyObject* library_object_copy(LibraryObject* self,  PyObject* args, PyObj
     library->owner = result;
     library->copy_from(*self->library, deep_copy > 0);
 
+    // References may point to cells that were not added to the library being copied.
+    // If so, `Library::copy_from()` will have set reference->cell or reference->rawcell
+    // to NULL. `ReferenceObject`s cannot be created for these references, because
+    // those objects will try to access the cell pointers and segfault.
+    Array<Cell*>* cell_array = &library->cell_array;
+    for (uint64_t i = 0; i < cell_array->count; i++) {
+        Cell* cell = (*cell_array)[i];
+        Array<Reference*>* reference_array = &cell->reference_array;
+        for (uint64_t i = 0; i < reference_array->count; i++) {
+            Reference* reference = (*reference_array)[i];
+            if(
+                (reference->type == ReferenceType::Cell && !reference->cell) ||
+                (reference->type == ReferenceType::RawCell && !reference->rawcell)
+            ) {
+                PyErr_SetString(
+                    PyExc_RuntimeError,
+                    "Unable to copy library with dangling references"
+                );
+
+                library->clear();
+                Py_DECREF(result);
+                return NULL;
+            }
+        }
+    }
+
     if (name) library->name = copy_string(name, NULL);
 
-    Array<Cell*>* cell_array = &library->cell_array;
     if (deep_copy) {
         for (uint64_t i = 0; i < cell_array->count; i++) {
             CellObject* new_obj = PyObject_New(CellObject, &cell_object_type);
@@ -157,22 +182,6 @@ static PyObject* library_object_copy(LibraryObject* self,  PyObject* args, PyObj
             Array<Reference*>* reference_array = &cell->reference_array;
             for (uint64_t i = 0; i < reference_array->count; i++) {
                 Reference* reference = (*reference_array)[i];
-
-                // References may point to cells that were not added to the library
-                // being copied. If so, copying will have resulted in reference->cell or
-                // reference->rawcell being set to NULL; see `Library::copy_from()`.
-                //
-                // If that has occurred, remove the invalid references; do not
-                // create ReferenceObjects for them, because those will attempt
-                // to access reference->cell members and segfault.
-                if(
-                    (reference->type == ReferenceType::Cell && !reference->cell) ||
-                    (reference->type == ReferenceType::RawCell && !reference->rawcell)
-                ) {
-                    reference_array->remove_unordered(i--);
-                    continue;
-                }
-
                 ReferenceObject* new_obj = PyObject_New(ReferenceObject, &reference_object_type);
                 new_obj = (ReferenceObject*)PyObject_Init((PyObject*)new_obj, &reference_object_type);
                 reference->owner = new_obj;

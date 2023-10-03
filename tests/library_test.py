@@ -524,12 +524,8 @@ def test_copy_dangling_reference():
     library = gdstk.Library()
     library.replace(bar, quux, top)
 
-    copied_library = library.copy()
-    assert len(copied_library.cells) == len(library.cells)
-    assert {
-        ref.cell_name
-        for ref in copied_library.top_level()[0].references
-    } == {"bar", "quux", "external"}
+    with pytest.raises(RuntimeError):
+        _ = library.copy()
 
 
 def test_rename_cell():
