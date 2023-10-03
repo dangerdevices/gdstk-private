@@ -509,6 +509,25 @@ def test_deep_copy(sample_library):
     assert library_cells["gl_rw_gds_3"].references[0].x_reflection == True
 
 
+def test_copy_dangling_reference():
+    top = gdstk.Cell("top")
+    bar = gdstk.Cell("bar")
+    quux = gdstk.Cell("quux")
+    top.add(
+        gdstk.Reference(gdstk.Cell("foo")),  # dangling reference
+        gdstk.Reference(bar),                # ok reference
+        gdstk.Reference(gdstk.Cell("baz")),  # dangling reference
+        gdstk.Reference(quux),               # ok reference
+        gdstk.Reference("external"),         # string reference to external cell
+    )
+
+    library = gdstk.Library()
+    library.replace(bar, quux, top)
+
+    with pytest.raises(RuntimeError):
+        _ = library.copy()
+
+
 def test_rename_cell():
     c1 = gdstk.Cell("C1")
     c2 = gdstk.Cell("C2")
