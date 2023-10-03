@@ -181,9 +181,9 @@ static PyObject* library_object_copy(LibraryObject* self,  PyObject* args, PyObj
             Cell* cell = (*cell_array)[i];
             Array<Reference*>* reference_array = &cell->reference_array;
             for (uint64_t i = 0; i < reference_array->count; i++) {
-                Reference* reference = (*reference_array)[i];
                 ReferenceObject* new_obj = PyObject_New(ReferenceObject, &reference_object_type);
                 new_obj = (ReferenceObject*)PyObject_Init((PyObject*)new_obj, &reference_object_type);
+                Reference* reference = (*reference_array)[i];
                 reference->owner = new_obj;
                 new_obj->reference = reference;
 
