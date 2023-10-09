@@ -7,9 +7,10 @@
 
 import pathlib
 import tempfile
-import pytest
-import numpy
+
 import gdstk
+import numpy
+import pytest
 
 
 def assert_same_shape(sh1, sh2):
@@ -151,6 +152,10 @@ def make_proof_lib():
         lib.write_oas(oas_outfile)
         print(f"Test library saved as {str(oas_outfile)}.")
 
+@pytest.fixture(scope="session")
+def complex_polygon_oasis_lib():
+    infile = pathlib.Path(__file__).parent / "complex_polygon_lib.oas"
+    return gdstk.read_oas(str(infile))
 
 if __name__ == "__main__":
     make_proof_lib()
