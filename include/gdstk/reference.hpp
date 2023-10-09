@@ -14,13 +14,13 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #include <stdint.h>
 #include <stdio.h>
 
-#include <gdstk/flexpath.hpp>
-#include <gdstk/label.hpp>
-#include <gdstk/polygon.hpp>
-#include <gdstk/property.hpp>
-#include <gdstk/robustpath.hpp>
-#include <gdstk/set.hpp>
-#include <gdstk/vec.hpp>
+#include "flexpath.hpp"
+#include "label.hpp"
+#include "polygon.hpp"
+#include "property.hpp"
+#include "robustpath.hpp"
+#include "set.hpp"
+#include "vec.hpp"
 
 namespace gdstk {
 

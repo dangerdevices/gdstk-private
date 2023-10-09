@@ -13,8 +13,8 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
 #include <stdint.h>
 
-#include <gdstk/array.hpp>
-#include <gdstk/polygon.hpp>
+#include "array.hpp"
+#include "polygon.hpp"
 
 namespace gdstk {
 
@@ -73,10 +73,10 @@ inline ErrorCode offset(const Polygon& poly, double distance, OffsetJoin join, d
     return offset(polys, distance, join, tolerance, scaling, use_union, result);
 }
 
-// Slice the given polygon along the coordinates in posiotions.  Cuts are
-// vertical (horizontal) when x_axis is set to true (false).  Argument result
-// must be an array with length at least positions.count + 1.  The resulting
-// slices are appended to the arrays in their respective bins.
+// Slice the given polygon along the coordinates in positions.  Positions must be sorted.  Cuts are
+// vertical (horizontal) when x_axis is set to true (false).  Argument result must be an array with
+// length at least positions.count + 1.  The resulting slices are appended to the arrays in their
+// respective bins.
 ErrorCode slice(const Polygon& polygon, const Array<double>& positions, bool x_axis, double scaling,
                 Array<Polygon*>* result);
 

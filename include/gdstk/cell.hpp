@@ -15,15 +15,16 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #include <stdio.h>
 #include <time.h>
 
-#include <gdstk/array.hpp>
-#include <gdstk/flexpath.hpp>
-#include <gdstk/label.hpp>
-#include <gdstk/map.hpp>
-#include <gdstk/polygon.hpp>
-#include <gdstk/reference.hpp>
-#include <gdstk/robustpath.hpp>
-#include <gdstk/set.hpp>
-#include <gdstk/style.hpp>
+#include "array.hpp"
+#include "flexpath.hpp"
+#include "label.hpp"
+#include "map.hpp"
+#include "polygon.hpp"
+#include "reference.hpp"
+#include "robustpath.hpp"
+#include "set.hpp"
+#include "style.hpp"
+#include "tagmap.hpp"
 
 namespace gdstk {
 
@@ -163,6 +164,11 @@ struct Cell {
     // cell (with the corresponding transformations).  Removed references are
     // appended to removed_references.
     void flatten(bool apply_repetitions, Array<Reference*>& removed_references);
+
+    // Change the tags of all elements in this cell.  Map keys are the current
+    // tags and map values are the desired new tags.  Elements in references
+    // are not remapped (use get_dependencies to loop over and remap them).
+    void remap_tags(const TagMap& map);
 
     // These functions output the cell and its contents in the GDSII and SVG
     // formats.  They are not supposed to be called by the user.  Use

@@ -9,9 +9,10 @@ import hashlib
 import pathlib
 from datetime import datetime
 
-import gdstk
 import numpy
 import pytest
+
+import gdstk
 
 
 @pytest.fixture
@@ -92,6 +93,17 @@ def sample_library():
     )
     lib.add(c1, c2, c3, c4)
     return lib
+
+
+def test_remap(sample_library):
+    sample_library.remap({(0, 0): (10, 11), (2, 4): (4, 8)})
+    polygon = sample_library["gl_rw_gds_1"].polygons[0]
+    assert polygon.layer == 4 and polygon.datatype == 8
+    label = sample_library["gl_rw_gds_1"].labels[0]
+    assert label.layer == 5 and label.texttype == 6
+    sample_library.remap({(0, 0): (10, 11), (2, 4): (4, 8)})
+    polygon = sample_library["gl_rw_gds_2"].polygons[0]
+    assert polygon.layer == 10 and polygon.datatype == 11
 
 
 def test_gds_info(tmpdir, sample_library):
