@@ -2006,10 +2006,6 @@ static int gdstk_exec(PyObject* module) {
         }
     }
 
-    // Disable logging to stderr. Code that wishes to return a warning or error
-    // to Python should use an `ErrorCode` type; see utils.hpp.
-    set_error_logger(NULL);
-
     return 0;
 }
 
