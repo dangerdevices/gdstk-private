@@ -631,8 +631,7 @@ def test_no_stdout_stderr_logging(capfd):
     library = gdstk.Library("foo")
     library.add(top)
 
-    with tempfile.NamedTemporaryFile(delete_on_close=False, delete=True) as tmp:
-        tmp.close()
+    with tempfile.NamedTemporaryFile() as tmp:
         library.write_gds(tmp.name)
         _ = gdstk.read_gds(tmp.name)
 
