@@ -631,9 +631,10 @@ def test_no_stdout_stderr_logging(capfd):
     library = gdstk.Library("foo")
     library.add(top)
 
-    with tempfile.NamedTemporaryFile() as tmp:
-        library.write_gds(tmp.name)
-        _ = gdstk.read_gds(tmp.name)
+    with tempfile.TemporaryDirectory() as tmp:
+        gds_path = pathlib.Path(tmp) / "foo.gds"
+        library.write_gds(gds_path)
+        _ = gdstk.read_gds(gds_path)
 
     (out, err) = capfd.readouterr()
 
