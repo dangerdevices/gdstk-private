@@ -7,7 +7,6 @@
 
 import hashlib
 import pathlib
-import tempfile
 from datetime import datetime
 
 import numpy
@@ -624,17 +623,16 @@ def test_oasis_polygon_points(complex_polygon_oasis_lib: gdstk.Library):
     )
 
 
-def test_no_stdout_stderr_logging(capfd):
+def test_no_stdout_stderr_logging(capfd, tmp_path):
     top = gdstk.Cell("top")
     top.add(gdstk.Reference(gdstk.Cell("bar")))
 
     library = gdstk.Library("foo")
     library.add(top)
 
-    with tempfile.TemporaryDirectory() as tmp:
-        gds_path = pathlib.Path(tmp) / "foo.gds"
-        library.write_gds(gds_path)
-        _ = gdstk.read_gds(gds_path)
+    gds_path = tmp_path / "foo.gds"
+    library.write_gds(gds_path)
+    _ = gdstk.read_gds(gds_path)
 
     (out, err) = capfd.readouterr()
 
