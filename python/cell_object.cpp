@@ -37,8 +37,8 @@ static void cell_object_dealloc(CellObject* self) {
 
 static int cell_object_init(CellObject* self, PyObject* args, PyObject* kwds) {
     const char* keywords[] = {"name", NULL};
-    char* name = NULL;
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s:Cell", (char**)keywords, &name)) return -1;
+    PyObject* name_arg = NULL;
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:Cell", (char**)keywords, &name_arg)) return -1;
     Cell* cell = self->cell;
     if (cell) {
         for (uint64_t i = 0; i < cell->polygon_array.count; i++)
@@ -56,17 +56,28 @@ static int cell_object_init(CellObject* self, PyObject* args, PyObject* kwds) {
         self->cell = (Cell*)allocate_clear(sizeof(Cell));
         cell = self->cell;
     }
-    uint64_t len;
-    cell->name = copy_string(name, &len);
-    cell->owner = self;
-    if (len <= 1) {
-        free_allocation(cell->name);
-        free_allocation(cell);
-        self->cell = NULL;
-        PyErr_SetString(PyExc_ValueError, "Empty cell name.");
-        return -1;
+
+    PyObject* pystr;
+    char *pyname;
+    Py_ssize_t len;
+    if (
+        (pystr = PyObject_Str(name_arg)) &&
+        (pyname = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) &&
+        // len does not include NULL terminator.
+        len >= 1
+    ) {
+        cell->name = copy_string(pyname, NULL);
+        cell->owner = self;
+
+        Py_DECREF(pystr);
+        return 0;
     }
-    return 0;
+
+    Py_XDECREF(pystr);
+    free_allocation(cell);
+    self->cell = NULL;
+    PyErr_SetString(PyExc_ValueError, "Invalid cell name.");
+    return -1;
 }
 
 static PyObject* cell_object_add(CellObject* self, PyObject* args) {

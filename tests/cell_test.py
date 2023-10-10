@@ -29,6 +29,29 @@ def tree():
     c3.add(gdstk.Reference(c2, (0, 0), columns=3, rows=2, spacing=(3, 3)))
     return c3, c2, c1
 
+def test_name():
+    cell = gdstk.Cell("foo")
+    assert cell.name == "foo"
+
+    class Bar:
+        def __str__(self) -> str:
+            return "bar"
+
+    cell = gdstk.Cell(Bar())
+    assert cell.name == "bar"
+
+    with pytest.raises(TypeError):
+        gdstk.Cell()
+
+    with pytest.raises(ValueError):
+        gdstk.Cell("")
+
+    class Baz:
+        def __str__(self) -> str:
+            return ""
+
+    with pytest.raises(ValueError):
+        gdstk.Cell(Baz())
 
 def test_add_element():
     p = gdstk.Polygon(((0, 0), (1, 0), (0, 1)))
@@ -331,7 +354,6 @@ def test_get_labels(tree):
     assert len(labels) == 0
     labels = c3.get_labels(depth=2, layer=11, texttype=0)
     assert len(labels) == 6
-
 
 def test_empty_cell_convex_hull():
     assert gdstk.Cell("empty").convex_hull() is None
