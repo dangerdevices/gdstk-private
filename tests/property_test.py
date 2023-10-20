@@ -68,3 +68,9 @@ def test_properties():
             ["TWO", -2.3e-4, b"two"],
             ["Three", b"\xFF\xEE", 0],
         ]
+
+
+def test_oasis_gds_property_roundtrip():
+    ref = gdstk.Reference("foo")
+    ref.set_property("S_GDS_PROPERTY", (101, "foo"))
+    assert ref.get_gds_property(101) == "foo"

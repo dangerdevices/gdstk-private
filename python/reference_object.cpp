@@ -426,7 +426,6 @@ static PyObject* reference_object_get_gds_property(ReferenceObject* self, PyObje
         Py_INCREF(Py_None);
         return Py_None;
     }
-
     return PyUnicode_FromStringAndSize((char*)value->bytes, value->count);
 }
 
