@@ -236,6 +236,13 @@ def test_get_labels(tree):
     labels = r3.get_labels(depth=1, layer=11, texttype=0)
     assert len(labels) == 6
 
+
+def test_oasis_gds_property():
+    ref = gdstk.Reference("foo")
+    ref.set_property("S_GDS_PROPERTY", (101, "foo"))
+    assert ref.get_gds_property(101) == "foo"
+
+
 def test_empty_reference_convex_hull():
     cell = gdstk.Cell("empty")
     assert gdstk.Reference(cell).convex_hull() is None
