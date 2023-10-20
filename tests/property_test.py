@@ -28,8 +28,8 @@ def test_gds_properties():
         obj.set_gds_property(14, "Fourth text")
         assert obj.get_gds_property(13) == "Third text"
         assert obj.properties == [
-            ["S_GDS_PROPERTY", 14, b"Fourth text\x00"],
-            ["S_GDS_PROPERTY", 13, b"Third text\x00"],
+            ["S_GDS_PROPERTY", 14, b"Fourth text"],
+            ["S_GDS_PROPERTY", 13, b"Third text"],
         ]
 
 
