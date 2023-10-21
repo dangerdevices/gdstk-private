@@ -21,15 +21,16 @@ def test_gds_properties():
         obj.set_gds_property(13, "Property text")
         assert obj.get_gds_property(12) is None
         assert obj.get_gds_property(13) == "Property text"
+        assert obj.properties == [
+            ["S_GDS_PROPERTY", 13, b"Property text"],
+        ]
         obj.delete_gds_property(13)
         assert obj.get_gds_property(13) is None
         obj.set_gds_property(13, "Second text")
         obj.set_gds_property(13, "Third text")
         obj.set_gds_property(14, "Fourth text")
-        obj.set_gds_property(15, "Fifth text")
         assert obj.get_gds_property(13) == "Third text"
         assert obj.properties == [
-            ["S_GDS_PROPERTY", 15, b"Fifth text"],
             ["S_GDS_PROPERTY", 14, b"Fourth text"],
             ["S_GDS_PROPERTY", 13, b"Third text"],
         ]
