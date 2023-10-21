@@ -211,7 +211,7 @@ void set_gds_property(Property*& properties, uint16_t attribute, const char* val
     for (; property; property = property->next) {
         if (is_gds_property(property) && property->value->unsigned_integer == attribute) {
             gds_value = property->value->next;
-            gds_value->count = strlen(value) + 1;
+            gds_value->count = strlen(value);
             gds_value->bytes = (uint8_t*)reallocate(gds_value->bytes, gds_value->count);
             memcpy(gds_value->bytes, value, gds_value->count);
             return;
@@ -223,7 +223,9 @@ void set_gds_property(Property*& properties, uint16_t attribute, const char* val
     gds_attribute->unsigned_integer = attribute;
     gds_attribute->next = gds_value;
     gds_value->type = PropertyType::String;
-    gds_value->bytes = (uint8_t*)copy_string(value, &gds_value->count);
+    gds_value->count = strlen(value);
+    gds_value->bytes = (uint8_t*)allocate(gds_value->count);
+    memcpy(gds_value->bytes, value, gds_value->count);
     gds_value->next = NULL;
     property = (Property*)allocate(sizeof(Property));
     property->name = (char*)allocate(COUNT(s_gds_property_name));

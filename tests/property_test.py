@@ -28,8 +28,8 @@ def test_gds_properties():
         obj.set_gds_property(14, "Fourth text")
         assert obj.get_gds_property(13) == "Third text"
         assert obj.properties == [
-            ["S_GDS_PROPERTY", 14, b"Fourth text\x00"],
-            ["S_GDS_PROPERTY", 13, b"Third text\x00"],
+            ["S_GDS_PROPERTY", 14, b"Fourth text"],
+            ["S_GDS_PROPERTY", 13, b"Third text"],
         ]
 
 
@@ -68,3 +68,9 @@ def test_properties():
             ["TWO", -2.3e-4, b"two"],
             ["Three", b"\xFF\xEE", 0],
         ]
+
+
+def test_oasis_gds_property_roundtrip():
+    ref = gdstk.Reference("foo")
+    ref.set_property("S_GDS_PROPERTY", (101, "foo"))
+    assert ref.get_gds_property(101) == "foo"

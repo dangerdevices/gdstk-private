@@ -183,7 +183,7 @@ static PyObject* label_object_get_gds_property(LabelObject* self, PyObject* args
         Py_INCREF(Py_None);
         return Py_None;
     }
-    return PyUnicode_FromString((char*)value->bytes);
+    return PyUnicode_FromStringAndSize((char*)value->bytes, value->count);
 }
 
 static PyObject* label_object_delete_gds_property(LabelObject* self, PyObject* args) {
