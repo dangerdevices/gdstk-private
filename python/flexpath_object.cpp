@@ -1957,7 +1957,7 @@ static PyObject* flexpath_object_get_gds_property(FlexPathObject* self, PyObject
         Py_INCREF(Py_None);
         return Py_None;
     }
-    return PyUnicode_FromStringAndSize((char*)value->bytes, value->count);
+    return PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
 }
 
 static PyObject* flexpath_object_delete_gds_property(FlexPathObject* self, PyObject* args) {
