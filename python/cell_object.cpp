@@ -552,7 +552,6 @@ static PyObject* cell_object_flatten(CellObject* self, PyObject* args, PyObject*
 }
 
 static PyObject* cell_object_copy(CellObject* self, PyObject* args, PyObject* kwds) {
-    char* name = NULL;
     PyObject* name_arg = NULL;
     int deep_copy = 1;
     PyObject* py_trans = NULL;
@@ -565,11 +564,12 @@ static PyObject* cell_object_copy(CellObject* self, PyObject* args, PyObject* kw
                                      &rotation, &magnification, &x_reflection, &deep_copy))
         return NULL;
 
-    PyObject* pystr;
-    Py_ssize_t len;
+    const char* name = NULL;
+    PyObject* pystr = NULL;
+    Py_ssize_t len = 0;
     if (
-        (pystr = PyObject_Str(name_arg)) &&
-        (name = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) &&
+        !(pystr = PyObject_Str(name_arg)) ||
+        !(name = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) ||
         // len does not include NULL terminator.
         len < 1
     ) {
@@ -1081,12 +1081,13 @@ PyObject* cell_object_get_name(CellObject* self, void*) {
 }
 
 int cell_object_set_name(CellObject* self, PyObject* arg, void*) {
-    PyObject* pystr;
-    Py_ssize_t len;
-    char* src = NULL;
+    PyObject* pystr = NULL;
+    Py_ssize_t len = 0;
+    const char* src = NULL;
+
     if (
-        (pystr = PyObject_Str(arg)) &&
-        (src = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) &&
+        !(pystr = PyObject_Str(arg)) ||
+        !(src = PyUnicode_AsUTF8AndSize(pystr, &len)) ||
         // len does not include NULL terminator.
         len < 1
     ) {
