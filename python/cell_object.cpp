@@ -566,18 +566,14 @@ static PyObject* cell_object_copy(CellObject* self, PyObject* args, PyObject* kw
         return NULL;
 
     PyObject* pystr;
-    char *pyname;
     Py_ssize_t len;
     if (
         (pystr = PyObject_Str(name_arg)) &&
-        (pyname = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) &&
+        (name = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) &&
         // len does not include NULL terminator.
-        len >= 1
+        len < 1
     ) {
-        name = copy_string(pyname, NULL);
-
-        Py_DECREF(pystr);
-    } else {
+        Py_XDECREF(pystr);
         PyErr_SetString(PyExc_ValueError, "Empty cell name.");
         return NULL;
     }
@@ -595,6 +591,7 @@ static PyObject* cell_object_copy(CellObject* self, PyObject* args, PyObject* kw
     Cell* cell = result->cell;
     cell->owner = result;
     cell->copy_from(*self->cell, name, deep_copy > 0);
+    Py_DECREF(pystr);
 
     Array<Polygon*>* polygon_array = &cell->polygon_array;
     if (deep_copy) {
@@ -1085,19 +1082,15 @@ PyObject* cell_object_get_name(CellObject* self, void*) {
 
 int cell_object_set_name(CellObject* self, PyObject* arg, void*) {
     PyObject* pystr;
-    char *pyname;
     Py_ssize_t len;
-    const char* src = NULL;
+    char* src = NULL;
     if (
         (pystr = PyObject_Str(arg)) &&
-        (pyname = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) &&
+        (src = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) &&
         // len does not include NULL terminator.
-        len >= 1
+        len < 1
     ) {
-        src = copy_string(pyname, NULL);
-
-        Py_DECREF(pystr);
-    } else {
+        Py_XDECREF(pystr);
         PyErr_SetString(PyExc_ValueError, "Empty cell name.");
         return -1;
     }
@@ -1106,6 +1099,7 @@ int cell_object_set_name(CellObject* self, PyObject* arg, void*) {
     if (cell->name) free_allocation(cell->name);
     cell->name = (char*)allocate(++len);
     memcpy(cell->name, src, len);
+    Py_DECREF(pystr);
     return 0;
 }
 
