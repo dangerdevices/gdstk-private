@@ -94,7 +94,7 @@ def test_copy():
         def __str__(self) -> str:
             return "bar"
 
-    cell.copy(Bar())
+    assert cell.copy(Bar()).name == "bar"
 
 
 def test_copy_transform(proof_cells):
