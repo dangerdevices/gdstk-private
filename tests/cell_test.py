@@ -90,6 +90,12 @@ def test_copy():
     assert ref not in deep_copy.references
     assert deep_copy.references[0].cell is ref.cell
 
+    class Bar:
+        def __str__(self) -> str:
+            return "bar"
+
+    cell.copy(Bar())
+
 
 def test_copy_transform(proof_cells):
     ref_cell1 = gdstk.Cell("Reference 1")

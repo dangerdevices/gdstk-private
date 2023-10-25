@@ -67,6 +67,12 @@ def test_mapping(tree):
     with pytest.raises(KeyError):
         _ = lib["X"]
 
+    class Bar:
+        def __str__(self) -> str:
+            return "tree_0"
+
+    assert c[0] is lib[Bar()]
+
 
 @pytest.fixture
 def sample_library():
