@@ -70,7 +70,14 @@ def test_properties():
         ]
 
 
-def test_oasis_gds_property_roundtrip():
+def test_oasis_gds_property_roundtrip(tmpdir):
     ref = gdstk.Reference("foo")
     ref.set_property("S_GDS_PROPERTY", (101, "foo"))
     assert ref.get_gds_property(101) == "foo"
+
+    # To maintain compatibility with existing OASIS files created before
+    # https://github.com/dangerdevices/gdstk-private/pull/149,
+    # `get_gds_property()` must discard extra null padding at the end
+    # of a property value.
+    ref.set_property("S_GDS_PROPERTY", (102, b"p\x00"))
+    assert ref.get_gds_property(102) == "p"
