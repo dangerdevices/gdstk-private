@@ -81,3 +81,4 @@ def test_oasis_gds_property_roundtrip():
     # of a property value.
     ref.set_property("S_GDS_PROPERTY", (102, b"p\x00"))
     assert ref.get_gds_property(102) == "p"
+    assert ref.get_property("S_GDS_PROPERTY") == [102, b"p\x00"]
