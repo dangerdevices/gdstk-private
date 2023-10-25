@@ -70,7 +70,7 @@ def test_properties():
         ]
 
 
-def test_oasis_gds_property_roundtrip(tmpdir):
+def test_oasis_gds_property_roundtrip():
     ref = gdstk.Reference("foo")
     ref.set_property("S_GDS_PROPERTY", (101, "foo"))
     assert ref.get_gds_property(101) == "foo"
