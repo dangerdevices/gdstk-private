@@ -579,6 +579,7 @@ static PyObject* cell_object_copy(CellObject* self, PyObject* args, PyObject* kw
         Py_DECREF(pystr);
     } else {
         PyErr_SetString(PyExc_ValueError, "Empty cell name.");
+        return NULL;
     }
 
     Vec2 translation = {0, 0};
