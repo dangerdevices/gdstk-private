@@ -34,11 +34,17 @@ def test_name():
     assert cell.name == "foo"
 
     class Bar:
-        def __str__(self) -> str:
-            return "bar"
+        def __init__(self, name: str) -> None:
+            self._name = name
 
-    cell = gdstk.Cell(Bar())
+        def __str__(self) -> str:
+            return self._name
+
+    cell = gdstk.Cell(Bar("bar"))
     assert cell.name == "bar"
+
+    cell.name = Bar("foo")
+    assert cell.name == "foo"
 
     with pytest.raises(TypeError):
         gdstk.Cell()

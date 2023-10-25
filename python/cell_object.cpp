@@ -1084,15 +1084,20 @@ PyObject* cell_object_get_name(CellObject* self, void*) {
 }
 
 int cell_object_set_name(CellObject* self, PyObject* arg, void*) {
-    if (!PyUnicode_Check(arg)) {
-        PyErr_SetString(PyExc_TypeError, "Name must be a string.");
-        return -1;
-    }
+    PyObject* pystr;
+    char *pyname;
+    Py_ssize_t len;
+    const char* src = NULL;
+    if (
+        (pystr = PyObject_Str(arg)) &&
+        (pyname = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) &&
+        // len does not include NULL terminator.
+        len >= 1
+    ) {
+        src = copy_string(pyname, NULL);
 
-    Py_ssize_t len = 0;
-    const char* src = PyUnicode_AsUTF8AndSize(arg, &len);
-    if (!src) return -1;
-    if (len <= 0) {
+        Py_DECREF(pystr);
+    } else {
         PyErr_SetString(PyExc_ValueError, "Empty cell name.");
         return -1;
     }
