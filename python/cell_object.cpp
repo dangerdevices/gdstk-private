@@ -553,6 +553,7 @@ static PyObject* cell_object_flatten(CellObject* self, PyObject* args, PyObject*
 
 static PyObject* cell_object_copy(CellObject* self, PyObject* args, PyObject* kwds) {
     char* name = NULL;
+    PyObject* name_arg = NULL;
     int deep_copy = 1;
     PyObject* py_trans = NULL;
     double rotation = 0;
@@ -560,13 +561,24 @@ static PyObject* cell_object_copy(CellObject* self, PyObject* args, PyObject* kw
     int x_reflection = 0;
     const char* keywords[] = {"name",         "translation", "rotation", "magnification",
                               "x_reflection", "deep_copy",   NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|Oddpp:copy", (char**)keywords, &name, &py_trans,
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|Oddpp:copy", (char**)keywords, &name_arg, &py_trans,
                                      &rotation, &magnification, &x_reflection, &deep_copy))
         return NULL;
 
-    if (name[0] == 0) {
+    PyObject* pystr;
+    char *pyname;
+    Py_ssize_t len;
+    if (
+        (pystr = PyObject_Str(name_arg)) &&
+        (pyname = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) &&
+        // len does not include NULL terminator.
+        len >= 1
+    ) {
+        name = copy_string(pyname, NULL);
+
+        Py_DECREF(pystr);
+    } else {
         PyErr_SetString(PyExc_ValueError, "Empty cell name.");
-        return NULL;
     }
 
     Vec2 translation = {0, 0};
