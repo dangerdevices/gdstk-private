@@ -752,23 +752,14 @@ Py_ssize_t library_object_len(LibraryObject* self) {
 }
 
 PyObject* library_object_get_item(LibraryObject* self, PyObject* key) {
-    const char* name = NULL;
-
-    PyObject* pystr;
-    char *pyname;
-    Py_ssize_t len;
-    if (
-        (pystr = PyObject_Str(key)) &&
-        (pyname = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) &&
-        // len does not include NULL terminator.
-        len >= 1
-    ) {
-        name = copy_string(pyname, NULL);
-
-        Py_DECREF(pystr);
-    } else {
+    if (!PyUnicode_Check(key)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "Library cells can only be accessed by name (string type).");
         return NULL;
     }
+
+    const char* name = PyUnicode_AsUTF8(key);
+    if (!name) return NULL;
 
     Array<Cell*>* cell_array = &self->library->cell_array;
     for (uint64_t i = 0; i < cell_array->count; ++i) {
