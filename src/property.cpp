@@ -423,7 +423,7 @@ ErrorCode properties_to_oas(const Property* properties, OasisStream& out, OasisS
                         } else {
                             oasis_putc((uint8_t)OasisDataType::NString, out);
                         }
-                        // oasis_write_unsigned_integer(out, value->count);
+                        oasis_write_unsigned_integer(out, value->count);
                         oasis_write(value->bytes, 1, value->count, out);
                     }
                 }
