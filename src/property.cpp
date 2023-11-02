@@ -397,6 +397,11 @@ ErrorCode properties_to_oas(const Property* properties, OasisStream& out, OasisS
                         }
                     }
 
+                    // If the property value lookup table grows to more than 1000
+                    // unique values, switch to writing the property values directly
+                    // in order to avoid degenerate O(n^2) complexity.
+                    //
+                    // 1000 is an arbitrary threshold.
                     if (state.property_value_array.count < 1000) {
                         if (binary) {
                             oasis_putc((uint8_t)OasisDataType::ReferenceB, out);
