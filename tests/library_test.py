@@ -638,3 +638,21 @@ def test_no_stdout_stderr_logging(capfd, tmp_path):
 
     assert not out
     assert not err
+
+
+def test_oasis_roundtrip_properties(tmp_path):
+    library = gdstk.Library("test")
+    top = gdstk.Cell("top")
+    library.add(top)
+    for idx in range(10_000):
+        top.add(gdstk.rectangle((0, idx), (idx, 0)).set_property("unique", f"foo_{idx}"))
+
+    oas_path = tmp_path / "foo.oas"
+    library.write_oas(oas_path)
+
+    new_lib = gdstk.read_oas(oas_path)
+    assert sorted(
+            [f"foo_{idx}" for idx in range(10_000)]
+        ) == sorted(
+            [p.get_property("unique")[0].decode() for p in new_lib.top_level()[0].polygons]
+        )
