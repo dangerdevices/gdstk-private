@@ -19,6 +19,7 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #include "polygon.hpp"
 #include "property.hpp"
 #include "robustpath.hpp"
+#include "set.hpp"
 #include "vec.hpp"
 
 namespace gdstk {
@@ -119,6 +120,10 @@ struct Reference {
     ErrorCode to_gds(FILE* out, double scaling) const;
     ErrorCode to_svg(FILE* out, double scaling, uint32_t precision) const;
 };
+
+bool references_short(const Reference* r1, const Reference* r2, const Set<Tag>* tags,
+                      double offset_distance, double offset_tolerance, double offset_scaling,
+                      double boolean_scaling, ErrorCode* error_code);
 
 }  // namespace gdstk
 

@@ -2834,6 +2834,21 @@ Examples:
     >>> lib = gdstk.read_gds("layout.gds")
     >>> lib.replace(cell))!");
 
+PyDoc_STRVAR(library_object_copy_doc, R"!(copy([name=None, deep_copy=True]) -> gdstk.Library
+
+Create a copy of this library.
+
+Args:
+    name (str): Name of the new library, or ``None`` to keep the same
+      name as the copied library.
+    deep_copy (bool): If ``True`` (the default), the library's cells are also deep-copied, and the
+      resulting library is completely self-contained. If ``False``, the list of cells will be copied
+      but any changes to the contents of cells in the original library will also be reflected in
+      the copied library.
+
+Returns:
+    Copy of this library.)!");
+
 PyDoc_STRVAR(library_object_new_cell_doc, R"!(new_cell(name) -> gdstk.Cell
 
 Create a new cell and add it to this library.
@@ -3480,6 +3495,29 @@ Args:
 
 Returns:
     `True` if any point is inside the polygon set, `False` otherwise.)!");
+
+PyDoc_STRVAR(
+    references_short_function_doc,
+    R"!(references_short(ref1, ref2, layers=None, offset_distance=0.01, offset_tolerance=2, offset_precision=1e-3, boolean_precision=1e-3) -> bool
+
+Check whether the two references short together.
+
+An electrical short occurs when a polygon or path from the first reference
+intersects a polygon or path in the second reference, and both
+shapes have the same layer & datatype.
+
+Args:
+    layers: A sequence of (layer, datatype) pairs to check for shorting
+      shapes on. If None, all layers will be checked.
+    offset_distance: If positive, one of the references' shapes will be
+      offset by this amount before checking for shorting shapes. Set to
+      a negative number to disable offset.
+    offset_tolerance, offset_precision: See the definition of these
+      parameters in offset().
+    boolean_precision: See the definition of precision in boolean().
+
+Returns:
+    `True` if the references short together, `False` otherwise.)!");
 
 PyDoc_STRVAR(read_gds_function_doc,
              R"!(read_gds(infile, unit=0, tolerance=0, filter=None) -> gdstk.Library
