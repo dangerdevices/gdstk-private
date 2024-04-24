@@ -5,7 +5,7 @@ Boost Software License - Version 1.0.  See the accompanying
 LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 */
 
-#define __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS 1
 #define _USE_MATH_DEFINES
 
 #define PY_SSIZE_T_CLEAN
@@ -39,8 +39,9 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #include <numpy/arrayobject.h>
 #include <structmember.h>
 
+#include <gdstk/gdstk.hpp>
+
 #include "docstrings.cpp"
-#include "gdstk.h"
 
 using namespace gdstk;
 
@@ -691,7 +692,7 @@ Vec2 eval_parametric_vec2(double u, PyObject* function) {
 Array<Vec2> custom_end_function(const Vec2 first_point, const Vec2 first_direction,
                                 const Vec2 second_point, const Vec2 second_direction,
                                 PyObject* function) {
-    Array<Vec2> array = {0};
+    Array<Vec2> array = {};
     PyObject* result = PyObject_CallFunction(
         function, "(dd)(dd)(dd)(dd)", first_point.x, first_point.y, first_direction.x,
         first_direction.y, second_point.x, second_point.y, second_direction.x, second_direction.y);
@@ -708,7 +709,7 @@ Array<Vec2> custom_end_function(const Vec2 first_point, const Vec2 first_directi
 static Array<Vec2> custom_join_function(const Vec2 first_point, const Vec2 first_direction,
                                         const Vec2 second_point, const Vec2 second_direction,
                                         const Vec2 center, double width, PyObject* function) {
-    Array<Vec2> array = {0};
+    Array<Vec2> array = {};
     PyObject* result =
         PyObject_CallFunction(function, "(dd)(dd)(dd)(dd)(dd)d", first_point.x, first_point.y,
                               first_direction.x, first_direction.y, second_point.x, second_point.y,
@@ -725,7 +726,7 @@ static Array<Vec2> custom_join_function(const Vec2 first_point, const Vec2 first
 
 static Array<Vec2> custom_bend_function(double radius, double initial_angle, double final_angle,
                                         const Vec2 center, PyObject* function) {
-    Array<Vec2> array = {0};
+    Array<Vec2> array = {};
     PyObject* result = PyObject_CallFunction(function, "ddd(dd)", radius, initial_angle,
                                              final_angle, center.x, center.y);
     if (result != NULL) {
@@ -930,7 +931,7 @@ static PyObject* text_function(PyObject* mod, PyObject* args, PyObject* kwds) {
                                      &py_position, &vertical, &layer, &datatype))
         return NULL;
     if (parse_point(py_position, position, "position") != 0) return NULL;
-    Array<Polygon*> array = {0};
+    Array<Polygon*> array = {};
     text(s, size, position, vertical > 0, make_tag(layer, datatype), array);
 
     PyObject* result = PyList_New(array.count);
@@ -974,7 +975,7 @@ static PyObject* contour_function(PyObject* mod, PyObject* args, PyObject* kwds)
 
     double* data = (double*)PyArray_DATA(data_array);
 
-    Array<Polygon*> result_array = {0};
+    Array<Polygon*> result_array = {};
     ErrorCode error_code = contour(data, rows, cols, level, length_scale / precision, result_array);
     Py_DECREF(data_array);
 
@@ -1047,10 +1048,10 @@ static PyObject* offset_function(PyObject* mod, PyObject* args, PyObject* kwds) 
         }
     }
 
-    Array<Polygon*> polygon_array = {0};
+    Array<Polygon*> polygon_array = {};
     if (parse_polygons(py_polygons, polygon_array, "polygons") < 0) return NULL;
 
-    Array<Polygon*> result_array = {0};
+    Array<Polygon*> result_array = {};
     ErrorCode error_code = offset(polygon_array, distance, offset_join, tolerance, 1 / precision,
                                   use_union > 0, result_array);
 
@@ -1123,8 +1124,8 @@ static PyObject* boolean_function(PyObject* mod, PyObject* args, PyObject* kwds)
         return NULL;
     }
 
-    Array<Polygon*> polygon_array1 = {0};
-    Array<Polygon*> polygon_array2 = {0};
+    Array<Polygon*> polygon_array1 = {};
+    Array<Polygon*> polygon_array2 = {};
     if (parse_polygons(py_polygons1, polygon_array1, "operand1") < 0) return NULL;
     if (parse_polygons(py_polygons2, polygon_array2, "operand2") < 0) {
         for (uint64_t j = 0; j < polygon_array1.count; j++) {
@@ -1135,7 +1136,7 @@ static PyObject* boolean_function(PyObject* mod, PyObject* args, PyObject* kwds)
         return NULL;
     }
 
-    Array<Polygon*> result_array = {0};
+    Array<Polygon*> result_array = {};
     ErrorCode error_code =
         boolean(polygon_array1, polygon_array2, oper, 1 / precision, result_array);
 
@@ -1211,9 +1212,10 @@ static PyObject* slice_function(PyObject* mod, PyObject* args, PyObject* kwds) {
     }
 
     double single_position;
-    Array<double> positions = {0};
+    Array<double> positions = {};
     if (PySequence_Check(py_position)) {
         if (parse_double_sequence(py_position, positions, "position") < 0) return NULL;
+        sort(positions);
     } else {
         single_position = PyFloat_AsDouble(py_position);
         if (PyErr_Occurred()) {
@@ -1224,7 +1226,7 @@ static PyObject* slice_function(PyObject* mod, PyObject* args, PyObject* kwds) {
         positions.count = 1;
     }
 
-    Array<Polygon*> polygon_array = {0};
+    Array<Polygon*> polygon_array = {};
     if (parse_polygons(py_polygons, polygon_array, "polygons") < 0) {
         if (positions.items != &single_position) positions.clear();
         return NULL;
@@ -1237,7 +1239,7 @@ static PyObject* slice_function(PyObject* mod, PyObject* args, PyObject* kwds) {
         return NULL;
     }
 
-    Array<PyObject*> parts = {0};
+    Array<PyObject*> parts = {};
     parts.ensure_slots(positions.count + 1);
     for (uint64_t s = 0; s <= positions.count; s++) {
         parts[s] = PyList_New(0);
@@ -1285,13 +1287,13 @@ static PyObject* inside_function(PyObject* mod, PyObject* args, PyObject* kwds) 
                                      &py_polygons))
         return NULL;
 
-    Array<Vec2> points = {0};
+    Array<Vec2> points = {};
     if (parse_point_sequence(py_points, points, "points") < 0) {
         points.clear();
         return NULL;
     }
 
-    Array<Polygon*> polygons = {0};
+    Array<Polygon*> polygons = {};
     if (parse_polygons(py_polygons, polygons, "polygons") < 0) {
         points.clear();
         return NULL;
@@ -1326,13 +1328,13 @@ static PyObject* all_inside_function(PyObject* mod, PyObject* args, PyObject* kw
                                      &py_polygons))
         return NULL;
 
-    Array<Vec2> points = {0};
+    Array<Vec2> points = {};
     if (parse_point_sequence(py_points, points, "points") < 0) {
         points.clear();
         return NULL;
     }
 
-    Array<Polygon*> polygons = {0};
+    Array<Polygon*> polygons = {};
     if (parse_polygons(py_polygons, polygons, "polygons") < 0) {
         points.clear();
         return NULL;
@@ -1359,13 +1361,13 @@ static PyObject* any_inside_function(PyObject* mod, PyObject* args, PyObject* kw
                                      &py_polygons))
         return NULL;
 
-    Array<Vec2> points = {0};
+    Array<Vec2> points = {};
     if (parse_point_sequence(py_points, points, "points") < 0) {
         points.clear();
         return NULL;
     }
 
-    Array<Polygon*> polygons = {0};
+    Array<Polygon*> polygons = {};
     if (parse_polygons(py_polygons, polygons, "polygons") < 0) {
         points.clear();
         return NULL;
@@ -1380,67 +1382,6 @@ static PyObject* any_inside_function(PyObject* mod, PyObject* args, PyObject* kw
     polygons.clear();
     points.clear();
 
-    Py_INCREF(result);
-    return result;
-}
-
-static PyObject* references_short_function(PyObject* mod, PyObject* args, PyObject* kwds) {
-    PyObject* ref1;
-    PyObject* ref2;
-    PyObject* layers = Py_None;
-    double offset_distance = 0.01;
-    double offset_tolerance = 2;
-    double offset_precision = 0.001;
-    double boolean_precision = 0.001;
-    const char* keywords[] = {"ref1",
-                              "ref2",
-                              "layers",
-                              "offset_distance",
-                              "offset_tolerance",
-                              "offset_precision",
-                              "boolean_precision",
-                              NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|Oddd:references_shorted", (char**)keywords,
-                                     &ref1, &ref2, &layers, &offset_distance, &offset_tolerance,
-                                     &offset_precision, &boolean_precision)) {
-        return NULL;
-    }
-
-    if (!ReferenceObject_Check(ref1) || !ReferenceObject_Check(ref2)) {
-        PyErr_Format(PyExc_TypeError, "Arguments must be References.");
-        return NULL;
-    }
-
-    Set<Tag> tags = {0};
-    if (layers != Py_None) {
-        if (parse_tag_sequence(layers, tags, "layers") < 0) {
-            tags.clear();
-            Py_DECREF(ref1);
-            Py_DECREF(ref2);
-            Py_DECREF(layers);
-            return NULL;
-        }
-
-        // Caller provided an empty layer list; nothing to do.
-        if (tags.count == 0) {
-            PyObject* result = Py_False;
-            Py_INCREF(result);
-            return result;
-        }
-    }
-
-    ErrorCode error_code = ErrorCode::NoError;
-    bool shorted =
-        references_short(((ReferenceObject*)ref1)->reference, ((ReferenceObject*)ref2)->reference,
-                         tags.count > 0 ? &tags : NULL, offset_distance, offset_tolerance,
-                         1 / offset_precision, 1 / boolean_precision, &error_code);
-    tags.clear();
-
-    if (return_error(error_code)) {
-        return NULL;
-    }
-
-    PyObject* result = shorted ? Py_True : Py_False;
     Py_INCREF(result);
     return result;
 }
@@ -1520,20 +1461,14 @@ static PyObject* create_library_objects(Library* library) {
 static PyObject* read_gds_function(PyObject* mod, PyObject* args, PyObject* kwds) {
     PyObject* pybytes = NULL;
     double unit = 0;
-    double tolerance = 1e-2;
+    double tolerance = 0;
     PyObject* pyfilter = Py_None;
     const char* keywords[] = {"infile", "unit", "tolerance", "filter", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O&|ddO:read_gds", (char**)keywords,
                                      PyUnicode_FSConverter, &pybytes, &unit, &tolerance, &pyfilter))
         return NULL;
 
-    if (tolerance <= 0) {
-        PyErr_SetString(PyExc_ValueError, "Tolerance must be positive.");
-        Py_DECREF(pybytes);
-        return NULL;
-    }
-
-    Set<Tag> shape_tags = {0};
+    Set<Tag> shape_tags = {};
     Set<Tag>* shape_tags_ptr = NULL;
     if (pyfilter != Py_None) {
         if (parse_tag_sequence(pyfilter, shape_tags, "filter") < 0) {
@@ -1564,17 +1499,11 @@ static PyObject* read_gds_function(PyObject* mod, PyObject* args, PyObject* kwds
 static PyObject* read_oas_function(PyObject* mod, PyObject* args, PyObject* kwds) {
     PyObject* pybytes = NULL;
     double unit = 0;
-    double tolerance = 1e-2;
+    double tolerance = 0;
     const char* keywords[] = {"infile", "unit", "tolerance", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O&|dd:read_oas", (char**)keywords,
                                      PyUnicode_FSConverter, &pybytes, &unit, &tolerance))
         return NULL;
-
-    if (tolerance <= 0) {
-        PyErr_SetString(PyExc_ValueError, "Tolerance must be positive.");
-        Py_DECREF(pybytes);
-        return NULL;
-    }
 
     const char* filename = PyBytes_AS_STRING(pybytes);
     Library* library = (Library*)allocate_clear(sizeof(Library));
@@ -1619,6 +1548,12 @@ static PyObject* read_rawcells_function(PyObject* mod, PyObject* args) {
         }
         Py_DECREF(rawcell_obj);
     }
+    for (MapItem<RawCell*>* item = map.next(NULL); item; item = map.next(item)) {
+        RawCell* rawcell = item->value;
+        for (uint64_t i = 0; i < rawcell->dependencies.count; i++) {
+            Py_INCREF(rawcell->dependencies[i]->owner);
+        }
+    }
     map.clear();
     return (PyObject*)result;
 }
@@ -1641,7 +1576,7 @@ static PyObject* gds_timestamp_function(PyObject* mod, PyObject* args, PyObject*
     PyObject* pybytes = NULL;
     PyObject* pytimestamp = Py_None;
     tm* timestamp = NULL;
-    tm _timestamp = {0};
+    tm _timestamp = {};
     const char* keywords[] = {"filename", "timestamp", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O&|O:gds_timestamp", (char**)keywords,
                                      PyUnicode_FSConverter, &pybytes, &pytimestamp))
@@ -1679,7 +1614,7 @@ static PyObject* gds_info_function(PyObject* mod, PyObject* args) {
     PyObject* pybytes = NULL;
     if (!PyArg_ParseTuple(args, "O&:gds_info", PyUnicode_FSConverter, &pybytes)) return NULL;
 
-    LibraryInfo info = {0};
+    LibraryInfo info = {};
     const char* filename = PyBytes_AS_STRING(pybytes);
     ErrorCode error_code = gds_info(filename, info);
     Py_DECREF(pybytes);
@@ -1728,7 +1663,8 @@ static PyObject* gds_info_function(PyObject* mod, PyObject* args) {
         return NULL;
     }
     if (PyDict_SetItemString(result, "layers_and_datatypes", item) < 0) {
-        PyErr_SetString(PyExc_RuntimeError, "Unable to add layers_and_datatypes to return dictionary.");
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Unable to add layers_and_datatypes to return dictionary.");
         Py_DECREF(item);
         Py_DECREF(result);
         info.clear();
@@ -1742,7 +1678,8 @@ static PyObject* gds_info_function(PyObject* mod, PyObject* args) {
         return NULL;
     }
     if (PyDict_SetItemString(result, "layers_and_texttypes", item) < 0) {
-        PyErr_SetString(PyExc_RuntimeError, "Unable to add layers_and_texttypes to return dictionary.");
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Unable to add layers_and_texttypes to return dictionary.");
         Py_DECREF(item);
         Py_DECREF(result);
         info.clear();
@@ -1895,8 +1832,6 @@ static PyMethodDef gdstk_methods[] = {
      all_inside_function_doc},
     {"any_inside", (PyCFunction)any_inside_function, METH_VARARGS | METH_KEYWORDS,
      any_inside_function_doc},
-    {"references_short", (PyCFunction)references_short_function, METH_VARARGS | METH_KEYWORDS,
-     references_short_function_doc},
     {"read_gds", (PyCFunction)read_gds_function, METH_VARARGS | METH_KEYWORDS,
      read_gds_function_doc},
     {"read_oas", (PyCFunction)read_oas_function, METH_VARARGS | METH_KEYWORDS,
@@ -1923,286 +1858,94 @@ static int gdstk_exec(PyObject* module) {
     curve_object_type.tp_methods = curve_object_methods;
     curve_object_type.tp_getset = curve_object_getset;
     curve_object_type.tp_str = (reprfunc)curve_object_str;
-    if (PyType_Ready(&curve_object_type) < 0) {
-        Py_XDECREF(module);
-        return -1;
-    }
-    Py_INCREF(&curve_object_type);
-    if (PyModule_AddObject(module, "Curve", (PyObject*)&curve_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
 
     polygon_object_type.tp_dealloc = (destructor)polygon_object_dealloc;
     polygon_object_type.tp_init = (initproc)polygon_object_init;
     polygon_object_type.tp_methods = polygon_object_methods;
     polygon_object_type.tp_getset = polygon_object_getset;
     polygon_object_type.tp_str = (reprfunc)polygon_object_str;
-    if (PyType_Ready(&polygon_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
-    Py_INCREF(&polygon_object_type);
-    if (PyModule_AddObject(module, "Polygon", (PyObject*)&polygon_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
 
     reference_object_type.tp_dealloc = (destructor)reference_object_dealloc;
     reference_object_type.tp_init = (initproc)reference_object_init;
     reference_object_type.tp_methods = reference_object_methods;
     reference_object_type.tp_getset = reference_object_getset;
     reference_object_type.tp_str = (reprfunc)reference_object_str;
-    if (PyType_Ready(&reference_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
-    Py_INCREF(&reference_object_type);
-    if (PyModule_AddObject(module, "Reference", (PyObject*)&reference_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
 
     flexpath_object_type.tp_dealloc = (destructor)flexpath_object_dealloc;
     flexpath_object_type.tp_init = (initproc)flexpath_object_init;
     flexpath_object_type.tp_methods = flexpath_object_methods;
     flexpath_object_type.tp_getset = flexpath_object_getset;
     flexpath_object_type.tp_str = (reprfunc)flexpath_object_str;
-    if (PyType_Ready(&flexpath_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
-    Py_INCREF(&flexpath_object_type);
-    if (PyModule_AddObject(module, "FlexPath", (PyObject*)&flexpath_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
 
     robustpath_object_type.tp_dealloc = (destructor)robustpath_object_dealloc;
     robustpath_object_type.tp_init = (initproc)robustpath_object_init;
     robustpath_object_type.tp_methods = robustpath_object_methods;
     robustpath_object_type.tp_getset = robustpath_object_getset;
     robustpath_object_type.tp_str = (reprfunc)robustpath_object_str;
-    if (PyType_Ready(&robustpath_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
-    Py_INCREF(&robustpath_object_type);
-    if (PyModule_AddObject(module, "RobustPath", (PyObject*)&robustpath_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_DECREF(&robustpath_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
 
     label_object_type.tp_dealloc = (destructor)label_object_dealloc;
     label_object_type.tp_init = (initproc)label_object_init;
     label_object_type.tp_methods = label_object_methods;
     label_object_type.tp_getset = label_object_getset;
     label_object_type.tp_str = (reprfunc)label_object_str;
-    if (PyType_Ready(&label_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_DECREF(&robustpath_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
-    Py_INCREF(&label_object_type);
-    if (PyModule_AddObject(module, "Label", (PyObject*)&label_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_DECREF(&robustpath_object_type);
-        Py_DECREF(&label_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
 
     cell_object_type.tp_dealloc = (destructor)cell_object_dealloc;
     cell_object_type.tp_init = (initproc)cell_object_init;
     cell_object_type.tp_methods = cell_object_methods;
     cell_object_type.tp_getset = cell_object_getset;
     cell_object_type.tp_str = (reprfunc)cell_object_str;
-    if (PyType_Ready(&cell_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_DECREF(&robustpath_object_type);
-        Py_DECREF(&label_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
-    Py_INCREF(&cell_object_type);
-    if (PyModule_AddObject(module, "Cell", (PyObject*)&cell_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_DECREF(&robustpath_object_type);
-        Py_DECREF(&label_object_type);
-        Py_DECREF(&cell_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
 
     rawcell_object_type.tp_dealloc = (destructor)rawcell_object_dealloc;
     rawcell_object_type.tp_init = (initproc)rawcell_object_init;
     rawcell_object_type.tp_methods = rawcell_object_methods;
     rawcell_object_type.tp_getset = rawcell_object_getset;
     rawcell_object_type.tp_str = (reprfunc)rawcell_object_str;
-    if (PyType_Ready(&rawcell_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_DECREF(&robustpath_object_type);
-        Py_DECREF(&label_object_type);
-        Py_DECREF(&cell_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
-    Py_INCREF(&rawcell_object_type);
-    if (PyModule_AddObject(module, "RawCell", (PyObject*)&rawcell_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_DECREF(&robustpath_object_type);
-        Py_DECREF(&label_object_type);
-        Py_DECREF(&cell_object_type);
-        Py_DECREF(&rawcell_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
 
     library_object_type.tp_dealloc = (destructor)library_object_dealloc;
     library_object_type.tp_init = (initproc)library_object_init;
     library_object_type.tp_methods = library_object_methods;
     library_object_type.tp_getset = library_object_getset;
+    library_object_type.tp_as_mapping = &library_object_as_mapping;
     library_object_type.tp_str = (reprfunc)library_object_str;
-    if (PyType_Ready(&library_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_DECREF(&robustpath_object_type);
-        Py_DECREF(&label_object_type);
-        Py_DECREF(&cell_object_type);
-        Py_DECREF(&rawcell_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
-    Py_INCREF(&library_object_type);
-    if (PyModule_AddObject(module, "Library", (PyObject*)&library_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_DECREF(&robustpath_object_type);
-        Py_DECREF(&label_object_type);
-        Py_DECREF(&cell_object_type);
-        Py_DECREF(&rawcell_object_type);
-        Py_DECREF(&library_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
 
     gdswriter_object_type.tp_dealloc = (destructor)gdswriter_object_dealloc;
     gdswriter_object_type.tp_init = (initproc)gdswriter_object_init;
     gdswriter_object_type.tp_methods = gdswriter_object_methods;
     // gdswriter_object_type.tp_getset = gdswriter_object_getset;
     gdswriter_object_type.tp_str = (reprfunc)gdswriter_object_str;
-    if (PyType_Ready(&gdswriter_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_DECREF(&robustpath_object_type);
-        Py_DECREF(&label_object_type);
-        Py_DECREF(&cell_object_type);
-        Py_DECREF(&rawcell_object_type);
-        Py_DECREF(&library_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
-    Py_INCREF(&gdswriter_object_type);
-    if (PyModule_AddObject(module, "GdsWriter", (PyObject*)&gdswriter_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_DECREF(&robustpath_object_type);
-        Py_DECREF(&label_object_type);
-        Py_DECREF(&cell_object_type);
-        Py_DECREF(&rawcell_object_type);
-        Py_DECREF(&library_object_type);
-        Py_DECREF(&gdswriter_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
 
     repetition_object_type.tp_dealloc = (destructor)repetition_object_dealloc;
     repetition_object_type.tp_init = (initproc)repetition_object_init;
     repetition_object_type.tp_methods = repetition_object_methods;
     repetition_object_type.tp_getset = repetition_object_getset;
     repetition_object_type.tp_str = (reprfunc)repetition_object_str;
-    if (PyType_Ready(&repetition_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_DECREF(&robustpath_object_type);
-        Py_DECREF(&label_object_type);
-        Py_DECREF(&cell_object_type);
-        Py_DECREF(&rawcell_object_type);
-        Py_DECREF(&library_object_type);
-        Py_DECREF(&gdswriter_object_type);
-        Py_XDECREF(module);
-        return -1;
+
+    char const* names[] = {
+        "Library",   "Cell",       "Polygon", "FlexPath", "RobustPath", "Label",
+        "Reference", "Repetition", "Curve",   "RawCell",  "GdsWriter",
+    };
+    PyTypeObject* types[] = {
+        &library_object_type,   &cell_object_type,       &polygon_object_type,
+        &flexpath_object_type,  &robustpath_object_type, &label_object_type,
+        &reference_object_type, &repetition_object_type, &curve_object_type,
+        &rawcell_object_type,   &gdswriter_object_type,
+    };
+    for (unsigned long i = 0; i < sizeof(types) / sizeof(types[0]); ++i) {
+        if (PyType_Ready(types[i]) < 0) {
+            Py_DECREF(module);
+            return -1;
+        }
+        Py_INCREF(types[i]);
+        if (PyModule_AddObject(module, names[i], (PyObject*)types[i]) < 0) {
+            Py_DECREF(types[i]);
+            Py_DECREF(module);
+            return -1;
+        }
     }
-    Py_INCREF(&repetition_object_type);
-    if (PyModule_AddObject(module, "Repetition", (PyObject*)&repetition_object_type) < 0) {
-        Py_DECREF(&curve_object_type);
-        Py_DECREF(&polygon_object_type);
-        Py_DECREF(&reference_object_type);
-        Py_DECREF(&flexpath_object_type);
-        Py_DECREF(&robustpath_object_type);
-        Py_DECREF(&label_object_type);
-        Py_DECREF(&cell_object_type);
-        Py_DECREF(&rawcell_object_type);
-        Py_DECREF(&library_object_type);
-        Py_DECREF(&gdswriter_object_type);
-        Py_DECREF(&repetition_object_type);
-        Py_XDECREF(module);
-        return -1;
-    }
+
+    // Disable logging to stderr. Code that wishes to return a warning or error
+    // to Python should use an `ErrorCode` type; see utils.hpp.
+    set_error_logger(NULL);
 
     return 0;
 }
@@ -2210,7 +1953,7 @@ static int gdstk_exec(PyObject* module) {
 static PyModuleDef_Slot gdstk_slots[] = {{Py_mod_exec, (void*)gdstk_exec}, {0, NULL}};
 
 static struct PyModuleDef gdstk_module = {PyModuleDef_HEAD_INIT,
-                                          "gdstk",
+                                          "_gdstk",
                                           gdstk_module_doc,
                                           0,
                                           gdstk_methods,
@@ -2219,7 +1962,7 @@ static struct PyModuleDef gdstk_module = {PyModuleDef_HEAD_INIT,
                                           NULL,
                                           NULL};
 
-PyMODINIT_FUNC PyInit_gdstk(void) {
+PyMODINIT_FUNC PyInit__gdstk(void) {
     PyDateTime_IMPORT;
     PyObject* module = PyModuleDef_Init(&gdstk_module);
     if (!module) {

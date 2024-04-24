@@ -15,7 +15,7 @@ static PyObject* gdswriter_object_str(GdsWriterObject* self) {
 
 static void gdswriter_object_dealloc(GdsWriterObject* self) {
     free_allocation(self->gdswriter);
-    PyObject_Del(self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static int gdswriter_object_init(GdsWriterObject* self, PyObject* args, PyObject* kwds) {
@@ -24,7 +24,7 @@ static int gdswriter_object_init(GdsWriterObject* self, PyObject* args, PyObject
     const char* default_name = "library";
     PyObject* pybytes = NULL;
     PyObject* pytimestamp = Py_None;
-    tm timestamp = {0};
+    tm timestamp = {};
     uint64_t max_points = 199;
     char* name = NULL;
     double unit = 1e-6;

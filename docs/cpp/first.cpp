@@ -7,15 +7,15 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
 #include <stdio.h>
 
-#include "gdstk.h"
+#include <gdstk/gdstk.hpp>
 
 using namespace gdstk;
 
 int main(int argc, char* argv[]) {
-    Library lib = {.unit = 1e-6, .precision = 1e-9};
-    lib.name = copy_string("library", NULL);
+    Library lib = {};
+    lib.init("library", 1e-6, 1e-9);
 
-    Cell cell = {0};
+    Cell cell = {};
     cell.name = copy_string("FIRST", NULL);
     lib.cell_array.append(&cell);
 

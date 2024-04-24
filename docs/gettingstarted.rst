@@ -109,9 +109,10 @@ they will be ordered internally.
 
    .. literalinclude:: cpp/polygons.cpp
       :language: c++
-      :lines: 14-23
+      :start-at: example_polygons
+      :end-before: example_holes
 
-.. image:: tutorial/polygons.*
+.. image:: tutorial/polygons.svg
    :align: center
 
 
@@ -133,9 +134,10 @@ boundary of the polygon, as in the following example:
 
    .. literalinclude:: cpp/polygons.cpp
       :language: c++
-      :lines: 25-31
+      :start-at: example_holes
+      :end-before: example_circles
 
-.. image:: tutorial/holes.*
+.. image:: tutorial/holes.svg
    :align: center
 
 
@@ -168,9 +170,10 @@ tolerance and automatically converted.
 
    .. literalinclude:: cpp/polygons.cpp
       :language: c++
-      :lines: 33-45
+      :start-at: example_circles
+      :end-before: example_curves1
 
-.. image:: tutorial/circles.*
+.. image:: tutorial/circles.svg
    :align: center
 
 
@@ -195,9 +198,10 @@ step-by-step.  The syntax is inspired by the `SVG path specification
 
    .. literalinclude:: cpp/polygons.cpp
       :language: c++
-      :lines: 47-69
+      :start-at: example_curves1
+      :end-before: example_curves2
 
-.. image:: tutorial/curves.*
+.. image:: tutorial/curves.svg
    :align: center
 
 Coordinate pairs can be given as a complex number: real and imaginary parts are
@@ -219,9 +223,10 @@ for an extra rotation of the major axis of the ellipse.
 
    .. literalinclude:: cpp/polygons.cpp
       :language: c++
-      :lines: 71-81
+      :start-at: example_curves2
+      :end-before: example_curves3
 
-.. image:: tutorial/curves_1.*
+.. image:: tutorial/curves_1.svg
    :align: center
 
 Curves sections can be constructed as cubic, quadratic and general-degree
@@ -241,15 +246,16 @@ arguments to control the shape of the curve.
 
    .. literalinclude:: cpp/polygons.cpp
       :language: c++
-      :lines: 83-115
+      :start-at: example_curves3
+      :end-before: example_transformations
 
-.. image:: tutorial/curves_2.*
+.. image:: tutorial/curves_2.svg
    :align: center
 
 Transformations
 ===============
 
-All polygons can be transformed trough :meth:`gdstk.Polygon.translate`,
+All polygons can be transformed through :meth:`gdstk.Polygon.translate`,
 :meth:`gdstk.Polygon.rotate`, :meth:`gdstk.Polygon.scale`, and
 :meth:`gdstk.Polygon.mirror`.  The transformations are applied in-place, i.e.,
 no new polygons are created.
@@ -266,9 +272,10 @@ no new polygons are created.
 
    .. literalinclude:: cpp/polygons.cpp
       :language: c++
-      :lines: 117-123
+      :start-at: example_transformations
+      :end-before: example_layerdatatype
 
-.. image:: tutorial/transformations.*
+.. image:: tutorial/transformations.svg
    :align: center
 
 
@@ -300,9 +307,10 @@ simplify the assignment to each polygon.
 
    .. literalinclude:: cpp/polygons.cpp
       :language: c++
-      :lines: 125-141
+      :start-at: example_layerdatatype
+      :end-before: main
 
-.. image:: tutorial/layer_and_datatype.*
+.. image:: tutorial/layer_and_datatype.svg
    :align: center
 
 .. _references:
@@ -336,7 +344,7 @@ are exemplified below.
       :language: c++
       :start-at: #include
 
-.. image:: tutorial/references.*
+.. image:: tutorial/references.svg
    :align: center
 
 
@@ -395,9 +403,10 @@ with additional features to facilitate path creation:
 
    .. literalinclude:: cpp/flexpaths.cpp
       :language: c++
-      :lines: 14-44
+      :start-at: example_flexpath1
+      :end-before: example_flexpath2
 
-.. image:: tutorial/flexible_paths.*
+.. image:: tutorial/flexible_paths.svg
    :align: center
 
 The corner type "circular bend" (together with the `bend_radius` argument) can
@@ -415,9 +424,10 @@ be used to automatically curve the path.
 
    .. literalinclude:: cpp/flexpaths.cpp
       :language: c++
-      :lines: 46-61
+      :start-at: example_flexpath2
+      :end-before: example_flexpath3
 
-.. image:: tutorial/flexible_paths_2.*
+.. image:: tutorial/flexible_paths_2.svg
    :align: center
 
 Width and offset variations are possible throughout the path.  Changes are
@@ -437,9 +447,10 @@ polygonal objects.
 
    .. literalinclude:: cpp/flexpaths.cpp
       :language: c++
-      :lines: 63-80
+      :start-at: example_flexpath3
+      :end-before: main
 
-.. image:: tutorial/flexible_paths_3.*
+.. image:: tutorial/flexible_paths_3.svg
    :align: center
 
 
@@ -474,7 +485,7 @@ the paths.
       :language: c++
       :start-at: #include
 
-.. image:: tutorial/robust_paths.*
+.. image:: tutorial/robust_paths.svg
    :align: center
 
 Note that, analogously to :class:`gdstk.FlexPath`, :class:`gdstk.RobustPath`
@@ -511,7 +522,7 @@ which is important for some laser writing systems.
       :language: c++
       :start-at: #include
 
-.. image:: tutorial/text.*
+.. image:: tutorial/text.svg
    :align: center
 
 
@@ -546,9 +557,10 @@ vertices is all polygons as low as possible also helps.
 
    .. literalinclude:: cpp/geometry_operations.cpp
       :language: c++
-      :lines: 14-28
+      :start-at: example_boolean
+      :end-before: example_slice
 
-.. image:: tutorial/boolean_operations.*
+.. image:: tutorial/boolean_operations.svg
    :align: center
 
 
@@ -570,9 +582,10 @@ horizontal or vertical cut lines.
 
    .. literalinclude:: cpp/geometry_operations.cpp
       :language: c++
-      :lines: 30-57
+      :start-at: example_slice
+      :end-before: example_offset
 
-.. image:: tutorial/slice_operation.*
+.. image:: tutorial/slice_operation.svg
    :align: center
 
 
@@ -596,9 +609,10 @@ same is valid for polygons with holes.
 
    .. literalinclude:: cpp/geometry_operations.cpp
       :language: c++
-      :lines: 59-71
+      :start-at: example_offset
+      :end-before: example_fillet
 
-.. image:: tutorial/offset_operation.*
+.. image:: tutorial/offset_operation.svg
    :align: center
 
 
@@ -619,9 +633,10 @@ The method :meth:`gdstk.Polygon.fillet` can be used to round polygon corners.
 
    .. literalinclude:: cpp/geometry_operations.cpp
       :language: c++
-      :lines: 73-88
+      :start-at: example_fillet
+      :end-before: main
 
-.. image:: tutorial/fillet_operation.*
+.. image:: tutorial/fillet_operation.svg
    :align: center
 
 
@@ -724,13 +739,19 @@ existing GDSII or OASIS file into a new instance of :class:`gdstk.Library`.
       // Convert to new unit
       Library lib2 = read_gds("filename.gds", 1e-9);
 
-      // Use deafult OASIS unit (1e-6)
+      // Use default OASIS unit (1e-6)
       Library lib3 = read_oas("filename.oas");
 
-Access to the cells in the loaded library is provided through the list
-:attr:`gdstk.Library.cells`.  The method :meth:`gdstk.Library.top_level` can be
-used to find the top-level cells in the library (cells on the top of the
-hierarchy, i.e., cell that are not referenced by any other cells).
+Access to the cells in the loaded library is primarily provided through the
+list :attr:`gdstk.Library.cells`.  As a shorthand, if the desired cell name is
+know, the idiom ``lib1["CELL_NAME"]`` can be used, although it is not as
+efficient as building a cell dictionary if a large number of queries is
+expected.
+
+Additionally, the method :meth:`gdstk.Library.top_level` can be used to find
+the top-level cells in the library (cells on the top of the hierarchy, i.e.,
+cell that are not referenced by any other cells).
+
 
 Raw Cells
 =========
@@ -756,8 +777,8 @@ modifications, the function :func:`gdstk.read_rawcells` is much more efficient.
 
       Map<RawCell*> cells = read_rawcells("filename.gds");
 
-      Reference my_ref = {.type = ReferenceType::RawCell, .magnification = 1};
-      my_ref.rawcell = cells.get("SOME_CELL");
+      Reference my_ref = {};
+      my_ref.init(cells.get("SOME_CELL"), 1);
 
 .. Note::
    This method only works when using the GDSII format; OASIS does *not* support

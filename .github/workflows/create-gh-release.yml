@@ -1,0 +1,15 @@
+name: Create release
+
+# Disabled via the GitHub UI.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release_add:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: softprops/action-gh-release@v2

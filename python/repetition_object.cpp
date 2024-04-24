@@ -28,13 +28,17 @@ static PyObject* repetition_object_str(RepetitionObject* self) {
             snprintf(buffer, COUNT(buffer), "Repetition (y-explicit) of count %" PRIu64, count);
             break;
         default:
-            PyErr_SetString(PyExc_RuntimeError, "Uknown repetition type.");
+            PyErr_SetString(PyExc_RuntimeError, "Unknown repetition type.");
             return NULL;
     }
     return PyUnicode_FromString(buffer);
 }
 
-static void repetition_object_dealloc(RepetitionObject* self) { PyObject_Del(self); }
+static void repetition_object_dealloc(RepetitionObject* self) {
+    Repetition repetition = self->repetition;
+    repetition.clear();
+    Py_TYPE(self)->tp_free((PyObject*)self);
+}
 
 static int repetition_object_init(RepetitionObject* self, PyObject* args, PyObject* kwds) {
     PyObject* spacing_obj = Py_None;
@@ -85,7 +89,7 @@ static int repetition_object_init(RepetitionObject* self, PyObject* args, PyObje
 }
 
 static PyObject* repetition_object_getoffsets(RepetitionObject* self, PyObject*) {
-    Array<Vec2> offsets = {0};
+    Array<Vec2> offsets = {};
     self->repetition.get_offsets(offsets);
     npy_intp dims[] = {(npy_intp)offsets.count, 2};
     PyObject* result = PyArray_SimpleNew(2, dims, NPY_DOUBLE);

@@ -5,7 +5,8 @@ Boost Software License - Version 1.0.  See the accompanying
 LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 */
 
-#include "robustpath.h"
+#define __STDC_FORMAT_MACROS 1
+#define _USE_MATH_DEFINES
 
 #include <inttypes.h>
 #include <math.h>
@@ -13,9 +14,10 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #include <stdio.h>
 #include <string.h>
 
-#include "allocator.h"
-#include "curve.h"
-#include "utils.h"
+#include <gdstk/allocator.hpp>
+#include <gdstk/curve.hpp>
+#include <gdstk/robustpath.hpp>
+#include <gdstk/utils.hpp>
 
 namespace gdstk {
 
@@ -647,7 +649,7 @@ void RobustPath::transform(double magnification, bool x_refl, double rotation, c
 void RobustPath::apply_repetition(Array<RobustPath *> &result) {
     if (repetition.type == RepetitionType::None) return;
 
-    Array<Vec2> offsets = {0};
+    Array<Vec2> offsets = {};
     repetition.get_offsets(offsets);
     repetition.clear();
 
@@ -801,7 +803,7 @@ void RobustPath::interpolation(const Array<Vec2> point_array, double *angles,
                                bool *angle_constraints, Vec2 *tension, double initial_curl,
                                double final_curl, bool cycle, const Interpolation *width_,
                                const Interpolation *offset_, bool relative) {
-    Array<Vec2> hobby_vec = {0};
+    Array<Vec2> hobby_vec = {};
     hobby_vec.ensure_slots(3 * (point_array.count + 1));
     hobby_vec.count = 3 * (point_array.count + 1);
     const Vec2 ref = end_point;
@@ -1069,10 +1071,11 @@ ErrorCode RobustPath::spine_intersection(const SubPath &sub0, const SubPath &sub
             du1 /= norm_v1;
         }
     }
-    fprintf(
-        stderr,
-        "[GDSTK] No intersection found in RobustPath spine construction around (%lg, %lg) and (%lg, %lg).\n",
-        p0.x, p0.y, p1.x, p1.y);
+    if (error_logger)
+        fprintf(
+            error_logger,
+            "[GDSTK] No intersection found in RobustPath spine construction around (%lg, %lg) and (%lg, %lg).\n",
+            p0.x, p0.y, p1.x, p1.y);
     return ErrorCode::IntersectionNotFound;
 }
 
@@ -1123,10 +1126,11 @@ ErrorCode RobustPath::center_intersection(const SubPath &sub0, const Interpolati
             du1 /= norm_v1;
         }
     }
-    fprintf(
-        stderr,
-        "[GDSTK] No intersection found in RobustPath center construction around (%lg, %lg) and (%lg, %lg).\n",
-        p0.x, p0.y, p1.x, p1.y);
+    if (error_logger)
+        fprintf(
+            error_logger,
+            "[GDSTK] No intersection found in RobustPath center construction around (%lg, %lg) and (%lg, %lg).\n",
+            p0.x, p0.y, p1.x, p1.y);
     return ErrorCode::IntersectionNotFound;
 }
 
@@ -1178,10 +1182,11 @@ ErrorCode RobustPath::left_intersection(const SubPath &sub0, const Interpolation
             du1 /= norm_v1;
         }
     }
-    fprintf(
-        stderr,
-        "[GDSTK] No intersection found in RobustPath left side construction around (%lg, %lg) and (%lg, %lg).\n",
-        p0.x, p0.y, p1.x, p1.y);
+    if (error_logger)
+        fprintf(
+            error_logger,
+            "[GDSTK] No intersection found in RobustPath left side construction around (%lg, %lg) and (%lg, %lg).\n",
+            p0.x, p0.y, p1.x, p1.y);
     return ErrorCode::IntersectionNotFound;
 }
 
@@ -1233,10 +1238,11 @@ ErrorCode RobustPath::right_intersection(const SubPath &sub0, const Interpolatio
             du1 /= norm_v1;
         }
     }
-    fprintf(
-        stderr,
-        "[GDSTK] No intersection found in RobustPath right side construction around (%lg, %lg) and (%lg, %lg).\n",
-        p0.x, p0.y, p1.x, p1.y);
+    if (error_logger)
+        fprintf(
+            error_logger,
+            "[GDSTK] No intersection found in RobustPath right side construction around (%lg, %lg) and (%lg, %lg).\n",
+            p0.x, p0.y, p1.x, p1.y);
     return ErrorCode::IntersectionNotFound;
 }
 
@@ -1272,12 +1278,12 @@ ErrorCode RobustPath::to_polygons(bool filter, Tag tag, Array<Polygon *> &result
     for (uint64_t ne = 0; ne < num_elements; ne++, el++) {
         if (filter && el->tag != tag) continue;
 
-        Array<Vec2> left_side = {0};
-        Array<Vec2> right_side = {0};
+        Array<Vec2> left_side = {};
+        Array<Vec2> right_side = {};
         left_side.ensure_slots(subpath_array.count);
         right_side.ensure_slots(subpath_array.count);
-        Curve initial_cap = {0};
-        Curve final_cap = {0};
+        Curve initial_cap = {};
+        Curve final_cap = {};
         initial_cap.tolerance = tolerance;
         final_cap.tolerance = tolerance;
 
@@ -1307,7 +1313,7 @@ ErrorCode RobustPath::to_polygons(bool filter, Tag tag, Array<Polygon *> &result
                 initial_cap.arc(half_width, half_width, initial_angle, initial_angle + M_PI, 0);
             } else if (el->end_type == EndType::Smooth) {
                 initial_cap.append(cap_l);
-                Array<Vec2> point_array = {0};
+                Array<Vec2> point_array = {};
                 point_array.items = (Vec2 *)&cap_r;
                 point_array.count = 1;
                 bool angle_constraints[2] = {true, true};
@@ -1411,7 +1417,7 @@ ErrorCode RobustPath::to_polygons(bool filter, Tag tag, Array<Polygon *> &result
                 final_cap.arc(half_width, half_width, initial_angle, initial_angle + M_PI, 0);
             } else if (el->end_type == EndType::Smooth) {
                 final_cap.append(cap_r);
-                Array<Vec2> point_array = {0};
+                Array<Vec2> point_array = {};
                 point_array.items = (Vec2 *)&cap_l;
                 point_array.count = 1;
                 bool angle_constraints[2] = {true, true};
@@ -1440,15 +1446,14 @@ ErrorCode RobustPath::to_polygons(bool filter, Tag tag, Array<Polygon *> &result
         uint64_t num =
             left_side.count + initial_cap.point_array.count + final_cap.point_array.count - 2;
         right_side.ensure_slots(num);
-        Vec2 *dst = right_side.items + right_side.count;
+        Vec2 *dst = right_side.items + right_side.count - 1;
 
-        memcpy(dst, final_cap.point_array.items + 1,
-               sizeof(Vec2) * (final_cap.point_array.count - 2));
-        dst += final_cap.point_array.count - 2;
+        memcpy(dst, final_cap.point_array.items, sizeof(Vec2) * final_cap.point_array.count);
+        dst += final_cap.point_array.count;
         final_cap.clear();
 
-        Vec2 *src = left_side.items + left_side.count - 1;
-        for (uint64_t i = left_side.count; i > 0; i--) *dst++ = *src--;
+        Vec2 *src = left_side.items + left_side.count - 2;
+        for (uint64_t i = left_side.count - 1; i > 0; i--) *dst++ = *src--;
         left_side.clear();
 
         memcpy(dst, initial_cap.point_array.items, sizeof(Vec2) * initial_cap.point_array.count);
@@ -1498,7 +1503,7 @@ ErrorCode RobustPath::to_gds(FILE *out, double scaling) const {
     big_endian_swap16(buffer_end, COUNT(buffer_end));
 
     Vec2 zero = {0, 0};
-    Array<Vec2> offsets = {0};
+    Array<Vec2> offsets = {};
     if (repetition.type != RepetitionType::None) {
         repetition.get_offsets(offsets);
     } else {
@@ -1506,8 +1511,8 @@ ErrorCode RobustPath::to_gds(FILE *out, double scaling) const {
         offsets.items = &zero;
     }
 
-    Array<int32_t> coords = {0};
-    Array<Vec2> point_array = {0};
+    Array<int32_t> coords = {};
+    Array<Vec2> point_array = {};
     point_array.ensure_slots(subpath_array.count * GDSTK_MIN_POINTS);
 
     RobustPathElement *el = elements;
@@ -1619,7 +1624,7 @@ ErrorCode RobustPath::to_oas(OasisStream &out, OasisState &state) const {
 
     bool has_repetition = repetition.get_count() > 1;
 
-    Array<Vec2> point_array = {0};
+    Array<Vec2> point_array = {};
     point_array.ensure_slots(subpath_array.count * GDSTK_MIN_POINTS);
 
     RobustPathElement *el = elements;
@@ -1684,7 +1689,7 @@ ErrorCode RobustPath::to_oas(OasisStream &out, OasisState &state) const {
 }
 
 ErrorCode RobustPath::to_svg(FILE *out, double scaling, uint32_t precision) const {
-    Array<Polygon *> array = {0};
+    Array<Polygon *> array = {};
     ErrorCode error_code = to_polygons(false, 0, array);
     for (uint64_t i = 0; i < array.count; i++) {
         ErrorCode err = array[i]->to_svg(out, scaling, precision);

@@ -5,15 +5,15 @@ Boost Software License - Version 1.0.  See the accompanying
 LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 */
 
+#define __STDC_FORMAT_MACROS 1
 #define _USE_MATH_DEFINES
-
-#include "repetition.h"
 
 #include <stdint.h>
 #include <stdio.h>
 
-#include "array.h"
-#include "vec.h"
+#include <gdstk/array.hpp>
+#include <gdstk/repetition.hpp>
+#include <gdstk/vec.hpp>
 
 namespace gdstk {
 
@@ -308,7 +308,7 @@ void Repetition::transform(double magnification, bool x_reflection, double rotat
             if (rotation != 0) {
                 double ca = magnification * cos(rotation);
                 double sa = magnification * sin(rotation);
-                Array<Vec2> temp = {0};
+                Array<Vec2> temp = {};
                 temp.ensure_slots(coords.count);
                 temp.count = coords.count;
                 Vec2* v = temp.items;
@@ -335,7 +335,7 @@ void Repetition::transform(double magnification, bool x_reflection, double rotat
                     ca = -ca;
                     sa = -sa;
                 }
-                Array<Vec2> temp = {0};
+                Array<Vec2> temp = {};
                 temp.ensure_slots(coords.count);
                 temp.count = coords.count;
                 Vec2* v = temp.items;

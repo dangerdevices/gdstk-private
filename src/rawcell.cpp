@@ -5,15 +5,17 @@ Boost Software License - Version 1.0.  See the accompanying
 LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 */
 
-#include "rawcell.h"
+#define __STDC_FORMAT_MACROS 1
+#define _USE_MATH_DEFINES
 
 #include <assert.h>
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 
-#include "allocator.h"
-#include "gdsii.h"
+#include <gdstk/allocator.hpp>
+#include <gdstk/gdsii.hpp>
+#include <gdstk/rawcell.hpp>
 
 namespace gdstk {
 
@@ -74,7 +76,8 @@ ErrorCode RawCell::to_gds(FILE* out) {
         data = (uint8_t*)allocate(size);
         int64_t result = source->offset_read(data, size, off);
         if (result < 0 || (uint64_t)result != size) {
-            fputs("[GDSTK] Unable to read RawCell data form input file.\n", stderr);
+            if (error_logger)
+                fputs("[GDSTK] Unable to read RawCell data form input file.\n", error_logger);
             error_code = ErrorCode::InputFileError;
             size = 0;
         }
@@ -90,7 +93,7 @@ ErrorCode RawCell::to_gds(FILE* out) {
 }
 
 Map<RawCell*> read_rawcells(const char* filename, ErrorCode* error_code) {
-    Map<RawCell*> result = {0};
+    Map<RawCell*> result = {};
     uint8_t buffer[65537];
     char* str = (char*)(buffer + 4);
 
@@ -98,7 +101,7 @@ Map<RawCell*> read_rawcells(const char* filename, ErrorCode* error_code) {
     source->uses = 0;
     source->file = fopen(filename, "rb");
     if (source->file == NULL) {
-        fputs("[GDSTK] Unable to open input GDSII file.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Unable to open input GDSII file.\n", error_logger);
         if (error_code) *error_code = ErrorCode::InputFileOpenError;
         return result;
     }
@@ -129,7 +132,9 @@ Map<RawCell*> read_rawcells(const char* filename, ErrorCode* error_code) {
                             }
                         } else {
                             dependencies->remove_unordered(i);
-                            fprintf(stderr, "[GDSTK] Referenced cell %s not found.\n", name);
+                            if (error_logger)
+                                fprintf(error_logger, "[GDSTK] Referenced cell %s not found.\n",
+                                        name);
                             if (error_code) *error_code = ErrorCode::MissingReference;
                         }
                         free_allocation(name);
@@ -194,7 +199,7 @@ Map<RawCell*> read_rawcells(const char* filename, ErrorCode* error_code) {
     fclose(source->file);
     free_allocation(source);
     result.clear();
-    fprintf(stderr, "[GDSTK] Invalid GDSII file %s.\n", filename);
+    if (error_logger) fprintf(error_logger, "[GDSTK] Invalid GDSII file %s.\n", filename);
     if (error_code) *error_code = ErrorCode::InvalidFile;
     return result;
 }

@@ -20,25 +20,25 @@ static void cell_object_dealloc(CellObject* self) {
     Cell* cell = self->cell;
     if (cell) {
         for (uint64_t i = 0; i < cell->polygon_array.count; i++)
-            Py_DECREF(cell->polygon_array[i]->owner);
+            Py_XDECREF(cell->polygon_array[i]->owner);
         for (uint64_t i = 0; i < cell->reference_array.count; i++)
-            Py_DECREF(cell->reference_array[i]->owner);
+            Py_XDECREF(cell->reference_array[i]->owner);
         for (uint64_t i = 0; i < cell->flexpath_array.count; i++)
-            Py_DECREF(cell->flexpath_array[i]->owner);
+            Py_XDECREF(cell->flexpath_array[i]->owner);
         for (uint64_t i = 0; i < cell->robustpath_array.count; i++)
-            Py_DECREF(cell->robustpath_array[i]->owner);
+            Py_XDECREF(cell->robustpath_array[i]->owner);
         for (uint64_t i = 0; i < cell->label_array.count; i++)
-            Py_DECREF(cell->label_array[i]->owner);
+            Py_XDECREF(cell->label_array[i]->owner);
         cell->clear();
         free_allocation(cell);
     }
-    PyObject_Del(self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static int cell_object_init(CellObject* self, PyObject* args, PyObject* kwds) {
     const char* keywords[] = {"name", NULL};
-    char* name = NULL;
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s:Cell", (char**)keywords, &name)) return -1;
+    PyObject* name_arg = NULL;
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:Cell", (char**)keywords, &name_arg)) return -1;
     Cell* cell = self->cell;
     if (cell) {
         for (uint64_t i = 0; i < cell->polygon_array.count; i++)
@@ -56,14 +56,28 @@ static int cell_object_init(CellObject* self, PyObject* args, PyObject* kwds) {
         self->cell = (Cell*)allocate_clear(sizeof(Cell));
         cell = self->cell;
     }
-    uint64_t len;
-    cell->name = copy_string(name, &len);
-    cell->owner = self;
-    if (len <= 1) {
-        PyErr_SetString(PyExc_ValueError, "Empty cell name.");
-        return -1;
+
+    PyObject* pystr;
+    char *pyname;
+    Py_ssize_t len;
+    if (
+        (pystr = PyObject_Str(name_arg)) &&
+        (pyname = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) &&
+        // len does not include NULL terminator.
+        len >= 1
+    ) {
+        cell->name = copy_string(pyname, NULL);
+        cell->owner = self;
+
+        Py_DECREF(pystr);
+        return 0;
     }
-    return 0;
+
+    Py_XDECREF(pystr);
+    free_allocation(cell);
+    self->cell = NULL;
+    PyErr_SetString(PyExc_ValueError, "Invalid cell name.");
+    return -1;
 }
 
 static PyObject* cell_object_add(CellObject* self, PyObject* args) {
@@ -121,7 +135,7 @@ static PyObject* cell_object_area(CellObject* self, PyObject* args) {
     PyObject* result;
     int by_spec = 0;
     if (!PyArg_ParseTuple(args, "|p:area", &by_spec)) return NULL;
-    Array<Polygon*> array = {0};
+    Array<Polygon*> array = {};
     self->cell->get_polygons(true, true, -1, false, 0, array);
     if (by_spec) {
         result = PyDict_New();
@@ -225,8 +239,12 @@ static PyObject* cell_object_bounding_box(CellObject* self, PyObject*) {
 }
 
 static PyObject* cell_object_convex_hull(CellObject* self, PyObject*) {
-    Array<Vec2> points = {0};
+    Array<Vec2> points = {};
     self->cell->convex_hull(points);
+    if (points.count == 0) {
+        points.clear();
+        Py_RETURN_NONE;
+    }
     npy_intp dims[] = {(npy_intp)points.count, 2};
     PyObject* result = PyArray_SimpleNew(2, dims, NPY_DOUBLE);
     if (!result) {
@@ -261,6 +279,12 @@ static PyObject* cell_object_get_polygons(CellObject* self, PyObject* args, PyOb
         }
     }
 
+    if ((py_layer == Py_None) != (py_datatype == Py_None)) {
+        PyErr_SetString(PyExc_ValueError,
+                        "Filtering is only enabled if both layer and datatype are set.");
+        return NULL;
+    }
+
     uint32_t layer = 0;
     uint32_t datatype = 0;
     bool filter = (py_layer != Py_None) && (py_datatype != Py_None);
@@ -277,7 +301,7 @@ static PyObject* cell_object_get_polygons(CellObject* self, PyObject* args, PyOb
         }
     }
 
-    Array<Polygon*> array = {0};
+    Array<Polygon*> array = {};
     self->cell->get_polygons(apply_repetitions > 0, include_paths > 0, depth, filter,
                              make_tag(layer, datatype), array);
 
@@ -340,11 +364,11 @@ static PyObject* cell_object_get_paths(CellObject* self, PyObject* args, PyObjec
         }
     }
 
-    Array<FlexPath*> fp_array = {0};
+    Array<FlexPath*> fp_array = {};
     self->cell->get_flexpaths(apply_repetitions > 0, depth, filter, make_tag(layer, datatype),
                               fp_array);
 
-    Array<RobustPath*> rp_array = {0};
+    Array<RobustPath*> rp_array = {};
     self->cell->get_robustpaths(apply_repetitions > 0, depth, filter, make_tag(layer, datatype),
                                 rp_array);
 
@@ -421,7 +445,7 @@ static PyObject* cell_object_get_labels(CellObject* self, PyObject* args, PyObje
         }
     }
 
-    Array<Label*> array = {0};
+    Array<Label*> array = {};
     self->cell->get_labels(apply_repetitions > 0, depth, filter, make_tag(layer, texttype), array);
 
     PyObject* result = PyList_New(array.count);
@@ -456,54 +480,70 @@ static PyObject* cell_object_flatten(CellObject* self, PyObject* args, PyObject*
         return NULL;
 
     Cell* cell = self->cell;
+    uint64_t last_polygon = cell->polygon_array.count;
+    uint64_t last_flexpath = cell->flexpath_array.count;
+    uint64_t last_robustpath = cell->robustpath_array.count;
+    uint64_t last_label = cell->label_array.count;
 
-    Array<Reference*> reference_array = {0};
+    Array<Reference*> reference_array = {};
     cell->flatten(apply_repetitions > 0, reference_array);
     Reference** ref = reference_array.items;
     for (uint64_t i = reference_array.count; i > 0; i--, ref++) Py_XDECREF((*ref)->owner);
     reference_array.clear();
 
-    Polygon** p_item = cell->polygon_array.items;
-    for (uint64_t i = cell->polygon_array.count; i > 0; i--, p_item++) {
+    Polygon** p_item = cell->polygon_array.items + last_polygon;
+    for (uint64_t i = cell->polygon_array.count; i > last_polygon; i--, p_item++) {
         Polygon* poly = *p_item;
         if (!poly->owner) {
             PolygonObject* obj = PyObject_New(PolygonObject, &polygon_object_type);
             obj = (PolygonObject*)PyObject_Init((PyObject*)obj, &polygon_object_type);
             obj->polygon = poly;
             obj->polygon->owner = obj;
+        } else {
+            // This case should never happen, we're just future-proofing
+            Py_INCREF(poly->owner);
         }
     }
 
-    FlexPath** fp_item = cell->flexpath_array.items;
-    for (uint64_t i = cell->flexpath_array.count; i > 0; i--, fp_item++) {
+    FlexPath** fp_item = cell->flexpath_array.items + last_flexpath;
+    for (uint64_t i = cell->flexpath_array.count; i > last_flexpath; i--, fp_item++) {
         FlexPath* flexpath = *fp_item;
         if (!flexpath->owner) {
             FlexPathObject* obj = PyObject_New(FlexPathObject, &flexpath_object_type);
             obj = (FlexPathObject*)PyObject_Init((PyObject*)obj, &flexpath_object_type);
             obj->flexpath = flexpath;
             obj->flexpath->owner = obj;
+        } else {
+            // This case should never happen, we're just future-proofing
+            Py_INCREF(flexpath->owner);
         }
     }
 
-    RobustPath** rp_item = cell->robustpath_array.items;
-    for (uint64_t i = cell->robustpath_array.count; i > 0; i--, rp_item++) {
+    RobustPath** rp_item = cell->robustpath_array.items + last_robustpath;
+    for (uint64_t i = cell->robustpath_array.count; i > last_robustpath; i--, rp_item++) {
         RobustPath* robustpath = *rp_item;
         if (!robustpath->owner) {
             RobustPathObject* obj = PyObject_New(RobustPathObject, &robustpath_object_type);
             obj = (RobustPathObject*)PyObject_Init((PyObject*)obj, &robustpath_object_type);
             obj->robustpath = robustpath;
             obj->robustpath->owner = obj;
+        } else {
+            // This case should never happen, we're just future-proofing
+            Py_INCREF(robustpath->owner);
         }
     }
 
-    Label** l_item = cell->label_array.items;
-    for (uint64_t i = cell->label_array.count; i > 0; i--, l_item++) {
+    Label** l_item = cell->label_array.items + last_label;
+    for (uint64_t i = cell->label_array.count; i > last_label; i--, l_item++) {
         Label* label = *l_item;
         if (!label->owner) {
             LabelObject* obj = PyObject_New(LabelObject, &label_object_type);
             obj = (LabelObject*)PyObject_Init((PyObject*)obj, &label_object_type);
             obj->label = label;
             obj->label->owner = obj;
+        } else {
+            // This case should never happen, we're just future-proofing
+            Py_INCREF(label->owner);
         }
     }
 
@@ -512,7 +552,7 @@ static PyObject* cell_object_flatten(CellObject* self, PyObject* args, PyObject*
 }
 
 static PyObject* cell_object_copy(CellObject* self, PyObject* args, PyObject* kwds) {
-    char* name = NULL;
+    PyObject* name_arg = NULL;
     int deep_copy = 1;
     PyObject* py_trans = NULL;
     double rotation = 0;
@@ -520,11 +560,20 @@ static PyObject* cell_object_copy(CellObject* self, PyObject* args, PyObject* kw
     int x_reflection = 0;
     const char* keywords[] = {"name",         "translation", "rotation", "magnification",
                               "x_reflection", "deep_copy",   NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|Oddpp:copy", (char**)keywords, &name, &py_trans,
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|Oddpp:copy", (char**)keywords, &name_arg, &py_trans,
                                      &rotation, &magnification, &x_reflection, &deep_copy))
         return NULL;
 
-    if (name[0] == 0) {
+    const char* name = NULL;
+    PyObject* pystr = NULL;
+    Py_ssize_t len = 0;
+    if (
+        !(pystr = PyObject_Str(name_arg)) ||
+        !(name = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) ||
+        // len does not include NULL terminator.
+        len < 1
+    ) {
+        Py_XDECREF(pystr);
         PyErr_SetString(PyExc_ValueError, "Empty cell name.");
         return NULL;
     }
@@ -542,6 +591,7 @@ static PyObject* cell_object_copy(CellObject* self, PyObject* args, PyObject* kw
     Cell* cell = result->cell;
     cell->owner = result;
     cell->copy_from(*self->cell, name, deep_copy > 0);
+    Py_DECREF(pystr);
 
     Array<Polygon*>* polygon_array = &cell->polygon_array;
     if (deep_copy) {
@@ -687,11 +737,11 @@ static PyObject* cell_object_write_svg(CellObject* self, PyObject* args, PyObjec
         }
     }
 
-    StyleMap shape_style = {0};
+    StyleMap shape_style = {};
     if (style_obj != Py_None && update_style(style_obj, shape_style, "shape_style") < 0)
         return NULL;
 
-    StyleMap label_style = {0};
+    StyleMap label_style = {};
     if (label_style_obj != Py_None &&
         update_style(label_style_obj, label_style, "label_style") < 0) {
         shape_style.clear();
@@ -787,7 +837,7 @@ static PyObject* cell_object_filter(CellObject* self, PyObject* args, PyObject* 
                                      &remove, &polygons, &paths, &labels))
         return NULL;
 
-    Set<Tag> tag_set = {0};
+    Set<Tag> tag_set = {};
     if (py_filter != Py_None) {
         if (parse_tag_sequence(py_filter, tag_set, "spec") < 0) {
             tag_set.clear();
@@ -894,11 +944,63 @@ static PyObject* cell_object_filter(CellObject* self, PyObject* args, PyObject* 
     return (PyObject*)self;
 }
 
-static PyObject* cell_object_dependencies(CellObject* self, PyObject* args) {
-    int recursive;
-    if (!PyArg_ParseTuple(args, "p:dependencies", &recursive)) return NULL;
-    Map<Cell*> cell_map = {0};
-    Map<RawCell*> rawcell_map = {0};
+static PyObject* cell_object_remap(CellObject* self, PyObject* args, PyObject* kwds) {
+    PyObject* py_map = NULL;
+    const char* keywords[] = {"layer_type_map", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:remap", (char**)keywords, &py_map)) return NULL;
+
+    if (!PyMapping_Check(py_map)) {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "Argument layer_type_map must be a mapping of (layer, type) tuples to (layer, type) tuples.");
+        return NULL;
+    }
+
+    PyObject* py_items = PyMapping_Items(py_map);
+    if (!py_items) {
+        PyErr_SetString(PyExc_RuntimeError, "Unable to get map items.");
+        return NULL;
+    }
+
+    TagMap map = {};
+    const int64_t count = PyList_Size(py_items);
+    for (int64_t i = 0; i < count; i++) {
+        PyObject* py_item = PyList_GET_ITEM(py_items, i);
+        PyObject* py_key = PyTuple_GET_ITEM(py_item, 0);
+        PyObject* py_value = PyTuple_GET_ITEM(py_item, 1);
+        Tag key;
+        if (!parse_tag(py_key, key)) {
+            PyErr_SetString(PyExc_TypeError, "Keys must be (layer, type) tuples.");
+            Py_DECREF(py_items);
+            map.clear();
+            return NULL;
+        }
+        Tag value;
+        if (!parse_tag(py_value, value)) {
+            PyErr_SetString(PyExc_TypeError, "Values must be (layer, type) tuples.");
+            Py_DECREF(py_items);
+            map.clear();
+            return NULL;
+        }
+        map.set(key, value);
+    }
+
+    self->cell->remap_tags(map);
+    map.clear();
+    Py_DECREF(py_items);
+
+    Py_INCREF(self);
+    return (PyObject*)self;
+}
+
+static PyObject* cell_object_dependencies(CellObject* self, PyObject* args, PyObject* kwds) {
+    int recursive = 1;
+    const char* keywords[] = {"recursive", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "p:dependencies", (char**)keywords, &recursive))
+        return NULL;
+
+    Map<Cell*> cell_map = {};
+    Map<RawCell*> rawcell_map = {};
     self->cell->get_dependencies(recursive > 0, cell_map);
     self->cell->get_raw_dependencies(recursive > 0, rawcell_map);
     PyObject* result = PyList_New(cell_map.count + rawcell_map.count);
@@ -963,7 +1065,8 @@ static PyMethodDef cell_object_methods[] = {
     {"remove", (PyCFunction)cell_object_remove, METH_VARARGS, cell_object_remove_doc},
     {"filter", (PyCFunction)cell_object_filter, METH_VARARGS | METH_KEYWORDS,
      cell_object_filter_doc},
-    {"dependencies", (PyCFunction)cell_object_dependencies, METH_VARARGS,
+    {"remap", (PyCFunction)cell_object_remap, METH_VARARGS | METH_KEYWORDS, cell_object_remap_doc},
+    {"dependencies", (PyCFunction)cell_object_dependencies, METH_VARARGS | METH_KEYWORDS,
      cell_object_dependencies_doc},
     {"set_property", (PyCFunction)cell_object_set_property, METH_VARARGS, object_set_property_doc},
     {"get_property", (PyCFunction)cell_object_get_property, METH_VARARGS, object_get_property_doc},
@@ -981,15 +1084,17 @@ PyObject* cell_object_get_name(CellObject* self, void*) {
 }
 
 int cell_object_set_name(CellObject* self, PyObject* arg, void*) {
-    if (!PyUnicode_Check(arg)) {
-        PyErr_SetString(PyExc_TypeError, "Name must be a string.");
-        return -1;
-    }
-
+    PyObject* pystr = NULL;
     Py_ssize_t len = 0;
-    const char* src = PyUnicode_AsUTF8AndSize(arg, &len);
-    if (!src) return -1;
-    if (len <= 0) {
+    const char* src = NULL;
+
+    if (
+        !(pystr = PyObject_Str(arg)) ||
+        !(src = PyUnicode_AsUTF8AndSize(pystr, &len)) ||
+        // len does not include NULL terminator.
+        len < 1
+    ) {
+        Py_XDECREF(pystr);
         PyErr_SetString(PyExc_ValueError, "Empty cell name.");
         return -1;
     }
@@ -998,6 +1103,7 @@ int cell_object_set_name(CellObject* self, PyObject* arg, void*) {
     if (cell->name) free_allocation(cell->name);
     cell->name = (char*)allocate(++len);
     memcpy(cell->name, src, len);
+    Py_DECREF(pystr);
     return 0;
 }
 

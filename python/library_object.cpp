@@ -17,13 +17,13 @@ static void library_object_dealloc(LibraryObject* self) {
     Library* library = self->library;
     if (library) {
         for (uint64_t i = 0; i < library->cell_array.count; i++)
-            Py_DECREF(library->cell_array[i]->owner);
+            Py_XDECREF(library->cell_array[i]->owner);
         for (uint64_t i = 0; i < library->rawcell_array.count; i++)
-            Py_DECREF(library->rawcell_array[i]->owner);
+            Py_XDECREF(library->rawcell_array[i]->owner);
         library->clear();
         free_allocation(library);
     }
-    PyObject_Del(self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static int library_object_init(LibraryObject* self, PyObject* args, PyObject* kwds) {
@@ -65,6 +65,142 @@ static int library_object_init(LibraryObject* self, PyObject* args, PyObject* kw
     library->precision = precision;
     library->owner = self;
     return 0;
+}
+
+static PyObject* library_object_copy(LibraryObject* self,  PyObject* args, PyObject* kwds) {
+    char *name = NULL;
+    int deep_copy = 1;
+    const char* keywords[] = {"name", "deep_copy", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|sp:copy", (char**)keywords, &name, &deep_copy))
+        return NULL;
+
+    LibraryObject* result = PyObject_New(LibraryObject, &library_object_type);
+    result->library = (Library*)allocate_clear(sizeof(Library));
+    Library* library = result->library;
+    library->owner = result;
+    library->copy_from(*self->library, deep_copy > 0);
+
+    // References may point to cells that were not added to the library being copied.
+    // If so, `Library::copy_from()` will have set reference->cell or reference->rawcell
+    // to NULL. `ReferenceObject`s cannot be created for these references, because
+    // those objects will try to access the cell pointers and segfault.
+    Array<Cell*>* cell_array = &library->cell_array;
+    for (uint64_t i = 0; i < cell_array->count; i++) {
+        Cell* cell = (*cell_array)[i];
+        Array<Reference*>* reference_array = &cell->reference_array;
+        for (uint64_t i = 0; i < reference_array->count; i++) {
+            Reference* reference = (*reference_array)[i];
+            if(
+                (reference->type == ReferenceType::Cell && !reference->cell) ||
+                (reference->type == ReferenceType::RawCell && !reference->rawcell)
+            ) {
+                PyErr_SetString(
+                    PyExc_RuntimeError,
+                    "Unable to copy library with dangling references"
+                );
+
+                library->clear();
+                Py_DECREF(result);
+                return NULL;
+            }
+        }
+    }
+
+    if (name) library->name = copy_string(name, NULL);
+
+    if (deep_copy) {
+        for (uint64_t i = 0; i < cell_array->count; i++) {
+            CellObject* new_obj = PyObject_New(CellObject, &cell_object_type);
+            new_obj = (CellObject*)PyObject_Init((PyObject*)new_obj, &cell_object_type);
+            Cell* cell = (*cell_array)[i];
+            cell->owner = new_obj;
+            new_obj->cell = cell;
+
+            Array<Polygon*>* polygon_array = &cell->polygon_array;
+            for (uint64_t i = 0; i < polygon_array->count; i++) {
+                PolygonObject* new_obj = PyObject_New(PolygonObject, &polygon_object_type);
+                new_obj = (PolygonObject*)PyObject_Init((PyObject*)new_obj, &polygon_object_type);
+                Polygon* polygon = (*polygon_array)[i];
+                polygon->owner = new_obj;
+                new_obj->polygon = polygon;
+            }
+
+            Array<FlexPath*>* flexpath_array = &cell->flexpath_array;
+            for (uint64_t i = 0; i < flexpath_array->count; i++) {
+                FlexPathObject* new_obj = PyObject_New(FlexPathObject, &flexpath_object_type);
+                new_obj = (FlexPathObject*)PyObject_Init((PyObject*)new_obj, &flexpath_object_type);
+                FlexPath* path = (*flexpath_array)[i];
+                path->owner = new_obj;
+                new_obj->flexpath = path;
+            }
+
+            Array<RobustPath*>* robustpath_array = &cell->robustpath_array;
+            for (uint64_t i = 0; i < robustpath_array->count; i++) {
+                RobustPathObject* new_obj = PyObject_New(RobustPathObject, &robustpath_object_type);
+                new_obj = (RobustPathObject*)PyObject_Init((PyObject*)new_obj, &robustpath_object_type);
+                RobustPath* path = (*robustpath_array)[i];
+                path->owner = new_obj;
+                new_obj->robustpath = path;
+            }
+
+            Array<Label*>* label_array = &cell->label_array;
+            for (uint64_t i = 0; i < label_array->count; i++) {
+                LabelObject* new_obj = PyObject_New(LabelObject, &label_object_type);
+                new_obj = (LabelObject*)PyObject_Init((PyObject*)new_obj, &label_object_type);
+                Label* label = (*label_array)[i];
+                label->owner = new_obj;
+                new_obj->label = label;
+            }
+        }
+    } else {
+        for (uint64_t i = 0; i < cell_array->count; i++) {
+            Cell* cell = (*cell_array)[i];
+            Py_INCREF(cell->owner);
+
+            Array<Polygon*>* polygon_array = &cell->polygon_array;
+            for (uint64_t i = 0; i < polygon_array->count; i++) Py_INCREF((*polygon_array)[i]->owner);
+
+            Array<Reference*>* reference_array = &cell->reference_array;
+            for (uint64_t i = 0; i < reference_array->count; i++) Py_INCREF((*reference_array)[i]->owner);
+
+            Array<FlexPath*>* flexpath_array = &cell->flexpath_array;
+            for (uint64_t i = 0; i < flexpath_array->count; i++) Py_INCREF((*flexpath_array)[i]->owner);
+
+            Array<RobustPath*>* robustpath_array = &cell->robustpath_array;
+            for (uint64_t i = 0; i < robustpath_array->count; i++) Py_INCREF((*robustpath_array)[i]->owner);
+
+            Array<Label*>* label_array = &cell->label_array;
+            for (uint64_t i = 0; i < label_array->count; i++) Py_INCREF((*label_array)[i]->owner);
+        }
+    }
+
+    // must update references after all cells have been assigned a new owner
+    if (deep_copy) {
+        cell_array = &library->cell_array;
+        for (uint64_t i = 0; i < cell_array->count; i++) {
+            Cell* cell = (*cell_array)[i];
+            Array<Reference*>* reference_array = &cell->reference_array;
+            for (uint64_t i = 0; i < reference_array->count; i++) {
+                ReferenceObject* new_obj = PyObject_New(ReferenceObject, &reference_object_type);
+                new_obj = (ReferenceObject*)PyObject_Init((PyObject*)new_obj, &reference_object_type);
+                Reference* reference = (*reference_array)[i];
+                reference->owner = new_obj;
+                new_obj->reference = reference;
+
+                if (reference->type == ReferenceType::Cell)
+                    Py_INCREF(reference->cell->owner);
+                else if (reference->type == ReferenceType::RawCell)
+                    Py_INCREF(reference->rawcell->owner);
+            }
+        }
+    }
+
+    // raw cells should be immutable, so there's no need to perform a deep copy
+    Array<RawCell*>* rawcell_array = &library->rawcell_array;
+    for (uint64_t i = 0; i < rawcell_array->count; i++)
+        Py_INCREF((*rawcell_array)[i]->owner);
+
+    return (PyObject*)result;
 }
 
 static PyObject* library_object_add(LibraryObject* self, PyObject* args) {
@@ -263,10 +399,29 @@ static PyObject* library_object_replace(LibraryObject* self, PyObject* args) {
     return (PyObject*)self;
 }
 
+static PyObject* library_object_rename_cell(LibraryObject* self, PyObject* args, PyObject* kwds) {
+    const char* keywords[] = {"old_name", "new_name", NULL};
+    const char* new_name = NULL;
+    PyObject* py_old = NULL;
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Os:rename_cell", (char**)keywords, &py_old,
+                                     &new_name)) {
+        return NULL;
+    }
+
+    if (PyUnicode_Check(py_old)) {
+        self->library->rename_cell(PyUnicode_AsUTF8(py_old), new_name);
+    } else if (CellObject_Check(py_old)) {
+        self->library->rename_cell(((CellObject*)py_old)->cell, new_name);
+    }
+
+    Py_INCREF(self);
+    return (PyObject*)self;
+}
+
 static PyObject* library_object_top_level(LibraryObject* self, PyObject*) {
     Library* library = self->library;
-    Array<Cell*> top_cells = {0};
-    Array<RawCell*> top_rawcells = {0};
+    Array<Cell*> top_cells = {};
+    Array<RawCell*> top_rawcells = {};
     library->top_level(top_cells, top_rawcells);
 
     const uint64_t i0 = top_cells.count;
@@ -300,7 +455,7 @@ static PyObject* library_object_top_level(LibraryObject* self, PyObject*) {
 }
 
 static PyObject* library_object_layers_and_datatypes(LibraryObject* self, PyObject*) {
-    Set<Tag> tags = {0};
+    Set<Tag> tags = {};
     self->library->get_shape_tags(tags);
     PyObject* result = build_tag_set(tags);
     tags.clear();
@@ -308,11 +463,60 @@ static PyObject* library_object_layers_and_datatypes(LibraryObject* self, PyObje
 }
 
 static PyObject* library_object_layers_and_texttypes(LibraryObject* self, PyObject*) {
-    Set<Tag> tags = {0};
+    Set<Tag> tags = {};
     self->library->get_label_tags(tags);
     PyObject* result = build_tag_set(tags);
     tags.clear();
     return result;
+}
+
+static PyObject* library_object_remap(LibraryObject* self, PyObject* args, PyObject* kwds) {
+    PyObject* py_map = NULL;
+    const char* keywords[] = {"layer_type_map", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:remap", (char**)keywords, &py_map)) return NULL;
+
+    if (!PyMapping_Check(py_map)) {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "Argument layer_type_map must be a mapping of (layer, type) tuples to (layer, type) tuples.");
+        return NULL;
+    }
+
+    PyObject* py_items = PyMapping_Items(py_map);
+    if (!py_items) {
+        PyErr_SetString(PyExc_RuntimeError, "Unable to get map items.");
+        return NULL;
+    }
+
+    TagMap map = {};
+    const int64_t count = PyList_Size(py_items);
+    for (int64_t i = 0; i < count; i++) {
+        PyObject* py_item = PyList_GET_ITEM(py_items, i);
+        PyObject* py_key = PyTuple_GET_ITEM(py_item, 0);
+        PyObject* py_value = PyTuple_GET_ITEM(py_item, 1);
+        Tag key;
+        if (!parse_tag(py_key, key)) {
+            PyErr_SetString(PyExc_TypeError, "Keys must be (layer, type) tuples.");
+            Py_DECREF(py_items);
+            map.clear();
+            return NULL;
+        }
+        Tag value;
+        if (!parse_tag(py_value, value)) {
+            PyErr_SetString(PyExc_TypeError, "Values must be (layer, type) tuples.");
+            Py_DECREF(py_items);
+            map.clear();
+            return NULL;
+        }
+        map.set(key, value);
+    }
+
+    self->library->remap_tags(map);
+    map.clear();
+    Py_DECREF(py_items);
+
+    Py_INCREF(self);
+    return (PyObject*)self;
 }
 
 static PyObject* library_object_write_gds(LibraryObject* self, PyObject* args, PyObject* kwds) {
@@ -320,7 +524,7 @@ static PyObject* library_object_write_gds(LibraryObject* self, PyObject* args, P
     PyObject* pybytes = NULL;
     PyObject* pytimestamp = Py_None;
     tm* timestamp = NULL;
-    tm _timestamp = {0};
+    tm _timestamp = {};
     uint64_t max_points = 199;
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O&|KO:write_gds", (char**)keywords,
                                      PyUnicode_FSConverter, &pybytes, &max_points, &pytimestamp))
@@ -414,14 +618,19 @@ static PyObject* library_object_delete_property(LibraryObject* self, PyObject* a
 
 static PyMethodDef library_object_methods[] = {
     {"add", (PyCFunction)library_object_add, METH_VARARGS, library_object_add_doc},
+    {"copy", (PyCFunction)library_object_copy, METH_VARARGS | METH_KEYWORDS, library_object_copy_doc},
     {"remove", (PyCFunction)library_object_remove, METH_VARARGS, library_object_remove_doc},
     {"replace", (PyCFunction)library_object_replace, METH_VARARGS, library_object_replace_doc},
     {"new_cell", (PyCFunction)library_object_new_cell, METH_VARARGS, library_object_new_cell_doc},
+    {"rename_cell", (PyCFunction)library_object_rename_cell, METH_VARARGS | METH_KEYWORDS,
+     library_object_rename_cell_doc},
     {"top_level", (PyCFunction)library_object_top_level, METH_NOARGS, library_object_top_level_doc},
     {"layers_and_datatypes", (PyCFunction)library_object_layers_and_datatypes, METH_NOARGS,
      library_object_layers_and_datatypes_doc},
     {"layers_and_texttypes", (PyCFunction)library_object_layers_and_texttypes, METH_NOARGS,
      library_object_layers_and_texttypes_doc},
+    {"remap", (PyCFunction)library_object_remap, METH_VARARGS | METH_KEYWORDS,
+     library_object_remap_doc},
     {"write_gds", (PyCFunction)library_object_write_gds, METH_VARARGS | METH_KEYWORDS,
      library_object_write_gds_doc},
     {"write_oas", (PyCFunction)library_object_write_oas, METH_VARARGS | METH_KEYWORDS,
@@ -537,3 +746,45 @@ static PyGetSetDef library_object_getset[] = {
     {"properties", (getter)library_object_get_properties, (setter)library_object_set_properties,
      object_properties_doc, NULL},
     {NULL}};
+
+Py_ssize_t library_object_len(LibraryObject* self) {
+    return self->library->cell_array.count + self->library->rawcell_array.count;
+}
+
+PyObject* library_object_get_item(LibraryObject* self, PyObject* key) {
+    if (!PyUnicode_Check(key)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "Library cells can only be accessed by name (string type).");
+        return NULL;
+    }
+
+    const char* name = PyUnicode_AsUTF8(key);
+    if (!name) return NULL;
+
+    Array<Cell*>* cell_array = &self->library->cell_array;
+    for (uint64_t i = 0; i < cell_array->count; ++i) {
+        if (strcmp(name, cell_array->items[i]->name) == 0) {
+            PyObject* cell_obj = (PyObject*)(cell_array->items[i]->owner);
+            Py_INCREF(cell_obj);
+            return cell_obj;
+        }
+    }
+
+    Array<RawCell*>* rawcell_array = &self->library->rawcell_array;
+    for (uint64_t i = 0; i < rawcell_array->count; ++i) {
+        if (strcmp(name, rawcell_array->items[i]->name) == 0) {
+            PyObject* rawcell_obj = (PyObject*)(rawcell_array->items[i]->owner);
+            Py_INCREF(rawcell_obj);
+            return rawcell_obj;
+        }
+    }
+
+    PyErr_Format(PyExc_KeyError, "Cell '%s' not found in library.", name);
+    return NULL;
+}
+
+static PyMappingMethods library_object_as_mapping = {
+    (lenfunc)library_object_len,
+    (binaryfunc)library_object_get_item,
+    NULL,
+};

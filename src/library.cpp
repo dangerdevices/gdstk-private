@@ -5,7 +5,8 @@ Boost Software License - Version 1.0.  See the accompanying
 LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 */
 
-#include "library.h"
+#define __STDC_FORMAT_MACROS 1
+#define _USE_MATH_DEFINES
 
 #include <float.h>
 #include <inttypes.h>
@@ -15,18 +16,19 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #include <string.h>
 #include <zlib.h>
 
-#include "allocator.h"
-#include "cell.h"
-#include "flexpath.h"
-#include "gdsii.h"
-#include "label.h"
-#include "map.h"
-#include "oasis.h"
-#include "polygon.h"
-#include "rawcell.h"
-#include "reference.h"
-#include "utils.h"
-#include "vec.h"
+#include <gdstk/allocator.hpp>
+#include <gdstk/cell.hpp>
+#include <gdstk/flexpath.hpp>
+#include <gdstk/gdsii.hpp>
+#include <gdstk/label.hpp>
+#include <gdstk/library.hpp>
+#include <gdstk/map.hpp>
+#include <gdstk/oasis.hpp>
+#include <gdstk/polygon.hpp>
+#include <gdstk/rawcell.hpp>
+#include <gdstk/reference.hpp>
+#include <gdstk/utils.hpp>
+#include <gdstk/vec.hpp>
 
 namespace gdstk {
 
@@ -59,17 +61,32 @@ void Library::print(bool all) const {
 
 void Library::copy_from(const Library& library, bool deep_copy) {
     name = copy_string(library.name, NULL);
+    properties = properties_copy(library.properties);
     unit = library.unit;
     precision = library.precision;
     if (deep_copy) {
         cell_array.capacity = library.cell_array.capacity;
         cell_array.count = library.cell_array.count;
         cell_array.items = (Cell**)allocate(sizeof(Cell*) * cell_array.capacity);
+
         Cell** src = library.cell_array.items;
         Cell** dst = cell_array.items;
         for (uint64_t i = 0; i < library.cell_array.count; i++, src++, dst++) {
             *dst = (Cell*)allocate_clear(sizeof(Cell));
             (*dst)->copy_from(**src, NULL, true);
+        }
+
+        src = library.cell_array.items;
+        dst = cell_array.items;
+        for (uint64_t i = 0; i < library.cell_array.count; i++, src++, dst++) {
+            Reference **srcref = (*src)->reference_array.items;
+            Reference **dstref = (*dst)->reference_array.items;
+            for (uint64_t j = 0; j < (*src)->reference_array.count; j++, srcref++, dstref++) {
+                if ((*dstref)->type == ReferenceType::Cell)
+                    (*dstref)->cell = get_cell((*srcref)->cell->name);
+                else if ((*dstref)->type == ReferenceType::RawCell)
+                    (*dstref)->rawcell = get_rawcell((*srcref)->rawcell->name);
+            }
         }
     } else {
         cell_array.copy_from(library.cell_array);
@@ -91,8 +108,8 @@ void Library::get_label_tags(Set<Tag>& result) const {
 }
 
 void Library::top_level(Array<Cell*>& top_cells, Array<RawCell*>& top_rawcells) const {
-    Map<Cell*> cell_deps = {0};
-    Map<RawCell*> rawcell_deps = {0};
+    Map<Cell*> cell_deps = {};
+    Map<RawCell*> rawcell_deps = {};
     cell_deps.resize(cell_array.count * 2);
     rawcell_deps.resize(rawcell_array.count * 2);
 
@@ -142,15 +159,189 @@ RawCell* Library::get_rawcell(const char* rawcell_name) const {
     return NULL;
 }
 
+void Library::rename_cell(const char* old_name, const char* new_name) {
+    Cell* cell = get_cell(old_name);
+    if (cell) {
+        rename_cell(cell, new_name);
+    }
+}
+
+void Library::rename_cell(Cell* cell, const char* new_name) {
+    const char* old_name = cell->name;
+    uint64_t size = 1 + strlen(new_name);
+    for (uint64_t i = 0; i < cell_array.count; ++i) {
+        Array<Reference*> ref_array = cell_array[i]->reference_array;
+        for (uint64_t j = 0; j < ref_array.count; ++j) {
+            Reference* ref = ref_array[j];
+            if (ref->type == ReferenceType::Name && strcmp(ref->name, old_name) == 0) {
+                ref->name = (char*)reallocate(ref->name, size);
+                memcpy(ref->name, new_name, size);
+            }
+        }
+    }
+    cell->name = (char*)reallocate(cell->name, size);
+    memcpy(cell->name, new_name, size);
+}
+
+void Library::replace_cell(Cell* old_cell, Cell* new_cell) {
+    uint64_t index = cell_array.index(old_cell);
+    if (index < cell_array.count) {
+        cell_array.items[index] = new_cell;
+    }
+
+    const char* old_name = old_cell->name;
+    const char* new_name = new_cell->name;
+    uint64_t size = 1 + strlen(new_name);
+    bool rename = strcmp(old_name, new_name) != 0;
+    for (uint64_t i = 0; i < cell_array.count; ++i) {
+        Array<Reference*> ref_array = cell_array[i]->reference_array;
+        for (uint64_t j = 0; j < ref_array.count; ++j) {
+            Reference* ref = ref_array[j];
+            switch (ref->type) {
+                case ReferenceType::Cell:
+                    if (ref->cell == old_cell) {
+                        ref->cell = new_cell;
+                    }
+                    break;
+                case ReferenceType::RawCell:
+                    if (strcmp(ref->rawcell->name, old_name) == 0) {
+                        ref->type = ReferenceType::Cell;
+                        ref->cell = new_cell;
+                    }
+                    break;
+                case ReferenceType::Name:
+                    if (rename && (strcmp(ref->name, old_name) == 0)) {
+                        ref->name = (char*)reallocate(ref->name, size);
+                        memcpy(ref->name, new_name, size);
+                    }
+                    break;
+            }
+        }
+    }
+}
+
+void Library::replace_cell(RawCell* old_cell, Cell* new_cell) {
+    uint64_t index = rawcell_array.index(old_cell);
+    if (index < rawcell_array.count) {
+        rawcell_array.remove_unordered(index);
+        cell_array.append(new_cell);
+    }
+
+    const char* old_name = old_cell->name;
+    const char* new_name = new_cell->name;
+    uint64_t size = 1 + strlen(new_name);
+    bool rename = strcmp(old_name, new_name) != 0;
+    for (uint64_t i = 0; i < cell_array.count; ++i) {
+        Array<Reference*> ref_array = cell_array[i]->reference_array;
+        for (uint64_t j = 0; j < ref_array.count; ++j) {
+            Reference* ref = ref_array[j];
+            switch (ref->type) {
+                case ReferenceType::Cell:
+                    if (strcmp(ref->cell->name, old_name) == 0) {
+                        ref->cell = new_cell;
+                    }
+                    break;
+                case ReferenceType::RawCell:
+                    if (ref->rawcell == old_cell) {
+                        ref->type = ReferenceType::Cell;
+                        ref->cell = new_cell;
+                    }
+                    break;
+                case ReferenceType::Name:
+                    if (rename && (strcmp(ref->name, old_name) == 0)) {
+                        ref->name = (char*)reallocate(ref->name, size);
+                        memcpy(ref->name, new_name, size);
+                    }
+                    break;
+            }
+        }
+    }
+}
+
+void Library::replace_cell(Cell* old_cell, RawCell* new_cell) {
+    uint64_t index = cell_array.index(old_cell);
+    if (index < cell_array.count) {
+        cell_array.remove_unordered(index);
+        rawcell_array.append(new_cell);
+    }
+
+    const char* old_name = old_cell->name;
+    const char* new_name = new_cell->name;
+    uint64_t size = 1 + strlen(new_name);
+    bool rename = strcmp(old_name, new_name) != 0;
+    for (uint64_t i = 0; i < cell_array.count; ++i) {
+        Array<Reference*> ref_array = cell_array[i]->reference_array;
+        for (uint64_t j = 0; j < ref_array.count; ++j) {
+            Reference* ref = ref_array[j];
+            switch (ref->type) {
+                case ReferenceType::Cell:
+                    if (ref->cell == old_cell) {
+                        ref->type = ReferenceType::RawCell;
+                        ref->rawcell = new_cell;
+                    }
+                    break;
+                case ReferenceType::RawCell:
+                    if (strcmp(ref->rawcell->name, old_name) == 0) {
+                        ref->rawcell = new_cell;
+                    }
+                    break;
+                case ReferenceType::Name:
+                    if (rename && (strcmp(ref->name, old_name) == 0)) {
+                        ref->name = (char*)reallocate(ref->name, size);
+                        memcpy(ref->name, new_name, size);
+                    }
+                    break;
+            }
+        }
+    }
+}
+
+void Library::replace_cell(RawCell* old_cell, RawCell* new_cell) {
+    uint64_t index = rawcell_array.index(old_cell);
+    if (index < rawcell_array.count) {
+        rawcell_array.items[index] = new_cell;
+    }
+
+    const char* old_name = old_cell->name;
+    const char* new_name = new_cell->name;
+    uint64_t size = 1 + strlen(new_name);
+    bool rename = strcmp(old_name, new_name) != 0;
+    for (uint64_t i = 0; i < cell_array.count; ++i) {
+        Array<Reference*> ref_array = cell_array[i]->reference_array;
+        for (uint64_t j = 0; j < ref_array.count; ++j) {
+            Reference* ref = ref_array[j];
+            switch (ref->type) {
+                case ReferenceType::Cell:
+                    if (strcmp(ref->cell->name, old_name) == 0) {
+                        ref->type = ReferenceType::RawCell;
+                        ref->rawcell = new_cell;
+                    }
+                    break;
+                case ReferenceType::RawCell:
+                    if (ref->rawcell == old_cell) {
+                        ref->rawcell = new_cell;
+                    }
+                    break;
+                case ReferenceType::Name:
+                    if (rename && (strcmp(ref->name, old_name) == 0)) {
+                        ref->name = (char*)reallocate(ref->name, size);
+                        memcpy(ref->name, new_name, size);
+                    }
+                    break;
+            }
+        }
+    }
+}
+
 ErrorCode Library::write_gds(const char* filename, uint64_t max_points, tm* timestamp) const {
     ErrorCode error_code = ErrorCode::NoError;
     FILE* out = fopen(filename, "wb");
     if (out == NULL) {
-        fputs("[GDSTK] Unable to open GDSII file for output.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Unable to open GDSII file for output.\n", error_logger);
         return ErrorCode::OutputFileOpenError;
     }
 
-    tm now = {0};
+    tm now = {};
     if (!timestamp) timestamp = get_now(now);
 
     uint64_t len = strlen(name);
@@ -235,7 +426,7 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
                              uint8_t compression_level, uint16_t config_flags) {
     ErrorCode error_code = ErrorCode::NoError;
     const uint64_t c_size = cell_array.count;
-    OasisState state = {0};
+    OasisState state = {};
     state.circle_tolerance = circle_tolerance;
     state.config_flags = config_flags;
 
@@ -244,7 +435,7 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
     OasisStream out;
     out.file = fopen(filename, "wb");
     if (out.file == NULL) {
-        fputs("[GDSTK] Unable to open OASIS file for output.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Unable to open OASIS file for output.\n", error_logger);
         return ErrorCode::OutputFileOpenError;
     }
     out.data_size = 1024 * 1024;
@@ -253,7 +444,7 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
     out.crc32 = state.config_flags & OASIS_CONFIG_INCLUDE_CRC32;
     out.checksum32 = state.config_flags & OASIS_CONFIG_INCLUDE_CHECKSUM32;
     if (out.crc32) {
-        out.signature = crc32_z(0, NULL, 0);
+        out.signature = crc32(0, NULL, 0);
     } else if (out.checksum32) {
         out.signature = 0;
     }
@@ -270,8 +461,8 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
 
     if (state.config_flags & OASIS_CONFIG_PROPERTY_TOP_LEVEL) {
         remove_property(properties, s_top_level_property_name, true);
-        Array<Cell*> top_cells = {0};
-        Array<RawCell*> top_rawcells = {0};
+        Array<Cell*> top_cells = {};
+        Array<RawCell*> top_rawcells = {};
         top_level(top_cells, top_rawcells);
         for (uint64_t i = 0; i < top_cells.count; i++) {
             set_property(properties, s_top_level_property_name, top_cells[i]->name, true);
@@ -294,7 +485,7 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
         if (len > string_max) string_max = len;
 
         Cell** p_cell = cell_array.items;
-        Array<Vec2> tmp_array = {0};
+        Array<Vec2> tmp_array = {};
         for (uint64_t i = 0; i < c_size; i++) {
             Cell* cell = *p_cell++;
             len = strlen(cell->name);
@@ -328,7 +519,7 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
                         }
                     }
                 } else {
-                    Array<Polygon*> array = {0};
+                    Array<Polygon*> array = {};
                     ErrorCode err = path->to_polygons(false, 0, array);
                     if (err != ErrorCode::NoError) error_code = err;
                     poly_p = array.items;
@@ -360,7 +551,7 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
                         }
                     }
                 } else {
-                    Array<Polygon*> array = {0};
+                    Array<Polygon*> array = {};
                     ErrorCode err = path->to_polygons(false, 0, array);
                     if (err != ErrorCode::NoError) error_code = err;
                     poly_p = array.items;
@@ -412,9 +603,9 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
     ErrorCode err = properties_to_oas(properties, out, state);
     if (err != ErrorCode::NoError) error_code = err;
 
-    Map<uint64_t> cell_name_map = {0};
-    Map<uint64_t> cell_offset_map = {0};
-    Map<uint64_t> text_string_map = {0};
+    Map<uint64_t> cell_name_map = {};
+    Map<uint64_t> cell_offset_map = {};
+    Map<uint64_t> text_string_map = {};
     bool write_cell_offsets = state.config_flags & OASIS_CONFIG_PROPERTY_CELL_OFFSET;
 
     // Build cell name map. Other maps are built as the file is written.
@@ -458,7 +649,7 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
                 err = path->to_oas(out, state);
                 if (err != ErrorCode::NoError) error_code = err;
             } else {
-                Array<Polygon*> array = {0};
+                Array<Polygon*> array = {};
                 err = path->to_polygons(false, 0, array);
                 if (err != ErrorCode::NoError) error_code = err;
                 poly_p = array.items;
@@ -480,7 +671,7 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
                 err = path->to_oas(out, state);
                 if (err != ErrorCode::NoError) error_code = err;
             } else {
-                Array<Polygon*> array = {0};
+                Array<Polygon*> array = {};
                 err = path->to_polygons(false, 0, array);
                 if (err != ErrorCode::NoError) error_code = err;
                 poly_p = array.items;
@@ -499,11 +690,15 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
         for (uint64_t j = cell->reference_array.count; j > 0; j--) {
             Reference* ref = *ref_p++;
             if (ref->type == ReferenceType::RawCell) {
-                fputs("[GDSTK] Reference to a RawCell cannot be used in an OASIS file.\n", stderr);
+                if (error_logger)
+                    fputs("[GDSTK] Reference to a RawCell cannot be used in an OASIS file.\n",
+                          error_logger);
                 error_code = ErrorCode::MissingReference;
                 continue;
             }
-            uint8_t info = 0xF0;
+            const char* name_ = (ref->type == ReferenceType::Cell) ? ref->cell->name : ref->name;
+            bool reference_exists = cell_name_map.has_key(name_);
+            uint8_t info = reference_exists ? 0xF0 : 0xB0;
             bool has_repetition = ref->repetition.get_count() > 1;
             if (has_repetition) info |= 0x08;
             if (ref->x_reflection) info |= 0x01;
@@ -516,17 +711,27 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
                 }
                 oasis_putc((int)OasisRecord::PLACEMENT, out);
                 oasis_putc(info, out);
-                uint64_t index = cell_name_map.get(
-                    (ref->type == ReferenceType::Cell) ? ref->cell->name : ref->name);
-                oasis_write_unsigned_integer(out, index);
+                if (reference_exists) {
+                    uint64_t index = cell_name_map.get(name_);
+                    oasis_write_unsigned_integer(out, index);
+                } else {
+                    uint64_t len = strlen(name_);
+                    oasis_write_unsigned_integer(out, len);
+                    oasis_write(ref->name, 1, len, out);
+                }
             } else {
                 if (ref->magnification != 1) info |= 0x04;
                 if (ref->rotation != 0) info |= 0x02;
                 oasis_putc((int)OasisRecord::PLACEMENT_TRANSFORM, out);
                 oasis_putc(info, out);
-                uint64_t index = cell_name_map.get(
-                    (ref->type == ReferenceType::Cell) ? ref->cell->name : ref->name);
-                oasis_write_unsigned_integer(out, index);
+                if (reference_exists) {
+                    uint64_t index = cell_name_map.get(name_);
+                    oasis_write_unsigned_integer(out, index);
+                } else {
+                    uint64_t len = strlen(name_);
+                    oasis_write_unsigned_integer(out, len);
+                    oasis_write(ref->name, 1, len, out);
+                }
                 if (ref->magnification != 1) {
                     oasis_write_real(out, ref->magnification);
                 }
@@ -572,12 +777,12 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
 
             // Skip empty cells
             if (uncompressed_size > 0) {
-                z_stream s = {0};
+                z_stream s = {};
                 s.zalloc = zalloc;
                 s.zfree = zfree;
                 if (deflateInit2(&s, compression_level, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY) !=
                     Z_OK) {
-                    fputs("[GDSTK] Unable to initialize zlib.\n", stderr);
+                    if (error_logger) fputs("[GDSTK] Unable to initialize zlib.\n", error_logger);
                     error_code = ErrorCode::ZlibError;
                 }
                 s.avail_out = deflateBound(&s, (uLong)uncompressed_size);
@@ -587,7 +792,7 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
                 s.next_in = out.data;
                 int ret = deflate(&s, Z_FINISH);
                 if (ret != Z_STREAM_END) {
-                    fputs("[GDSTK] Unable to compress CBLOCK.\n", stderr);
+                    if (error_logger) fputs("[GDSTK] Unable to compress CBLOCK.\n", error_logger);
                     error_code = ErrorCode::ZlibError;
                 }
 
@@ -604,7 +809,7 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
 
     uint64_t cell_name_offset = c_size > 0 ? ftell(out.file) : 0;
     cell_p = cell_array.items;
-    Map<GeometryInfo> cache = {0};
+    Map<GeometryInfo> cache = {};
     for (uint64_t i = 0; i < c_size; i++) {
         Cell* cell = *cell_p++;
         oasis_putc((int)OasisRecord::CELLNAME_IMPLICIT, out);
@@ -737,7 +942,7 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
         "BGNEXTN",   "ENDEXTN",  "TAPENUM",   "TAPECODE",   "STRCLASS",    "RESERVED",
         "FORMAT",    "MASK",     "ENDMASKS",  "LIBDIRSIZE", "SRFNAME",     "LIBSECUR"};
 
-    Library library = {0};
+    Library library = {};
     // One extra char in case we need a 0-terminated string with max count (should never happen, but
     // it doesn't hurt to be prepared).
     uint8_t buffer[65537];
@@ -771,8 +976,8 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
             break;
         }
 
-        // printf("%02X %s (%" PRIu32 " bytes)", buffer[2], gdsii_record_names[buffer[2]],
-        // record_length);
+        // printf("0x%02X %s (%" PRIu32 " bytes)", buffer[2], gdsii_record_names[buffer[2]],
+        //        record_length);
 
         uint64_t data_length;
         switch ((GdsiiDataType)buffer[3]) {
@@ -791,7 +996,8 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
             case GdsiiDataType::EightByteReal:
                 data_length = (record_length - 4) / 8;
                 big_endian_swap64(data64, data_length);
-                // for (uint32_t i = 0; i < data_length; i++) printf(" %" PRIu64, data64[i]);
+                // for (uint32_t i = 0; i < data_length; i++)
+                // printf(" %" PRIu64 " (%g)", data64[i], gdsii_real_to_double(data64[i]));
                 break;
             default:
                 data_length = record_length - 4;
@@ -822,9 +1028,12 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
                     library.unit = db_in_meters / db_in_user;
                 }
                 library.precision = db_in_meters;
+                if (tolerance <= 0) {
+                    tolerance = library.precision / library.unit;
+                }
             } break;
             case GdsiiRecord::ENDLIB: {
-                Map<Cell*> map = {0};
+                Map<Cell*> map = {};
                 uint64_t c_size = library.cell_array.count;
                 map.resize((uint64_t)(2.0 + 10.0 / GDSTK_MAP_CAPACITY_THRESHOLD * c_size));
                 Cell** c_item = library.cell_array.items;
@@ -842,8 +1051,9 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
                             reference->cell = cp;
                         } else {
                             if (error_code) *error_code = ErrorCode::MissingReference;
-                            fprintf(stderr, "[GDSTK] Missing referenced cell %s\n",
-                                    reference->name);
+                            if (error_logger)
+                                fprintf(error_logger, "[GDSTK] Missing referenced cell %s\n",
+                                        reference->name);
                         }
                     }
                 }
@@ -913,12 +1123,12 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
             case GdsiiRecord::XY:
                 if (polygon) {
                     polygon->point_array.ensure_slots(data_length / 2);
-                    double* d = (double*)polygon->point_array.items + polygon->point_array.count;
+                    double* d = (double*)(polygon->point_array.items + polygon->point_array.count);
                     int32_t* s = data32;
                     for (uint64_t i = data_length; i > 0; i--) *d++ = factor * (*s++);
                     polygon->point_array.count += data_length / 2;
                 } else if (path) {
-                    Array<Vec2> point_array = {0};
+                    Array<Vec2> point_array = {};
                     if (path->spine.point_array.count == 0) {
                         path->spine.tolerance = tolerance;
                         path->spine.append(Vec2{factor * data32[0], factor * data32[1]});
@@ -965,7 +1175,8 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
             case GdsiiRecord::ENDEL:
                 if (polygon) {
                     // Polygons are closed in GDSII (first and last points are the same)
-                    polygon->point_array.count--;
+                    Array<Vec2>& pa = polygon->point_array;
+                    if (pa[0] == pa[pa.count - 1]) pa.count--;
                     if (shape_tags && !shape_tags->has_value(polygon->tag) && cell) {
                         Array<Polygon*>* array = &cell->polygon_array;
                         uint64_t index = array->count - 1;
@@ -1032,9 +1243,10 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
                 else if (label)
                     label->x_reflection = (data16[0] & 0x8000) != 0;
                 if (data16[0] & 0x0006) {
-                    fputs(
-                        "[GDSTK] Absolute magnification and rotation of references is not supported.\n",
-                        stderr);
+                    if (error_logger)
+                        fputs(
+                            "[GDSTK] Absolute magnification and rotation of references is not supported.\n",
+                            error_logger);
                     if (error_code) *error_code = ErrorCode::UnsupportedRecord;
                 }
                 break;
@@ -1118,10 +1330,12 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
             // case GdsiiRecord::LIBSECUR:
             default:
                 if (buffer[2] < COUNT(gdsii_record_names)) {
-                    fprintf(stderr, "[GDSTK] Record type %s (0x%02X) is not supported.\n",
-                            gdsii_record_names[buffer[2]], buffer[2]);
+                    if (error_logger)
+                        fprintf(error_logger, "[GDSTK] Record type %s (0x%02X) is not supported.\n",
+                                gdsii_record_names[buffer[2]], buffer[2]);
                 } else {
-                    fprintf(stderr, "[GDSTK] Unknown record type 0x%02X.\n", buffer[2]);
+                    if (error_logger)
+                        fprintf(error_logger, "[GDSTK] Unknown record type 0x%02X.\n", buffer[2]);
                 }
                 if (error_code) *error_code = ErrorCode::UnsupportedRecord;
         }
@@ -1129,17 +1343,17 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
 
     library.free_all();
     fclose(in);
-    return Library{0};
+    return Library{};
 }
 
 // TODO: verify modal variables are correctly updated
 Library read_oas(const char* filename, double unit, double tolerance, ErrorCode* error_code) {
-    Library library = {0};
+    Library library = {};
 
-    OasisStream in = {0};
+    OasisStream in = {};
     in.file = fopen(filename, "rb");
     if (in.file == NULL) {
-        fputs("[GDSTK] Unable to open OASIS file for input.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Unable to open OASIS file for input.\n", error_logger);
         if (error_code) *error_code = ErrorCode::InputFileOpenError;
         return library;
     }
@@ -1147,7 +1361,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
     // Check header bytes and START record
     char header[14];
     if (fread(header, 1, 14, in.file) < 14 || memcmp(header, "%SEMI-OASIS\r\n\x01", 14) != 0) {
-        fputs("[GDSTK] Invalid OASIS header found.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Invalid OASIS header found.\n", error_logger);
         if (error_code) *error_code = ErrorCode::InvalidFile;
         fclose(in.file);
         return library;
@@ -1162,7 +1376,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
         return library;
     }
     if (len != 3 || memcmp(version, "1.0", 3) != 0) {
-        fputs("[GDSTK] Unsupported OASIS file version.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Unsupported OASIS file version.\n", error_logger);
         if (error_code) *error_code = ErrorCode::InvalidFile;
     }
     free_allocation(version);
@@ -1174,6 +1388,9 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
         factor *= 1e-6 / unit;
     } else {
         library.unit = 1e-6;
+    }
+    if (tolerance <= 0) {
+        tolerance = library.precision / library.unit;
     }
 
     uint64_t offset_table_flag = oasis_read_unsigned_integer(in);
@@ -1188,17 +1405,17 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
     uint32_t modal_datatype = 0;
     uint32_t modal_textlayer = 0;
     uint32_t modal_texttype = 0;
-    Vec2 modal_placement_pos = {0, 0};
-    Vec2 modal_text_pos = {0, 0};
-    Vec2 modal_geom_pos = {0, 0};
+    IntVec2 modal_placement_pos = {0, 0};
+    IntVec2 modal_text_pos = {0, 0};
+    IntVec2 modal_geom_pos = {0, 0};
     Vec2 modal_geom_dim = {0, 0};
     Repetition modal_repetition = {RepetitionType::None};
     Label* modal_text_string = NULL;
     Reference* modal_placement_cell = NULL;
-    Array<Vec2> modal_polygon_points = {0};
-    modal_polygon_points.append(Vec2{0, 0});
-    Array<Vec2> modal_path_points = {0};
-    modal_path_points.append(Vec2{0, 0});
+    Array<IntVec2> modal_polygon_points = {};
+    modal_polygon_points.append(IntVec2{0, 0});
+    Array<IntVec2> modal_path_points = {};
+    modal_path_points.append(IntVec2{0, 0});
     double modal_path_halfwidth = 0;
     Vec2 modal_path_extensions = {0, 0};
     uint8_t modal_ctrapezoid_type = 0;
@@ -1208,56 +1425,54 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
 
     Property** next_property = &library.properties;
 
-    Array<Property*> unfinished_property_name = {0};
-    Array<PropertyValue*> unfinished_property_value = {0};
+    Array<Property*> unfinished_property_name = {};
+    Array<PropertyValue*> unfinished_property_value = {};
     bool modal_property_unfinished = false;
 
     // Name tables
-    Array<ByteArray> cell_name_table = {0};
-    Array<ByteArray> label_text_table = {0};
-    Array<ByteArray> property_name_table = {0};
-    Array<ByteArray> property_value_table = {0};
+    Array<ByteArray> cell_name_table = {};
+    Array<ByteArray> label_text_table = {};
+    Array<ByteArray> property_name_table = {};
+    Array<ByteArray> property_value_table = {};
 
     // Elements
     Cell* cell = NULL;
 
-#ifndef NDEBUG
-    const char* oasis_record_names[] = {"PAD",
-                                        "START",
-                                        "END",
-                                        "CELLNAME_IMPLICIT",
-                                        "CELLNAME",
-                                        "TEXTSTRING_IMPLICIT",
-                                        "TEXTSTRING",
-                                        "PROPNAME_IMPLICIT",
-                                        "PROPNAME",
-                                        "PROPSTRING_IMPLICIT",
-                                        "PROPSTRING",
-                                        "LAYERNAME_DATA",
-                                        "LAYERNAME_TEXT",
-                                        "CELL_REF_NUM",
-                                        "CELL",
-                                        "XYABSOLUTE",
-                                        "XYRELATIVE",
-                                        "PLACEMENT",
-                                        "PLACEMENT_TRANSFORM",
-                                        "TEXT",
-                                        "RECTANGLE",
-                                        "POLYGON",
-                                        "PATH",
-                                        "TRAPEZOID_AB",
-                                        "TRAPEZOID_A",
-                                        "TRAPEZOID_B",
-                                        "CTRAPEZOID",
-                                        "CIRCLE",
-                                        "PROPERTY",
-                                        "LAST_PROPERTY",
-                                        "XNAME_IMPLICIT",
-                                        "XNAME",
-                                        "XELEMENT",
-                                        "XGEOMETRY",
-                                        "CBLOCK"};
-#endif
+    // const char* oasis_record_names[] = {"PAD",
+    //                                     "START",
+    //                                     "END",
+    //                                     "CELLNAME_IMPLICIT",
+    //                                     "CELLNAME",
+    //                                     "TEXTSTRING_IMPLICIT",
+    //                                     "TEXTSTRING",
+    //                                     "PROPNAME_IMPLICIT",
+    //                                     "PROPNAME",
+    //                                     "PROPSTRING_IMPLICIT",
+    //                                     "PROPSTRING",
+    //                                     "LAYERNAME_DATA",
+    //                                     "LAYERNAME_TEXT",
+    //                                     "CELL_REF_NUM",
+    //                                     "CELL",
+    //                                     "XYABSOLUTE",
+    //                                     "XYRELATIVE",
+    //                                     "PLACEMENT",
+    //                                     "PLACEMENT_TRANSFORM",
+    //                                     "TEXT",
+    //                                     "RECTANGLE",
+    //                                     "POLYGON",
+    //                                     "PATH",
+    //                                     "TRAPEZOID_AB",
+    //                                     "TRAPEZOID_A",
+    //                                     "TRAPEZOID_B",
+    //                                     "CTRAPEZOID",
+    //                                     "CIRCLE",
+    //                                     "PROPERTY",
+    //                                     "LAST_PROPERTY",
+    //                                     "XNAME_IMPLICIT",
+    //                                     "XNAME",
+    //                                     "XELEMENT",
+    //                                     "XGEOMETRY",
+    //                                     "CBLOCK"};
 
     OasisRecord record;
     while ((error_code == NULL || *error_code == ErrorCode::NoError) &&
@@ -1271,7 +1486,9 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 break;
             case OasisRecord::START:
                 // START is parsed before this loop
-                fputs("[GDSTK] Unexpected START record out of position in file.\n", stderr);
+                if (error_logger)
+                    fputs("[GDSTK] Unexpected START record out of position in file.\n",
+                          error_logger);
                 if (error_code) *error_code = ErrorCode::InvalidFile;
                 break;
             case OasisRecord::END: {
@@ -1283,7 +1500,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 library.name[3] = 0;
 
                 uint64_t c_size = library.cell_array.count;
-                Map<Cell*> map = {0};
+                Map<Cell*> map = {};
                 map.resize((uint64_t)(2.0 + 10.0 / GDSTK_MAP_CAPACITY_THRESHOLD * c_size));
 
                 Cell** cell_p = library.cell_array.items;
@@ -1335,7 +1552,9 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                                 ref->name = (char*)allocate(cell_name->count);
                                 memcpy(ref->name, cell_name->bytes, cell_name->count);
                                 if (error_code) *error_code = ErrorCode::MissingReference;
-                                fprintf(stderr, "[GDSTK] Missing referenced cell %s\n", ref->name);
+                                if (error_logger)
+                                    fprintf(error_logger, "[GDSTK] Missing referenced cell %s\n",
+                                            ref->name);
                             }
                         } else {
                             // Using name
@@ -1346,7 +1565,9 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                                 ref->type = ReferenceType::Cell;
                             } else {
                                 if (error_code) *error_code = ErrorCode::MissingReference;
-                                fprintf(stderr, "[GDSTK] Missing referenced cell %s\n", ref->name);
+                                if (error_logger)
+                                    fprintf(error_logger, "[GDSTK] Missing referenced cell %s\n",
+                                            ref->name);
                             }
                         }
                     }
@@ -1467,9 +1688,9 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     cell->name = (char*)oasis_read_string(in, true, len);
                 }
                 modal_absolute_pos = true;
-                modal_placement_pos = Vec2{0, 0};
-                modal_geom_pos = Vec2{0, 0};
-                modal_text_pos = Vec2{0, 0};
+                modal_placement_pos = IntVec2{0, 0};
+                modal_geom_pos = IntVec2{0, 0};
+                modal_text_pos = IntVec2{0, 0};
             } break;
             case OasisRecord::XYABSOLUTE:
                 modal_absolute_pos = true;
@@ -1530,7 +1751,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 }
                 reference->x_reflection = info & 0x01;
                 if (info & 0x20) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_placement_pos.x = x;
                     } else {
@@ -1538,14 +1759,14 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x10) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_placement_pos.y = y;
                     } else {
                         modal_placement_pos.y += y;
                     }
                 }
-                reference->origin = modal_placement_pos;
+                reference->origin = oasis_point_to_microns(modal_placement_pos, factor);
                 if (info & 0x08) {
                     oasis_read_repetition(in, factor, modal_repetition);
                     reference->repetition.copy_from(modal_repetition);
@@ -1585,7 +1806,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 }
                 set_type(label->tag, modal_texttype);
                 if (info & 0x10) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_text_pos.x = x;
                     } else {
@@ -1593,14 +1814,14 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x08) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_text_pos.y = y;
                     } else {
                         modal_text_pos.y += y;
                     }
                 }
-                label->origin = modal_text_pos;
+                label->origin = oasis_point_to_microns(modal_text_pos, factor);
                 if (info & 0x04) {
                     oasis_read_repetition(in, factor, modal_repetition);
                     label->repetition.copy_from(modal_repetition);
@@ -1627,7 +1848,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     modal_geom_dim.y = modal_geom_dim.x;
                 }
                 if (info & 0x10) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.x = x;
                     } else {
@@ -1635,14 +1856,15 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x08) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.y = y;
                     } else {
                         modal_geom_pos.y += y;
                     }
                 }
-                *polygon = rectangle(modal_geom_pos, modal_geom_pos + modal_geom_dim,
+                Vec2 geom_pos = oasis_point_to_microns(modal_geom_pos, factor);
+                *polygon = rectangle(geom_pos, geom_pos + modal_geom_dim,
                                      make_tag(modal_layer, modal_datatype));
                 if (info & 0x04) {
                     oasis_read_repetition(in, factor, modal_repetition);
@@ -1665,11 +1887,10 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 set_type(polygon->tag, modal_datatype);
                 if (info & 0x20) {
                     modal_polygon_points.count = 1;
-                    oasis_read_point_list(in, factor, true, modal_polygon_points);
+                    oasis_read_point_list(in, true, modal_polygon_points);
                 }
-                polygon->point_array.copy_from(modal_polygon_points);
                 if (info & 0x10) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.x = x;
                     } else {
@@ -1677,16 +1898,20 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x08) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.y = y;
                     } else {
                         modal_geom_pos.y += y;
                     }
                 }
-                Vec2* v = polygon->point_array.items;
-                for (uint64_t i = polygon->point_array.count; i > 0; i--) {
-                    *v++ += modal_geom_pos;
+                polygon->point_array.ensure_slots(modal_polygon_points.count);
+                const IntVec2* v = modal_polygon_points.items;
+                for (uint64_t i = modal_polygon_points.count; i > 0; i--) {
+                    IntVec2 op = *v++ + modal_geom_pos;
+                    polygon->point_array.append_unsafe(
+                        oasis_point_to_microns(op, factor)
+                    );
                 }
                 if (info & 0x04) {
                     oasis_read_repetition(in, factor, modal_repetition);
@@ -1721,31 +1946,31 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 if (info & 0x80) {
                     uint8_t extension_scheme;
                     oasis_read(&extension_scheme, 1, 1, in);
-                    switch (extension_scheme & 0x03) {
-                        case 0x01:
-                            modal_path_extensions.x = 0;
-                            break;
-                        case 0x02:
-                            modal_path_extensions.x = modal_path_halfwidth;
-                            break;
-                        case 0x03:
-                            modal_path_extensions.x = factor * oasis_read_integer(in);
-                    }
                     switch (extension_scheme & 0x0c) {
                         case 0x04:
-                            modal_path_extensions.y = 0;
+                            modal_path_extensions.u = 0;
                             break;
                         case 0x08:
-                            modal_path_extensions.y = modal_path_halfwidth;
+                            modal_path_extensions.u = modal_path_halfwidth;
                             break;
                         case 0x0c:
-                            modal_path_extensions.y = factor * oasis_read_integer(in);
+                            modal_path_extensions.u = factor * oasis_read_integer(in);
+                    }
+                    switch (extension_scheme & 0x03) {
+                        case 0x01:
+                            modal_path_extensions.v = 0;
+                            break;
+                        case 0x02:
+                            modal_path_extensions.v = modal_path_halfwidth;
+                            break;
+                        case 0x03:
+                            modal_path_extensions.v = factor * oasis_read_integer(in);
                     }
                 }
-                if (modal_path_extensions.x == 0 && modal_path_extensions.y == 0) {
+                if (modal_path_extensions.u == 0 && modal_path_extensions.v == 0) {
                     element->end_type = EndType::Flush;
-                } else if (modal_path_extensions.x == modal_path_halfwidth &&
-                           modal_path_extensions.y == modal_path_halfwidth) {
+                } else if (modal_path_extensions.u == modal_path_halfwidth &&
+                           modal_path_extensions.v == modal_path_halfwidth) {
                     element->end_type = EndType::HalfWidth;
                 } else {
                     element->end_type = EndType::Extended;
@@ -1753,10 +1978,10 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 }
                 if (info & 0x20) {
                     modal_path_points.count = 1;
-                    oasis_read_point_list(in, factor, false, modal_path_points);
+                    oasis_read_point_list(in, false, modal_path_points);
                 }
                 if (info & 0x10) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.x = x;
                     } else {
@@ -1764,17 +1989,22 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x08) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.y = y;
                     } else {
                         modal_geom_pos.y += y;
                     }
                 }
-                path->spine.append(modal_geom_pos);
-                const Array<Vec2> skip_first = {0, modal_path_points.count - 1,
-                                                modal_path_points.items + 1};
+                path->spine.append(oasis_point_to_microns(modal_geom_pos, factor));
+
+                Array<Vec2> path_points = {0};
+                oasis_point_list_to_microns(modal_path_points, factor, path_points);
+
+                const Array<Vec2> skip_first = {0, path_points.count - 1,
+                                                path_points.items + 1};
                 path->segment(skip_first, NULL, NULL, true);
+                path_points.clear();
                 if (info & 0x04) {
                     oasis_read_repetition(in, factor, modal_repetition);
                     path->repetition.copy_from(modal_repetition);
@@ -1814,7 +2044,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     delta_b = factor * oasis_read_1delta(in);
                 }
                 if (info & 0x10) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.x = x;
                     } else {
@@ -1822,7 +2052,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x08) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.y = y;
                     } else {
@@ -1836,38 +2066,39 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 Vec2* s = r + 1;
                 Vec2* q = s + 1;
                 Vec2* p = q + 1;
+                Vec2 geom_pos = oasis_point_to_microns(modal_geom_pos, factor);
                 if (info & 0x80) {
-                    p->x = q->x = modal_geom_pos.x;
-                    r->x = s->x = modal_geom_pos.x + modal_geom_dim.x;
+                    p->x = q->x = geom_pos.x;
+                    r->x = s->x = geom_pos.x + modal_geom_dim.x;
                     if (delta_a < 0) {
-                        p->y = modal_geom_pos.y;
+                        p->y = geom_pos.y;
                         r->y = p->y - delta_a;
                     } else {
-                        r->y = modal_geom_pos.y;
+                        r->y = geom_pos.y;
                         p->y = r->y + delta_a;
                     }
                     if (delta_b < 0) {
-                        s->y = modal_geom_pos.y + modal_geom_dim.y;
+                        s->y = geom_pos.y + modal_geom_dim.y;
                         q->y = s->y + delta_b;
                     } else {
-                        q->y = modal_geom_pos.y + modal_geom_dim.y;
+                        q->y = geom_pos.y + modal_geom_dim.y;
                         s->y = q->y - delta_b;
                     }
                 } else {
-                    p->y = q->y = modal_geom_pos.y + modal_geom_dim.y;
-                    r->y = s->y = modal_geom_pos.y;
+                    p->y = q->y = geom_pos.y + modal_geom_dim.y;
+                    r->y = s->y = geom_pos.y;
                     if (delta_a < 0) {
-                        p->x = modal_geom_pos.x;
+                        p->x = geom_pos.x;
                         r->x = p->x - delta_a;
                     } else {
-                        r->x = modal_geom_pos.x;
+                        r->x = geom_pos.x;
                         p->x = r->x + delta_a;
                     }
                     if (delta_b < 0) {
-                        s->x = modal_geom_pos.x + modal_geom_dim.x;
+                        s->x = geom_pos.x + modal_geom_dim.x;
                         q->x = s->x + delta_b;
                     } else {
-                        q->x = modal_geom_pos.x + modal_geom_dim.x;
+                        q->x = geom_pos.x + modal_geom_dim.x;
                         s->x = q->x - delta_b;
                     }
                 }
@@ -1900,7 +2131,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     modal_geom_dim.y = factor * oasis_read_unsigned_integer(in);
                 }
                 if (info & 0x10) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.x = x;
                     } else {
@@ -1908,7 +2139,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x08) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.y = y;
                     } else {
@@ -1917,21 +2148,22 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 }
                 Array<Vec2>* point_array = &polygon->point_array;
                 Vec2* v;
+                Vec2 geom_pos = oasis_point_to_microns(modal_geom_pos, factor);
                 if (modal_ctrapezoid_type > 15 && modal_ctrapezoid_type < 24) {
                     point_array->ensure_slots(3);
                     point_array->count = 3;
                     v = point_array->items;
-                    v[0] = modal_geom_pos;
-                    v[1] = modal_geom_pos;
-                    v[2] = modal_geom_pos;
+                    v[0] = geom_pos;
+                    v[1] = geom_pos;
+                    v[2] = geom_pos;
                 } else {
                     point_array->ensure_slots(4);
                     point_array->count = 4;
                     v = point_array->items;
-                    v[0] = modal_geom_pos;
-                    v[1] = modal_geom_pos + Vec2{modal_geom_dim.x, 0};
-                    v[2] = modal_geom_pos + modal_geom_dim;
-                    v[3] = modal_geom_pos + Vec2{0, modal_geom_dim.y};
+                    v[0] = geom_pos;
+                    v[1] = geom_pos + Vec2{modal_geom_dim.x, 0};
+                    v[2] = geom_pos + modal_geom_dim;
+                    v[3] = geom_pos + Vec2{0, modal_geom_dim.y};
                 }
                 switch (modal_ctrapezoid_type) {
                     case 0:
@@ -2028,7 +2260,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                         v[2].y += modal_geom_dim.x;
                         break;
                     case 25:
-                        v[2].y = v[3].y = modal_geom_pos.y + modal_geom_dim.x;
+                        v[2].y = v[3].y = geom_pos.y + modal_geom_dim.x;
                         break;
                 }
                 if (info & 0x04) {
@@ -2052,7 +2284,7 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     modal_circle_radius = factor * oasis_read_unsigned_integer(in);
                 }
                 if (info & 0x10) {
-                    double x = factor * oasis_read_integer(in);
+                    int64_t x = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.x = x;
                     } else {
@@ -2060,14 +2292,15 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     }
                 }
                 if (info & 0x08) {
-                    double y = factor * oasis_read_integer(in);
+                    int64_t y = oasis_read_integer(in);
                     if (modal_absolute_pos) {
                         modal_geom_pos.y = y;
                     } else {
                         modal_geom_pos.y += y;
                     }
                 }
-                *polygon = ellipse(modal_geom_pos, modal_circle_radius, modal_circle_radius, 0, 0,
+                *polygon = ellipse(oasis_point_to_microns(modal_geom_pos, factor),
+                                   modal_circle_radius, modal_circle_radius, 0, 0,
                                    0, 0, tolerance, make_tag(modal_layer, modal_datatype));
                 if (info & 0x04) {
                     oasis_read_repetition(in, factor, modal_repetition);
@@ -2175,20 +2408,20 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
             case OasisRecord::XNAME_IMPLICIT: {
                 oasis_read_unsigned_integer(in);
                 free_allocation(oasis_read_string(in, false, len));
-                fputs("[GDSTK] Record type XNAME ignored.\n", stderr);
+                if (error_logger) fputs("[GDSTK] Record type XNAME ignored.\n", error_logger);
                 if (error_code) *error_code = ErrorCode::UnsupportedRecord;
             } break;
             case OasisRecord::XNAME: {
                 oasis_read_unsigned_integer(in);
                 free_allocation(oasis_read_string(in, false, len));
                 oasis_read_unsigned_integer(in);
-                fputs("[GDSTK] Record type XNAME ignored.\n", stderr);
+                if (error_logger) fputs("[GDSTK] Record type XNAME ignored.\n", error_logger);
                 if (error_code) *error_code = ErrorCode::UnsupportedRecord;
             } break;
             case OasisRecord::XELEMENT: {
                 oasis_read_unsigned_integer(in);
                 free_allocation(oasis_read_string(in, false, len));
-                fputs("[GDSTK] Record type XELEMENT ignored.\n", stderr);
+                if (error_logger) fputs("[GDSTK] Record type XELEMENT ignored.\n", error_logger);
                 if (error_code) *error_code = ErrorCode::UnsupportedRecord;
             } break;
             case OasisRecord::XGEOMETRY: {
@@ -2221,19 +2454,20 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 if (info & 0x04) {
                     oasis_read_repetition(in, factor, modal_repetition);
                 }
-                fputs("[GDSTK] Record type XGEOMETRY ignored.\n", stderr);
+                if (error_logger) fputs("[GDSTK] Record type XGEOMETRY ignored.\n", error_logger);
                 if (error_code) *error_code = ErrorCode::UnsupportedRecord;
             } break;
             case OasisRecord::CBLOCK: {
                 if (oasis_read_unsigned_integer(in) != 0) {
-                    fputs("[GDSTK] CBLOCK compression method not supported.\n", stderr);
+                    if (error_logger)
+                        fputs("[GDSTK] CBLOCK compression method not supported.\n", error_logger);
                     if (error_code) *error_code = ErrorCode::InvalidFile;
                     oasis_read_unsigned_integer(in);
                     len = oasis_read_unsigned_integer(in);
                     assert(len <= INT64_MAX);
                     FSEEK64(in.file, (int64_t)len, SEEK_SET);
                 } else {
-                    z_stream s = {0};
+                    z_stream s = {};
                     s.zalloc = zalloc;
                     s.zfree = zfree;
                     in.data_size = oasis_read_unsigned_integer(in);
@@ -2245,16 +2479,19 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     uint8_t* data = (uint8_t*)allocate(s.avail_in);
                     s.next_in = (Bytef*)data;
                     if (fread(s.next_in, 1, s.avail_in, in.file) != s.avail_in) {
-                        fputs("[GDSTK] Unable to read full CBLOCK.\n", stderr);
+                        if (error_logger)
+                            fputs("[GDSTK] Unable to read full CBLOCK.\n", error_logger);
                         if (error_code) *error_code = ErrorCode::InvalidFile;
                     }
                     if (inflateInit2(&s, -15) != Z_OK) {
-                        fputs("[GDSTK] Unable to initialize zlib.\n", stderr);
+                        if (error_logger)
+                            fputs("[GDSTK] Unable to initialize zlib.\n", error_logger);
                         if (error_code) *error_code = ErrorCode::ZlibError;
                     }
                     int ret = inflate(&s, Z_FINISH);
                     if (ret != Z_STREAM_END) {
-                        fputs("[GDSTK] Unable to decompress CBLOCK.\n", stderr);
+                        if (error_logger)
+                            fputs("[GDSTK] Unable to decompress CBLOCK.\n", error_logger);
                         if (error_code) *error_code = ErrorCode::ZlibError;
                     }
                     free_allocation(data);
@@ -2267,7 +2504,9 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 }
             } break;
             default:
-                fprintf(stderr, "[GDSTK] Unknown record type <0x%02X>.\n", (uint8_t)record);
+                if (error_logger)
+                    fprintf(error_logger, "[GDSTK] Unknown record type <0x%02X>.\n",
+                            (uint8_t)record);
                 if (error_code) *error_code = ErrorCode::UnsupportedRecord;
         }
     }
@@ -2344,7 +2583,7 @@ ErrorCode gds_units(const char* filename, double& unit, double& precision) {
 }
 
 tm gds_timestamp(const char* filename, const tm* new_timestamp, ErrorCode* error_code) {
-    tm result = {0};
+    tm result = {};
     uint8_t buffer[65537];
     uint16_t* data16 = (uint16_t*)(buffer + 4);
     uint16_t new_tm_buffer[12];
@@ -2364,7 +2603,7 @@ tm gds_timestamp(const char* filename, const tm* new_timestamp, ErrorCode* error
         inout = fopen(filename, "rb");
     }
     if (inout == NULL) {
-        fputs("[GDSTK] Unable to open GDSII file.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Unable to open GDSII file.\n", error_logger);
         if (error_code) *error_code = ErrorCode::InputFileOpenError;
         return result;
     }
@@ -2382,7 +2621,7 @@ tm gds_timestamp(const char* filename, const tm* new_timestamp, ErrorCode* error
         if (record == GdsiiRecord::BGNLIB) {
             if (record_length != 28) {
                 fclose(inout);
-                fputs("[GDSTK] Invalid or corrupted GDSII file.\n", stderr);
+                if (error_logger) fputs("[GDSTK] Invalid or corrupted GDSII file.\n", error_logger);
                 if (error_code) *error_code = ErrorCode::InvalidFile;
                 return result;
             }
@@ -2399,7 +2638,8 @@ tm gds_timestamp(const char* filename, const tm* new_timestamp, ErrorCode* error
             }
             if (FSEEK64(inout, -24, SEEK_CUR) != 0) {
                 fclose(inout);
-                fputs("[GDSTK] Unable to rewrite library timestamp.\n", stderr);
+                if (error_logger)
+                    fputs("[GDSTK] Unable to rewrite library timestamp.\n", error_logger);
                 if (error_code) *error_code = ErrorCode::FileError;
                 return result;
             }
@@ -2407,13 +2647,14 @@ tm gds_timestamp(const char* filename, const tm* new_timestamp, ErrorCode* error
         } else if (record == GdsiiRecord::BGNSTR && new_timestamp) {
             if (record_length != 28) {
                 fclose(inout);
-                fputs("[GDSTK] Invalid or corrupted GDSII file.\n", stderr);
+                if (error_logger) fputs("[GDSTK] Invalid or corrupted GDSII file.\n", error_logger);
                 if (error_code) *error_code = ErrorCode::InvalidFile;
                 return result;
             }
             if (FSEEK64(inout, -24, SEEK_CUR) != 0) {
                 fclose(inout);
-                fputs("[GDSTK] Unable to rewrite cell timestamp.\n", stderr);
+                if (error_logger)
+                    fputs("[GDSTK] Unable to rewrite cell timestamp.\n", error_logger);
                 if (error_code) *error_code = ErrorCode::FileError;
                 return result;
             }
@@ -2436,7 +2677,7 @@ ErrorCode gds_info(const char* filename, LibraryInfo& info) {
 
     FILE* in = fopen(filename, "rb");
     if (in == NULL) {
-        fputs("[GDSTK] Unable to open GDSII file for input.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Unable to open GDSII file for input.\n", error_logger);
         return ErrorCode::InputFileOpenError;
     }
 
@@ -2501,7 +2742,8 @@ ErrorCode gds_info(const char* filename, LibraryInfo& info) {
                     next_set->add(make_tag(layer, data16[0]));
                     next_set = NULL;
                 } else {
-                    fputs("[GDSTK] Inconsistency detected in GDSII file.\n", stderr);
+                    if (error_logger)
+                        fputs("[GDSTK] Inconsistency detected in GDSII file.\n", error_logger);
                     error = ErrorCode::InvalidFile;
                 }
                 break;
@@ -2562,14 +2804,14 @@ ErrorCode gds_info(const char* filename, LibraryInfo& info) {
 ErrorCode oas_precision(const char* filename, double& precision) {
     FILE* in = fopen(filename, "rb");
     if (in == NULL) {
-        fputs("[GDSTK] Unable to open OASIS file for input.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Unable to open OASIS file for input.\n", error_logger);
         return ErrorCode::InputFileOpenError;
     }
 
     // Check header bytes and START record
     char header[14];
     if (fread(header, 1, 14, in) < 14 || memcmp(header, "%SEMI-OASIS\r\n\x01", 14) != 0) {
-        fputs("[GDSTK] Invalid OASIS header found.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Invalid OASIS header found.\n", error_logger);
         fclose(in);
         return ErrorCode::InvalidFile;
     }
@@ -2579,7 +2821,7 @@ ErrorCode oas_precision(const char* filename, double& precision) {
     uint64_t len;
     uint8_t* version = oasis_read_string(s, false, len);
     if (memcmp(version, "1.0", 3) != 0) {
-        fputs("[GDSTK] Unsupported OASIS file version.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Unsupported OASIS file version.\n", error_logger);
         free_allocation(version);
         return ErrorCode::InvalidFile;
     }
@@ -2594,7 +2836,7 @@ bool oas_validate(const char* filename, uint32_t* signature, ErrorCode* error_co
     uint8_t buffer[32 * 1024];
     FILE* in = fopen(filename, "rb");
     if (in == NULL) {
-        fputs("[GDSTK] Unable to open OASIS file for input.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Unable to open OASIS file for input.\n", error_logger);
         if (error_code) *error_code = ErrorCode::InputFileOpenError;
         return false;
     }
@@ -2602,14 +2844,15 @@ bool oas_validate(const char* filename, uint32_t* signature, ErrorCode* error_co
     // Check header bytes and START record
     char header[14];
     if (fread(header, 1, 14, in) < 14 || memcmp(header, "%SEMI-OASIS\r\n\x01", 14) != 0) {
-        fputs("[GDSTK] Invalid OASIS header found.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Invalid OASIS header found.\n", error_logger);
         if (error_code) *error_code = ErrorCode::InvalidFile;
         fclose(in);
         return false;
     }
 
     if (FSEEK64(in, -5, SEEK_END) != 0) {
-        fputs("[GDSTK] Unable to find the END record of the file.\n", stderr);
+        if (error_logger)
+            fputs("[GDSTK] Unable to find the END record of the file.\n", error_logger);
         if (error_code) *error_code = ErrorCode::InvalidFile;
         fclose(in);
         return false;
@@ -2618,7 +2861,8 @@ bool oas_validate(const char* filename, uint32_t* signature, ErrorCode* error_co
     uint64_t size = ftell(in) + 1;
     uint8_t file_sum[5];
     if (fread(file_sum, 1, COUNT(file_sum), in) < 5) {
-        fputs("[GDSTK] Unable to read the END record of the file.\n", stderr);
+        if (error_logger)
+            fputs("[GDSTK] Unable to read the END record of the file.\n", error_logger);
         if (error_code) *error_code = ErrorCode::InvalidFile;
         fclose(in);
         return false;
@@ -2626,21 +2870,21 @@ bool oas_validate(const char* filename, uint32_t* signature, ErrorCode* error_co
 
     if (file_sum[0] == 1) {
         // CRC32
-        uint32_t sig = crc32_z(0, NULL, 0);
+        uint32_t sig = crc32(0, NULL, 0);
         FSEEK64(in, 0, SEEK_SET);
         while (size >= COUNT(buffer)) {
             if (fread(buffer, 1, COUNT(buffer), in) < COUNT(buffer)) {
-                fprintf(stderr, "[GDSTK] Error reading file %s", filename);
+                if (error_logger) fprintf(error_logger, "[GDSTK] Error reading file %s", filename);
                 if (error_code) *error_code = ErrorCode::InvalidFile;
             }
-            sig = crc32_z(sig, buffer, COUNT(buffer));
+            sig = crc32(sig, buffer, COUNT(buffer));
             size -= COUNT(buffer);
         }
         if (fread(buffer, 1, size, in) < size) {
-            fprintf(stderr, "[GDSTK] Error reading file %s", filename);
+            if (error_logger) fprintf(error_logger, "[GDSTK] Error reading file %s", filename);
             if (error_code) *error_code = ErrorCode::InvalidFile;
         }
-        sig = crc32_z(sig, buffer, size);
+        sig = crc32(sig, buffer, (unsigned int)size);
         little_endian_swap32(&sig, 1);
         if (signature) *signature = sig;
         // printf("CRC32: 0x%08X == 0x%08X\n", sig, *(uint32_t*)(file_sum + 1));
@@ -2651,14 +2895,14 @@ bool oas_validate(const char* filename, uint32_t* signature, ErrorCode* error_co
         FSEEK64(in, 0, SEEK_SET);
         while (size >= COUNT(buffer)) {
             if (fread(buffer, 1, COUNT(buffer), in) < COUNT(buffer)) {
-                fprintf(stderr, "[GDSTK] Error reading file %s", filename);
+                if (error_logger) fprintf(error_logger, "[GDSTK] Error reading file %s", filename);
                 if (error_code) *error_code = ErrorCode::InvalidFile;
             }
             sig = checksum32(sig, buffer, COUNT(buffer));
             size -= COUNT(buffer);
         }
         if (fread(buffer, 1, size, in) < size) {
-            fprintf(stderr, "[GDSTK] Error reading file %s", filename);
+            if (error_logger) fprintf(error_logger, "[GDSTK] Error reading file %s", filename);
             if (error_code) *error_code = ErrorCode::InvalidFile;
         }
         sig = checksum32(sig, buffer, size);

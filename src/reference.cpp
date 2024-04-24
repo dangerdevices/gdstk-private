@@ -5,7 +5,8 @@ Boost Software License - Version 1.0.  See the accompanying
 LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 */
 
-#include "reference.h"
+#define __STDC_FORMAT_MACROS 1
+#define _USE_MATH_DEFINES
 
 #include <float.h>
 #include <math.h>
@@ -13,13 +14,14 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #include <stdio.h>
 #include <string.h>
 
-#include "allocator.h"
-#include "cell.h"
-#include "clipper_tools.h"
-#include "gdsii.h"
-#include "rawcell.h"
-#include "set.h"
-#include "utils.h"
+#include <gdstk/allocator.hpp>
+#include <gdstk/cell.hpp>
+#include <gdstk/clipper_tools.hpp>
+#include <gdstk/gdsii.hpp>
+#include <gdstk/rawcell.hpp>
+#include <gdstk/reference.hpp>
+#include <gdstk/set.hpp>
+#include <gdstk/utils.hpp>
 
 namespace gdstk {
 
@@ -70,7 +72,7 @@ void Reference::repeat_and_transform(Array<Vec2>& point_array) const {
     if (num_points == 0) return;
 
     Vec2 zero = {0, 0};
-    Array<Vec2> offsets = {0};
+    Array<Vec2> offsets = {};
 
     if (repetition.type != RepetitionType::None) {
         repetition.get_extrema(offsets);
@@ -107,7 +109,7 @@ void Reference::repeat_and_transform(Array<Vec2>& point_array) const {
 }
 
 void Reference::bounding_box(Vec2& min, Vec2& max) const {
-    Map<GeometryInfo> cache = {0};
+    Map<GeometryInfo> cache = {};
     bounding_box(min, max, cache);
     for (MapItem<GeometryInfo>* item = cache.next(NULL); item; item = cache.next(item)) {
         item->value.clear();
@@ -122,7 +124,7 @@ void Reference::bounding_box(Vec2& min, Vec2& max, Map<GeometryInfo>& cache) con
 
     GeometryInfo info = cache.get(cell->name);
     int64_t m;
-    Array<Vec2> point_array = {0};
+    Array<Vec2> point_array = {};
 
     if (is_multiple_of_pi_over_2(rotation, m)) {
         Vec2 cmin, cmax;
@@ -159,7 +161,7 @@ void Reference::bounding_box(Vec2& min, Vec2& max, Map<GeometryInfo>& cache) con
 
 void Reference::convex_hull(Array<Vec2>& result) const {
     if (type != ReferenceType::Cell) return;
-    Map<GeometryInfo> cache = {0};
+    Map<GeometryInfo> cache = {};
     convex_hull(result, cache);
     for (MapItem<GeometryInfo>* item = cache.next(NULL); item; item = cache.next(item)) {
         item->value.clear();
@@ -173,7 +175,7 @@ void Reference::convex_hull(Array<Vec2>& result, Map<GeometryInfo>& cache) const
     if (!info.convex_hull_valid) {
         info = cell->convex_hull(cache);
     }
-    Array<Vec2> point_array = {0};
+    Array<Vec2> point_array = {};
     point_array.extend(info.convex_hull);
     repeat_and_transform(point_array);
     gdstk::convex_hull(point_array, result);
@@ -196,7 +198,7 @@ void Reference::transform(double mag, bool x_refl, double rot, const Vec2 orig) 
 void Reference::apply_repetition(Array<Reference*>& result) {
     if (repetition.type == RepetitionType::None) return;
 
-    Array<Vec2> offsets = {0};
+    Array<Vec2> offsets = {};
     repetition.get_offsets(offsets);
     repetition.clear();
 
@@ -216,15 +218,15 @@ void Reference::apply_repetition(Array<Reference*>& result) {
 }
 
 // Depth is passed as-is to Cell::get_polygons, where it is inspected and applied.
-void Reference::polygons(bool apply_repetitions, bool include_paths, int64_t depth, bool filter,
-                         Tag tag, Array<Polygon*>& result) const {
+void Reference::get_polygons(bool apply_repetitions, bool include_paths, int64_t depth, bool filter,
+                             Tag tag, Array<Polygon*>& result) const {
     if (type != ReferenceType::Cell) return;
 
-    Array<Polygon*> array = {0};
+    Array<Polygon*> array = {};
     cell->get_polygons(apply_repetitions, include_paths, depth, filter, tag, array);
 
     Vec2 zero = {0, 0};
-    Array<Vec2> offsets = {0};
+    Array<Vec2> offsets = {};
     if (repetition.type != RepetitionType::None) {
         repetition.get_offsets(offsets);
     } else {
@@ -254,15 +256,15 @@ void Reference::polygons(bool apply_repetitions, bool include_paths, int64_t dep
     if (repetition.type != RepetitionType::None) offsets.clear();
 }
 
-void Reference::flexpaths(bool apply_repetitions, int64_t depth, bool filter, Tag tag,
-                          Array<FlexPath*>& result) const {
+void Reference::get_flexpaths(bool apply_repetitions, int64_t depth, bool filter, Tag tag,
+                              Array<FlexPath*>& result) const {
     if (type != ReferenceType::Cell) return;
 
-    Array<FlexPath*> array = {0};
+    Array<FlexPath*> array = {};
     cell->get_flexpaths(apply_repetitions, depth, filter, tag, array);
 
     Vec2 zero = {0, 0};
-    Array<Vec2> offsets = {0};
+    Array<Vec2> offsets = {};
     if (repetition.type != RepetitionType::None) {
         repetition.get_offsets(offsets);
     } else {
@@ -291,15 +293,15 @@ void Reference::flexpaths(bool apply_repetitions, int64_t depth, bool filter, Ta
     if (repetition.type != RepetitionType::None) offsets.clear();
 }
 
-void Reference::robustpaths(bool apply_repetitions, int64_t depth, bool filter, Tag tag,
-                            Array<RobustPath*>& result) const {
+void Reference::get_robustpaths(bool apply_repetitions, int64_t depth, bool filter, Tag tag,
+                                Array<RobustPath*>& result) const {
     if (type != ReferenceType::Cell) return;
 
-    Array<RobustPath*> array = {0};
+    Array<RobustPath*> array = {};
     cell->get_robustpaths(apply_repetitions, depth, filter, tag, array);
 
     Vec2 zero = {0, 0};
-    Array<Vec2> offsets = {0};
+    Array<Vec2> offsets = {};
     if (repetition.type != RepetitionType::None) {
         repetition.get_offsets(offsets);
     } else {
@@ -328,15 +330,15 @@ void Reference::robustpaths(bool apply_repetitions, int64_t depth, bool filter, 
     if (repetition.type != RepetitionType::None) offsets.clear();
 }
 
-void Reference::labels(bool apply_repetitions, int64_t depth, bool filter, Tag tag,
-                       Array<Label*>& result) const {
+void Reference::get_labels(bool apply_repetitions, int64_t depth, bool filter, Tag tag,
+                           Array<Label*>& result) const {
     if (type != ReferenceType::Cell) return;
 
-    Array<Label*> array = {0};
+    Array<Label*> array = {};
     cell->get_labels(apply_repetitions, depth, filter, tag, array);
 
     Vec2 zero = {0, 0};
-    Array<Vec2> offsets = {0};
+    Array<Vec2> offsets = {};
     if (repetition.type != RepetitionType::None) {
         repetition.get_offsets(offsets);
     } else {
@@ -371,7 +373,7 @@ ErrorCode Reference::to_gds(FILE* out, double scaling) const {
     bool array = false;
     double x2, y2, x3, y3;
     Vec2 zero = {0, 0};
-    Array<Vec2> offsets = {0};
+    Array<Vec2> offsets = {};
     offsets.count = 1;
     offsets.items = &zero;
 
@@ -380,44 +382,64 @@ ErrorCode Reference::to_gds(FILE* out, double scaling) const {
     uint16_t buffer_single[] = {12, 0x1003};
     big_endian_swap16(buffer_single, COUNT(buffer_single));
 
+    uint64_t columns = repetition.columns;
+    uint64_t rows = repetition.rows;
     if (repetition.type != RepetitionType::None) {
-        if (repetition.type == RepetitionType::Rectangular && !x_reflection && rotation == 0) {
-            array = true;
-            x2 = origin.x + repetition.columns * repetition.spacing.x;
-            y2 = origin.y;
-            x3 = origin.x;
-            y3 = origin.y + repetition.rows * repetition.spacing.y;
-        } else if (repetition.type == RepetitionType::Regular) {
-            Vec2 u1 = repetition.v1;
-            Vec2 u2 = repetition.v2;
+        int64_t m = 0;
+        if (repetition.type == RepetitionType::Regular ||
+            (repetition.type == RepetitionType::Rectangular &&
+             is_multiple_of_pi_over_2(rotation, m))) {
+            Vec2 v1, v2;
+            if (repetition.type == RepetitionType::Rectangular) {
+                v1.x = repetition.spacing.x;
+                v1.y = 0;
+                v2.x = 0;
+                v2.y = repetition.spacing.y;
+            } else {
+                v1 = repetition.v1;
+                v2 = repetition.v2;
+            }
+            Vec2 u1 = v1;
+            Vec2 u2 = v2;
             double len1 = u1.normalize();
             double len2 = u2.normalize();
-            if (x_reflection) u2 = -u2;
             double sa = sin(rotation);
             double ca = cos(rotation);
-            if ((len1 == 0 || (fabs(u1.x - ca) < GDSTK_REFERENCE_REPETITION_TOLERANCE &&
-                               fabs(u1.y - sa) < GDSTK_REFERENCE_REPETITION_TOLERANCE)) &&
-                (len2 == 0 || (fabs(u2.x + sa) < GDSTK_REFERENCE_REPETITION_TOLERANCE &&
-                               fabs(u2.y - ca) < GDSTK_REFERENCE_REPETITION_TOLERANCE))) {
+            double p1 = u1.inner(Vec2{ca, sa});
+            double p2 = u2.inner(Vec2{-sa, ca});
+            double p3 = u1.inner(Vec2{-sa, ca});
+            double p4 = u2.inner(Vec2{ca, sa});
+            if ((len1 == 0 || fabs(fabs(p1) - 1.0) < GDSTK_REFERENCE_REPETITION_TOLERANCE) &&
+                (len2 == 0 || fabs(fabs(p2) - 1.0) < GDSTK_REFERENCE_REPETITION_TOLERANCE)) {
                 array = true;
-                x2 = origin.x + repetition.columns * repetition.v1.x;
-                y2 = origin.y + repetition.columns * repetition.v1.y;
-                x3 = origin.x + repetition.rows * repetition.v2.x;
-                y3 = origin.y + repetition.rows * repetition.v2.y;
+                x2 = origin.x + columns * v1.x;
+                y2 = origin.y + columns * v1.y;
+                x3 = origin.x + rows * v2.x;
+                y3 = origin.y + rows * v2.y;
+            } else if ((len1 == 0 || fabs(fabs(p3) - 1.0) < GDSTK_REFERENCE_REPETITION_TOLERANCE) &&
+                       (len2 == 0 || fabs(fabs(p4) - 1.0) < GDSTK_REFERENCE_REPETITION_TOLERANCE)) {
+                array = true;
+                columns = repetition.rows;
+                rows = repetition.columns;
+                x2 = origin.x + columns * v2.x;
+                y2 = origin.y + columns * v2.y;
+                x3 = origin.x + rows * v1.x;
+                y3 = origin.y + rows * v1.y;
             }
         }
 
         if (array) {
             if (repetition.columns > UINT16_MAX || repetition.rows > UINT16_MAX) {
-                fputs(
-                    "[GDSTK] Repetition with more than 65535 columns or rows cannot be saved to a GDSII file.\n",
-                    stderr);
+                if (error_logger)
+                    fputs(
+                        "[GDSTK] Repetition with more than 65535 columns or rows cannot be saved to a GDSII file.\n",
+                        error_logger);
                 error_code = ErrorCode::InvalidRepetition;
                 buffer_array[2] = UINT16_MAX;
                 buffer_array[3] = UINT16_MAX;
             } else {
-                buffer_array[2] = (uint16_t)repetition.columns;
-                buffer_array[3] = (uint16_t)repetition.rows;
+                buffer_array[2] = (uint16_t)columns;
+                buffer_array[3] = (uint16_t)rows;
             }
             big_endian_swap16(buffer_array, COUNT(buffer_array));
             buffer_coord[0] = (int32_t)(lround(origin.x * scaling));
@@ -519,7 +541,7 @@ ErrorCode Reference::to_svg(FILE* out, double scaling, uint32_t precision) const
     *d = 0;
 
     Vec2 zero = {0, 0};
-    Array<Vec2> offsets = {0};
+    Array<Vec2> offsets = {};
     if (repetition.type != RepetitionType::None) {
         repetition.get_offsets(offsets);
     } else {
@@ -557,120 +579,6 @@ ErrorCode Reference::to_svg(FILE* out, double scaling, uint32_t precision) const
     free_allocation(ref_name);
     if (repetition.type != RepetitionType::None) offsets.clear();
     return ErrorCode::NoError;
-}
-
-bool references_short(const Reference* r1, const Reference* r2, const Set<Tag>* tags,
-                      double offset_distance, double offset_tolerance, double offset_scaling,
-                      double boolean_scaling, ErrorCode* error_code) {
-    ErrorCode err = ErrorCode::NoError;
-    bool shorted = false;
-
-    // Caller did not supply tag list; find shared layers in r1 & r2.
-    Set<Tag> shared_tags = {0};
-    if (tags == NULL) {
-        Set<Tag> r2_tags = {0};
-
-        r1->cell->get_shape_tags(shared_tags);
-        r2->cell->get_shape_tags(r2_tags);
-        for (SetItem<Tag>* item = shared_tags.next(NULL); item; item = shared_tags.next(item)) {
-            if (!r2_tags.has_value(item->value)) {
-                shared_tags.del(item->value);
-            }
-        }
-        r2_tags.clear();
-
-        tags = &shared_tags;
-    }
-
-    for (SetItem<Tag>* item = tags->next(NULL); item; item = tags->next(item)) {
-        Array<Polygon*> r1_polys = {0};
-        Array<Polygon*> r2_polys = {0};
-        r1->polygons(true, true, -1, true, item->value, r1_polys);
-        r2->polygons(true, true, -1, true, item->value, r2_polys);
-
-        Array<Polygon*>* r1_polys_ptr = &r1_polys;
-        Array<Polygon*>* r2_polys_ptr = &r2_polys;
-
-        Array<Polygon*> offset_result = {0};
-        if (offset_distance > 0 && offset_tolerance > 0 && offset_scaling > 0) {
-            // For better performance, offset the fewest polys possible.
-            Array<Polygon*>* polys =
-                (r1_polys.count < r2_polys.count) ? r1_polys_ptr : r2_polys_ptr;
-            err = offset(*polys, offset_distance, OffsetJoin::Miter, offset_tolerance,
-                         offset_scaling, false, offset_result);
-            if (err != ErrorCode::NoError) {
-                for (uint64_t i = 0; i < r1_polys.count; i++) {
-                    r1_polys[i]->clear();
-                    free_allocation(r1_polys[i]);
-                }
-                r1_polys.clear();
-                for (uint64_t i = 0; i < r2_polys.count; i++) {
-                    r2_polys[i]->clear();
-                    free_allocation(r2_polys[i]);
-                }
-                r2_polys.clear();
-                for (uint64_t i = 0; i < offset_result.count; i++) {
-                    offset_result[i]->clear();
-                    free_allocation(offset_result[i]);
-                }
-                offset_result.clear();
-                shared_tags.clear();
-                if (error_code) *error_code = err;
-                return false;
-            }
-
-            if (polys == r1_polys_ptr) {
-                for (uint64_t i = 0; i < r1_polys.count; i++) {
-                    r1_polys[i]->clear();
-                    free_allocation(r1_polys[i]);
-                }
-                r1_polys.clear();
-                r1_polys_ptr = &offset_result;
-            } else {
-                for (uint64_t i = 0; i < r2_polys.count; i++) {
-                    r2_polys[i]->clear();
-                    free_allocation(r2_polys[i]);
-                }
-                r2_polys.clear();
-                r2_polys_ptr = &offset_result;
-            }
-        }
-
-        Array<Polygon*> boolean_result = {0};
-        err =
-            boolean(*r1_polys_ptr, *r2_polys_ptr, Operation::And, boolean_scaling, boolean_result);
-        shorted = boolean_result.count > 0;
-
-        Polygon** p = r1_polys_ptr->items;
-        for (uint64_t i = 0; i < r1_polys_ptr->count; i++, p++) {
-            (*p)->clear();
-            free_allocation(*p);
-        }
-        r1_polys_ptr->clear();
-        p = r2_polys_ptr->items;
-        for (uint64_t i = 0; i < r2_polys_ptr->count; i++, p++) {
-            (*p)->clear();
-            free_allocation(*p);
-        }
-        r2_polys_ptr->clear();
-        for (uint64_t i = 0; i < boolean_result.count; i++) {
-            boolean_result[i]->clear();
-            free_allocation(boolean_result[i]);
-        }
-        boolean_result.clear();
-
-        if (err != ErrorCode::NoError) {
-            shared_tags.clear();
-            if (error_code) *error_code = err;
-            return false;
-        }
-
-        if (shorted) break;
-    }
-
-    shared_tags.clear();
-    if (error_code) *error_code = err;
-    return shorted;
 }
 
 }  // namespace gdstk

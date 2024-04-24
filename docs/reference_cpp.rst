@@ -11,7 +11,7 @@ Code Style
 **********
 
 The library is fully contained in the ``gdstk`` namespace. Structs and enums
-use ``PascalCase``, functions and variables (includig constants),
+use ``PascalCase``, functions and variables (including constants),
 ``snake_case``, and definitions are all ``UPPER_CASE``.  Exceptions are the
 members of enums ``GdsiiRecord`` and ``OasisRecord``, which use ``UPPER_CASE``
 to better match their specification documents.
@@ -38,10 +38,10 @@ or inheritance, limited private members, and no use of the STL.
    respective ``init`` methods.  The user can do it manually, of course, but
    the following idiom is safe to use:
 
-   .. code-block:: c++
+   .. code-block::
 
-      StructName var = {0};  // zero-initialize the struct
-      var.init(…);           // initialize important members
+      StructName var = {};  // zero-initialize the struct
+      var.init(…);          // initialize important members
 
 
 *****************
@@ -85,4 +85,3 @@ Header files
    :glob:
 
    headers/*
-

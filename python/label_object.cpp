@@ -17,7 +17,7 @@ static void label_object_dealloc(LabelObject* self) {
         self->label->clear();
         free_allocation(self->label);
     }
-    PyObject_Del(self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static int label_object_init(LabelObject* self, PyObject* args, PyObject* kwds) {
@@ -129,8 +129,12 @@ static PyObject* label_object_copy(LabelObject* self, PyObject*) {
     return (PyObject*)result;
 }
 
+static PyObject* label_object_deepcopy(LabelObject* self, PyObject* arg) {
+    return label_object_copy(self, NULL);
+}
+
 static PyObject* label_object_apply_repetition(LabelObject* self, PyObject*) {
-    Array<Label*> array = {0};
+    Array<Label*> array = {};
     self->label->apply_repetition(array);
     PyObject* result = PyList_New(array.count);
     for (uint64_t i = 0; i < array.count; i++) {
@@ -179,7 +183,7 @@ static PyObject* label_object_get_gds_property(LabelObject* self, PyObject* args
         Py_INCREF(Py_None);
         return Py_None;
     }
-    return PyUnicode_FromString((char*)value->bytes);
+    return PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
 }
 
 static PyObject* label_object_delete_gds_property(LabelObject* self, PyObject* args) {
@@ -192,6 +196,7 @@ static PyObject* label_object_delete_gds_property(LabelObject* self, PyObject* a
 
 static PyMethodDef label_object_methods[] = {
     {"copy", (PyCFunction)label_object_copy, METH_NOARGS, label_object_copy_doc},
+    {"__deepcopy__", (PyCFunction)label_object_deepcopy, METH_VARARGS | METH_KEYWORDS, label_object_deepcopy_doc},
     {"apply_repetition", (PyCFunction)label_object_apply_repetition, METH_NOARGS,
      label_object_apply_repetition_doc},
     {"set_property", (PyCFunction)label_object_set_property, METH_VARARGS, object_set_property_doc},

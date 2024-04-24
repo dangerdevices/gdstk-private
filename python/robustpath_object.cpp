@@ -37,7 +37,7 @@ static void robustpath_cleanup(RobustPathObject* self) {
 
 static void robustpath_object_dealloc(RobustPathObject* self) {
     if (self->robustpath) robustpath_cleanup(self);
-    PyObject_Del(self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static int robustpath_object_init(RobustPathObject* self, PyObject* args, PyObject* kwds) {
@@ -444,8 +444,12 @@ static PyObject* robustpath_object_copy(RobustPathObject* self, PyObject*) {
     return (PyObject*)result;
 }
 
+static PyObject* robustpath_object_deepcopy(RobustPathObject* self, PyObject* arg) {
+    return robustpath_object_copy(self, NULL);
+}
+
 static PyObject* robustpath_object_spine(RobustPathObject* self, PyObject*) {
-    Array<Vec2> point_array = {0};
+    Array<Vec2> point_array = {};
     if (return_error(self->robustpath->spine(point_array))) return NULL;
 
     npy_intp dims[] = {(npy_intp)point_array.count, 2};
@@ -462,7 +466,7 @@ static PyObject* robustpath_object_spine(RobustPathObject* self, PyObject*) {
 }
 
 static PyObject* robustpath_object_path_spines(RobustPathObject* self, PyObject*) {
-    Array<Vec2> point_array = {0};
+    Array<Vec2> point_array = {};
     RobustPath* path = self->robustpath;
     PyObject* result = PyList_New(path->num_elements);
     if (!result) {
@@ -568,7 +572,7 @@ static PyObject* robustpath_object_gradient(RobustPathObject* self, PyObject* ar
 }
 
 static PyObject* robustpath_object_to_polygons(RobustPathObject* self, PyObject*) {
-    Array<Polygon*> array = {0};
+    Array<Polygon*> array = {};
     if (return_error(self->robustpath->to_polygons(false, 0, array))) {
         for (uint64_t i = 0; i < array.count; i++) {
             array[i]->clear();
@@ -1092,7 +1096,7 @@ static PyObject* robustpath_object_cubic(RobustPathObject* self, PyObject* args,
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|OOp:cubic", (char**)keywords, &xy, &py_width,
                                      &py_offset, &relative))
         return NULL;
-    Array<Vec2> point_array = {0};
+    Array<Vec2> point_array = {};
     if (parse_point_sequence(xy, point_array, "xy") < 0 || point_array.count != 3) {
         point_array.clear();
         PyErr_SetString(PyExc_RuntimeError, "Argument xy must be a sequence of 3 coordinates.");
@@ -1137,7 +1141,7 @@ static PyObject* robustpath_object_cubic_smooth(RobustPathObject* self, PyObject
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|OOp:cubic_smooth", (char**)keywords, &xy,
                                      &py_width, &py_offset, &relative))
         return NULL;
-    Array<Vec2> point_array = {0};
+    Array<Vec2> point_array = {};
     if (parse_point_sequence(xy, point_array, "xy") < 0 || point_array.count != 2) {
         point_array.clear();
         PyErr_SetString(PyExc_RuntimeError, "Argument xy must be a sequence of 2 coordinates.");
@@ -1182,7 +1186,7 @@ static PyObject* robustpath_object_quadratic(RobustPathObject* self, PyObject* a
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|OOp:quadratic", (char**)keywords, &xy,
                                      &py_width, &py_offset, &relative))
         return NULL;
-    Array<Vec2> point_array = {0};
+    Array<Vec2> point_array = {};
     if (parse_point_sequence(xy, point_array, "xy") < 0 || point_array.count != 2) {
         point_array.clear();
         PyErr_SetString(PyExc_RuntimeError, "Argument xy must be a sequence of 2 coordinates.");
@@ -1264,7 +1268,7 @@ static PyObject* robustpath_object_bezier(RobustPathObject* self, PyObject* args
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|OOp:bezier", (char**)keywords, &xy, &py_width,
                                      &py_offset, &relative))
         return NULL;
-    Array<Vec2> point_array = {0};
+    Array<Vec2> point_array = {};
     if (parse_point_sequence(xy, point_array, "xy") < 0 || point_array.count < 1) {
         point_array.clear();
         PyErr_SetString(PyExc_RuntimeError, "Argument xy must be a sequence of coordinates.");
@@ -1324,7 +1328,7 @@ static PyObject* robustpath_object_intepolation(RobustPathObject* self, PyObject
         return NULL;
 
     RobustPath* robustpath = self->robustpath;
-    Array<Vec2> point_array = {0};
+    Array<Vec2> point_array = {};
     if (parse_point_sequence(py_points, point_array, "points") < 0) {
         point_array.clear();
         return NULL;
@@ -1788,7 +1792,7 @@ static PyObject* robustpath_object_rotate(RobustPathObject* self, PyObject* args
 }
 
 static PyObject* robustpath_object_apply_repetition(RobustPathObject* self, PyObject*) {
-    Array<RobustPath*> array = {0};
+    Array<RobustPath*> array = {};
     self->robustpath->apply_repetition(array);
     PyObject* result = PyList_New(array.count);
     for (uint64_t i = 0; i < array.count; i++) {
@@ -1837,7 +1841,7 @@ static PyObject* robustpath_object_get_gds_property(RobustPathObject* self, PyOb
         Py_INCREF(Py_None);
         return Py_None;
     }
-    return PyUnicode_FromString((char*)value->bytes);
+    return PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
 }
 
 static PyObject* robustpath_object_delete_gds_property(RobustPathObject* self, PyObject* args) {
@@ -1850,6 +1854,7 @@ static PyObject* robustpath_object_delete_gds_property(RobustPathObject* self, P
 
 static PyMethodDef robustpath_object_methods[] = {
     {"copy", (PyCFunction)robustpath_object_copy, METH_NOARGS, robustpath_object_copy_doc},
+    {"__deepcopy__", (PyCFunction)robustpath_object_deepcopy, METH_VARARGS | METH_KEYWORDS, robustpath_object_deepcopy_doc},
     {"spine", (PyCFunction)robustpath_object_spine, METH_NOARGS, robustpath_object_spine_doc},
     {"path_spines", (PyCFunction)robustpath_object_path_spines, METH_NOARGS,
      robustpath_object_path_spines_doc},

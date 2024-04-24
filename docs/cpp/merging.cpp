@@ -7,7 +7,7 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
 #include <stdio.h>
 
-#include "gdstk.h"
+#include <gdstk/gdstk.hpp>
 
 using namespace gdstk;
 
@@ -19,7 +19,7 @@ void make_first_lib(const char* filename) {
     Cell main_cell = {.name = main_cell_name};
     lib.cell_array.append(&main_cell);
 
-    Array<Polygon*> allocated_polygons = {0};
+    Array<Polygon*> allocated_polygons = {};
     text("First library", 10, Vec2{0, 0}, false, 0, allocated_polygons);
     main_cell.polygon_array.extend(allocated_polygons);
 
@@ -77,7 +77,7 @@ void make_second_lib(const char* filename) {
     Cell main_cell = {.name = main_cell_name};
     lib.cell_array.append(&main_cell);
 
-    Array<Polygon*> allocated_polygons = {0};
+    Array<Polygon*> allocated_polygons = {};
     text("Second library", 10, Vec2{0, 0}, false, 0, allocated_polygons);
     main_cell.polygon_array.extend(allocated_polygons);
 
@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
                 cell->name = (char*)reallocate(cell->name, len + 6);
                 strcpy(cell->name + len, "-lib2");
                 // We should make sure the new name is also unique, but we are
-                // skiping that.
+                // skipping that.
                 break;
             }
         }

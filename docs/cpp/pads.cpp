@@ -8,7 +8,7 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #include <math.h>
 #include <stdio.h>
 
-#include "gdstk.h"
+#include <gdstk/gdstk.hpp>
 
 using namespace gdstk;
 
@@ -31,7 +31,7 @@ Array<Vec2> filleted_pad(const Vec2 p0, const Vec2 v0, const Vec2 p1, const Vec2
     double alpha = acos(a / c);
     double gamma = atan2(v0.y, v0.x) + 0.5 * M_PI;
 
-    Curve curve = {0};
+    Curve curve = {};
     curve.init(p0 - b * v0, pad_data->tolerance);
     if (fillet_radius > 0) {
         curve.arc(fillet_radius, fillet_radius, gamma, gamma - alpha, 0);
@@ -45,8 +45,8 @@ Array<Vec2> filleted_pad(const Vec2 p0, const Vec2 v0, const Vec2 p1, const Vec2
 }
 
 int main(int argc, char* argv[]) {
-    Library lib = {.unit = 1e-6, .precision = 1e-9};
-    lib.name = copy_string("library", NULL);
+    Library lib = {};
+    lib.init("library", 1e-6, 1e-9);
 
     Cell* main_cell = (Cell*)allocate_clear(sizeof(Cell));
     main_cell->name = copy_string("Main", NULL);
@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
     double offsets1[] = {-9, -3, 3, 9};
     bus->segment(Vec2{20, 10}, NULL, offsets1, false);
     Vec2 points[] = {{40, 20}, {40, 50}, {80, 50}};
-    const Array<Vec2> point_array = {.count = COUNT(points), .items = points};
+    const Array<Vec2> point_array = {.capacity = 0, .count = COUNT(points), .items = points};
     bus->segment(point_array, NULL, NULL, false);
     double offsets2[] = {-18, -6, 6, 18};
     bus->segment(Vec2{100, 50}, NULL, offsets2, false);

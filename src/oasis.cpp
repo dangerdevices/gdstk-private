@@ -5,16 +5,19 @@ Boost Software License - Version 1.0.  See the accompanying
 LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 */
 
-#include "oasis.h"
+#define __STDC_FORMAT_MACROS 1
+#define _USE_MATH_DEFINES
 
 #include <assert.h>
+#include <limits.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <zlib.h>
 
-#include "sort.h"
-#include "utils.h"
+#include <gdstk/oasis.hpp>
+#include <gdstk/sort.hpp>
+#include <gdstk/utils.hpp>
 
 namespace gdstk {
 
@@ -25,14 +28,15 @@ ErrorCode oasis_read(void* buffer, size_t size, size_t count, OasisStream& in) {
         in.cursor += total;
         if (in.cursor >= in.data + in.data_size) {
             if (in.cursor > in.data + in.data_size) {
-                fputs("[GDSTK] Error reading compressed data in file.\n", stderr);
+                if (error_logger)
+                    fputs("[GDSTK] Error reading compressed data in file.\n", error_logger);
                 in.error_code = ErrorCode::InputFileError;
             }
             free_allocation(in.data);
             in.data = NULL;
         }
     } else if (fread(buffer, size, count, in.file) < count) {
-        fputs("[GDSTK] Error reading OASIS file.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Error reading OASIS file.\n", error_logger);
         in.error_code = ErrorCode::InputFileError;
     }
     return in.error_code;
@@ -44,7 +48,7 @@ static uint8_t oasis_peek(OasisStream& in) {
         byte = *in.cursor;
     } else {
         if (fread(&byte, 1, 1, in.file) < 1) {
-            fputs("[GDSTK] Error reading OASIS file.\n", stderr);
+            if (error_logger) fputs("[GDSTK] Error reading OASIS file.\n", error_logger);
             if (in.error_code == ErrorCode::NoError) in.error_code = ErrorCode::InputFileError;
         }
         FSEEK64(in.file, -1, SEEK_CUR);
@@ -67,7 +71,16 @@ size_t oasis_write(const void* buffer, size_t size, size_t count, OasisStream& o
         return total;
     }
     if (out.crc32) {
-        out.signature = crc32_z(out.signature, (uint8_t*)buffer, size * count);
+        uint64_t remaining = size * count;
+        uint8_t* b = (uint8_t*)buffer;
+        while (remaining > UINT_MAX) {
+            out.signature = crc32(out.signature, b, UINT_MAX);
+            remaining -= UINT_MAX;
+            b += UINT_MAX;
+        }
+        if (remaining > 0) {
+            out.signature = crc32(out.signature, b, (unsigned int)remaining);
+        }
     } else if (out.checksum32) {
         out.signature = checksum32(out.signature, (uint8_t*)buffer, size * count);
     }
@@ -89,7 +102,7 @@ int oasis_putc(int c, OasisStream& out) {
     }
     if (out.crc32) {
         uint8_t c_cast = (uint8_t)c;
-        out.signature = crc32_z(out.signature, &c_cast, 1);
+        out.signature = crc32(out.signature, &c_cast, 1);
     } else if (out.checksum32) {
         uint8_t c_cast = (uint8_t)c;
         out.signature = checksum32(out.signature, &c_cast, 1);
@@ -106,7 +119,8 @@ uint64_t oasis_read_unsigned_integer(OasisStream& in) {
     while (byte & 0x80) {
         if (oasis_read(&byte, 1, 1, in) != ErrorCode::NoError) return result;
         if (num_bits == 63 && byte > 1) {
-            fputs("[GDSTK] Integer above maximal limit found. Clipping.\n", stderr);
+            if (error_logger)
+                fputs("[GDSTK] Integer above maximal limit found. Clipping.\n", error_logger);
             if (in.error_code == ErrorCode::NoError) in.error_code = ErrorCode::Overflow;
             return 0xFFFFFFFFFFFFFFFF;
         }
@@ -156,7 +170,8 @@ static uint8_t oasis_read_int_internal(OasisStream& in, uint8_t skip_bits, int64
     while (byte & 0x80) {
         if (oasis_read(&byte, 1, 1, in) != ErrorCode::NoError) return bits;
         if (num_bits > 56 && (byte >> (63 - num_bits)) > 0) {
-            fputs("[GDSTK] Integer above maximal limit found. Clipping.\n", stderr);
+            if (error_logger)
+                fputs("[GDSTK] Integer above maximal limit found. Clipping.\n", error_logger);
             if (in.error_code == ErrorCode::NoError) in.error_code = ErrorCode::Overflow;
             result = 0x7FFFFFFFFFFFFFFF;
             return bits;
@@ -312,13 +327,13 @@ double oasis_read_real_by_type(OasisStream& in, OasisDataType type) {
             return value;
         }
         default:
-            fputs("[GDSTK] Unable to determine real value.\n", stderr);
+            if (error_logger) fputs("[GDSTK] Unable to determine real value.\n", error_logger);
             if (in.error_code == ErrorCode::NoError) in.error_code = ErrorCode::InvalidFile;
     }
     return 0;
 }
 
-uint64_t oasis_read_point_list(OasisStream& in, double scaling, bool closed, Array<Vec2>& result) {
+uint64_t oasis_read_point_list(OasisStream& in, bool closed, Array<IntVec2>& result) {
     assert(result.count > 0);
 
     uint8_t byte;
@@ -331,18 +346,18 @@ uint64_t oasis_read_point_list(OasisStream& in, double scaling, bool closed, Arr
         case OasisPointList::ManhattanHorizontalFirst:
         case OasisPointList::ManhattanVerticalFirst: {
             result.ensure_slots(closed ? num + 1 : num);
-            Vec2* cur = result.items + result.count;
-            Vec2* ref = cur - 1;
-            Vec2 initial = *ref;
+            IntVec2* cur = result.items + result.count;
+            IntVec2* ref = cur - 1;
+            IntVec2 initial = *ref;
             bool horizontal = (OasisPointList)byte == OasisPointList::ManhattanHorizontalFirst;
             for (uint64_t i = num; i > 0; i--) {
                 if (horizontal) {
-                    cur->x = ref->x + oasis_read_1delta(in) * scaling;
+                    cur->x = ref->x + oasis_read_1delta(in);
                     cur->y = ref->y;
                     horizontal = false;
                 } else {
                     cur->x = ref->x;
-                    cur->y = ref->y + oasis_read_1delta(in) * scaling;
+                    cur->y = ref->y + oasis_read_1delta(in);
                     horizontal = true;
                 }
                 cur++;
@@ -362,57 +377,63 @@ uint64_t oasis_read_point_list(OasisStream& in, double scaling, bool closed, Arr
         } break;
         case OasisPointList::Manhattan: {
             result.ensure_slots(num);
-            Vec2* cur = result.items + result.count;
-            Vec2* ref = cur - 1;
+            IntVec2* cur = result.items + result.count;
+            IntVec2* ref = cur - 1;
             for (uint64_t i = num; i > 0; i--) {
                 int64_t x, y;
                 oasis_read_2delta(in, x, y);
-                *cur++ = Vec2{scaling * x, scaling * y} + *ref++;
+                *cur++ = IntVec2{x, y} + *ref++;
             }
             result.count += num;
         } break;
         case OasisPointList::Octangular: {
             result.ensure_slots(num);
-            Vec2* cur = result.items + result.count;
-            Vec2* ref = cur - 1;
+            IntVec2* cur = result.items + result.count;
+            IntVec2* ref = cur - 1;
             for (uint64_t i = num; i > 0; i--) {
                 int64_t x, y;
                 oasis_read_3delta(in, x, y);
-                *cur++ = Vec2{scaling * x, scaling * y} + *ref++;
+                *cur++ = IntVec2{x, y} + *ref++;
             }
             result.count += num;
         } break;
         case OasisPointList::General: {
             result.ensure_slots(num);
-            Vec2* cur = result.items + result.count;
-            Vec2* ref = cur - 1;
+            IntVec2* cur = result.items + result.count;
+            IntVec2* ref = cur - 1;
             for (uint64_t i = num; i > 0; i--) {
                 int64_t x, y;
                 oasis_read_gdelta(in, x, y);
-                *cur++ = Vec2{scaling * x, scaling * y} + *ref++;
+                *cur++ = IntVec2{x, y} + *ref++;
             }
             result.count += num;
         } break;
         case OasisPointList::Relative: {
-            Vec2 delta = {0, 0};
             result.ensure_slots(num);
-            Vec2* cur = result.items + result.count;
-            Vec2* ref = cur - 1;
+            IntVec2 delta = {0, 0};
+            IntVec2* cur = result.items + result.count;
+            IntVec2* ref = cur - 1;
             for (uint64_t i = num; i > 0; i--) {
-                int64_t x, y;
-                oasis_read_gdelta(in, x, y);
-                delta.x += scaling * x;
-                delta.y += scaling * y;
+                oasis_read_gdelta(in, delta.x, delta.y);
                 *cur++ = delta + *ref++;
             }
             result.count += num;
         } break;
         default:
-            fputs("[GDSTK] Point list type not supported.\n", stderr);
+            if (error_logger) fputs("[GDSTK] Point list type not supported.\n", error_logger);
             if (in.error_code == ErrorCode::NoError) in.error_code = ErrorCode::InvalidFile;
             return 0;
     }
     return num;
+}
+
+// See utils.cpp::scale_and_round_array().
+void oasis_point_list_to_microns(Array<IntVec2>& in, double scaling, Array<Vec2>& out) {
+    out.ensure_slots(in.count);
+
+    for(uint64_t i = 0; i < in.count; i++) {
+        out.append_unsafe(oasis_point_to_microns(in[i], scaling));
+    }
 }
 
 void oasis_read_repetition(OasisStream& in, double scaling, Repetition& repetition) {
@@ -568,7 +589,7 @@ void oasis_write_2delta(OasisStream& out, int64_t x, int64_t y) {
             oasis_write_int_internal(out, x, 2, (uint8_t)OasisDirection::E);
         }
     } else {
-        fputs("[GDSTK] Error writing 2-delta.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Error writing 2-delta.\n", error_logger);
     }
 }
 
@@ -599,7 +620,7 @@ void oasis_write_3delta(OasisStream& out, int64_t x, int64_t y) {
             oasis_write_int_internal(out, x, 3, (uint8_t)OasisDirection::SE);
         }
     } else {
-        fputs("[GDSTK] Error writing 3-delta.\n", stderr);
+        if (error_logger) fputs("[GDSTK] Error writing 3-delta.\n", error_logger);
     }
 }
 
@@ -643,7 +664,7 @@ void oasis_write_gdelta(OasisStream& out, int64_t x, int64_t y) {
 }
 
 void oasis_write_real(OasisStream& out, double value) {
-    if (trunc(value) == value && fabs(value) < UINT64_MAX) {
+    if (trunc(value) == value && fabs(value) < (double)UINT64_MAX) {
         // value is integer
         if (value >= 0) {
             oasis_putc((uint8_t)OasisDataType::RealPositiveInteger, out);
@@ -657,7 +678,7 @@ void oasis_write_real(OasisStream& out, double value) {
     }
 
     double inverse = 1.0 / value;
-    if (trunc(inverse) == inverse && fabs(inverse) < UINT64_MAX) {
+    if (trunc(inverse) == inverse && fabs(inverse) < (double)UINT64_MAX) {
         // inverse is integer
         if (inverse >= 0) {
             oasis_putc((uint8_t)OasisDataType::RealPositiveReciprocal, out);
@@ -780,10 +801,23 @@ void oasis_write_point_list(OasisStream& out, Array<IntVec2>& points, bool close
         }
     }
 
+    uint64_t count = points.count - 1;
+    if (list_type == OasisPointList::ManhattanHorizontalFirst ||
+        list_type == OasisPointList::ManhattanVerticalFirst) {
+        if (closed) {
+            --count;
+            if (count < 2 || count % 2 == 1) {
+                // There is probably a duplicate vertex in the polygon,
+                // otherwise the point count should be even.
+                count = points.count - 1;
+                list_type = OasisPointList::Manhattan;
+            }
+        }
+    }
+
     switch (list_type) {
         case OasisPointList::ManhattanHorizontalFirst: {
             oasis_putc((uint8_t)OasisPointList::ManhattanHorizontalFirst, out);
-            uint64_t count = closed ? points.count - 2 : points.count - 1;
             oasis_write_unsigned_integer(out, count);
             prev_delta_is_horizontal = false;
             IntVec2* delta = points.items + 1;
@@ -795,7 +829,6 @@ void oasis_write_point_list(OasisStream& out, Array<IntVec2>& points, bool close
         } break;
         case OasisPointList::ManhattanVerticalFirst: {
             oasis_putc((uint8_t)OasisPointList::ManhattanVerticalFirst, out);
-            uint64_t count = closed ? points.count - 2 : points.count - 1;
             oasis_write_unsigned_integer(out, count);
             prev_delta_is_horizontal = true;
             IntVec2* delta = points.items + 1;
@@ -807,27 +840,27 @@ void oasis_write_point_list(OasisStream& out, Array<IntVec2>& points, bool close
         } break;
         case OasisPointList::Manhattan: {
             oasis_putc((uint8_t)OasisPointList::Manhattan, out);
-            oasis_write_unsigned_integer(out, points.count - 1);
+            oasis_write_unsigned_integer(out, count);
             IntVec2* delta = points.items + 1;
-            for (uint64_t i = points.count - 1; i > 0; i--) {
+            for (uint64_t i = count; i > 0; i--) {
                 oasis_write_2delta(out, delta->x, delta->y);
                 delta++;
             }
         } break;
         case OasisPointList::Octangular: {
             oasis_putc((uint8_t)OasisPointList::Octangular, out);
-            oasis_write_unsigned_integer(out, points.count - 1);
+            oasis_write_unsigned_integer(out, count);
             IntVec2* delta = points.items + 1;
-            for (uint64_t i = points.count - 1; i > 0; i--) {
+            for (uint64_t i = count; i > 0; i--) {
                 oasis_write_3delta(out, delta->x, delta->y);
                 delta++;
             }
         } break;
         default: {
             oasis_putc((uint8_t)OasisPointList::General, out);
-            oasis_write_unsigned_integer(out, points.count - 1);
+            oasis_write_unsigned_integer(out, count);
             IntVec2* delta = points.items + 1;
-            for (uint64_t i = points.count - 1; i > 0; i--) {
+            for (uint64_t i = count; i > 0; i--) {
                 oasis_write_gdelta(out, delta->x, delta->y);
                 delta++;
             }
@@ -837,7 +870,7 @@ void oasis_write_point_list(OasisStream& out, Array<IntVec2>& points, bool close
 
 void oasis_write_point_list(OasisStream& out, const Array<Vec2> points, double scaling,
                             bool closed) {
-    Array<IntVec2> scaled_points = {0};
+    Array<IntVec2> scaled_points = {};
     scale_and_round_array(points, scaling, scaled_points);
     oasis_write_point_list(out, scaled_points, closed);
     scaled_points.clear();

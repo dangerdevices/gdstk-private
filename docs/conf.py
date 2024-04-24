@@ -1,22 +1,15 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 # Copyright 2020 Lucas Heitzmann Gabrielli.
 # This file is part of gdstk, distributed under the terms of the
 # Boost Software License - Version 1.0.  See the accompanying
 # LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
-import sys
-import pathlib
-import distutils.command.build
-from distutils.dist import Distribution
+import subprocess
+import gdstk
 
-# Update path so that autodoc is able to find the module
-empty_build = distutils.command.build.build(Distribution())
-empty_build.initialize_options()
-empty_build.finalize_options()
-path = pathlib.Path("..") / empty_build.build_platlib
-sys.path.insert(0, str(path.absolute()))
+project = "gdstk"
+version = gdstk.__version__
+release = gdstk.__version__
+copyright = "2020, Lucas H. Gabrielli"
 
 extensions = [
     "sphinx.ext.autodoc",
@@ -40,9 +33,9 @@ napoleon_use_ivar = True
 napoleon_use_param = True
 napoleon_use_rtype = True
 
-exclude_patterns = ['Thumbs.db', '.DS_Store']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 templates_path = ["_templates"]
 
@@ -68,3 +61,30 @@ html_theme_options = {
     #'includehidden': True,
     #'titles_only': False
 }
+
+# Build images
+
+for img_src in (
+    "cell_images.py",
+    "curve_images.py",
+    "flexpath_images.py",
+    "function_images.py",
+    "label_images.py",
+    "polygon_images.py",
+    "reference_images.py",
+    "robustpath_images.py",
+    "tutorial_images.py",
+    "apply_repetition.py",
+    "fonts.py",
+    "merging.py",
+    "pads.py",
+    "path_markers.py",
+    "pcell.py",
+    "photonics.py",
+    "pos_filtering.py",
+    "repetitions.py",
+    "transforms.py",
+    "layout.py",
+    "filtering.py",
+):
+    subprocess.run(["python", img_src], check=True)

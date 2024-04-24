@@ -1,7 +1,95 @@
-# Change Log
-## Unreleased
+# Changelog
+
+## 0.9.51 - 2024-04-17
+### Changed
+- Use scikit-build-core for building, which enables support for Python 3.12 on Windows.
+
+## 0.9.50 - 2024-02-07
+### Added
+- `Polygon.perimeter`.
+
+## 0.9.49 - 2023-12-29
+### Fixed
+- Type annotation for `Cell.write_svg`.
+
+## 0.9.48 - 2023-12-21
+### Changed
+- `Cell.dependencies` accepts keyword arguments.
+### Fixed
+- Fracturing polygons with few points is more robust.
+- Compilation improvements.
+
+## 0.9.45 - 2023-10-12
+### Changed
+- Use Qhull as an external dependecy instead of installing it ourselves to avoid conflicts.
+
+## 0.9.43 - 2023-10-08
+### Added
+- `Library.remap` and `Cell.remap` to remap layer and data/text types
+- Add typing stub
+- Add deepcopy support
+### Changed
+- Raise an error if not both layer and datatype are specified in `Cell.get_polygons` and `Reference.get_polygons`.
+- Correct ordering of path ends in `Library::read_oas()`
+### Fixed
+- Sort `slice` positions when converting from python because the internal implementation expects the coordinates to be sorted
+
+## 0.9.42 - 2023-06-14
+### Fixed
+- `racetrack` bug in inner radius
+
+## 0.9.41 - 2023-05-24
+### Added
+- Dictionary-like access to library cells by name
+- `len(Library)` returns the number of cells in the library
+- `Reference.cell_name` to directly access a referenced cell's name
+### Fixed
+- `RobustPath` accepts width of 0 at the path end
+
+## 0.9.37 - 2023-02-12
+### Changed
+- Build system changes for lower numpy version requirements
+
+## 0.9.36 - 2023-02-10
+### Changed
+- Downgrade the zlib version dependency to support manylinux2014
+- Minor documentation improvements
+
+## 0.9.35 - 2022-12-16
+### Fixed
+- Segfaults caused by class inheritance in Python
+- Segfaults caused by cleanup of incomplete initialization of Python instances
+
+## 0.9.1 - 2022-10-12
+### Fixed
+- Reading polygons with extremely large number of vertices
+- Integer overflow in boolean operations
+- `GdsWriter` C++ API fix
+- Properly read zlib path from environment during build
+- Ensure polygons are closed when loading GDSII files
+- Reference counting in `Reference.apply_repetition` and `Cell.flatten`
+
+## 0.9.0 - 2022-08-20
+### Fixed
+- Bug when saving OASIS files with missing references.
+### Added
+- `Reference.get_polygons`, `Reference.get_paths`, `Reference.get_labels`
+- `Library.rename_cell`
+- `Library::rename_cell` and `Library::replace_cell` in the C++ API
 ### Changed
 - `Cell.filter` arguments modified to match `read_gds`.
+- Changed default tolerance for `read_gds` and `read_oas` to be the library's rounding size.
+- `Reference::polygons` renamed to `Reference::get_polygons` in the C++ API.
+- `Reference::flexpaths` renamed to `Reference::get_flexpaths` in the C++ API.
+- `Reference::robustpaths` renamed to `Reference::get_robustpaths` in the C++ API.
+- `Reference::labels` renamed to `Reference::get_labels` in the C++ API.
+- Removed magnification argument from `Reference::init` and `Label::init` in the C++ API.
+
+## 0.8.3 - 2022-06-02
+### Fixed
+- References from raw cells are kept from garbage collection while in use
+- Allow assigning to `Reference.x_reflection` from Python
+- Errors in detection of arrays when exporting GDSII files
 
 ## 0.8.2 - 2022-02-26
 ### Fixed
@@ -9,7 +97,7 @@
 - Reference array is no longer transformed into multiple references when element displacement is zero
 - Memory leaks in the python wrapper (thanks @jatoben)
 ### Changed
-- Set separation instead of offset in FlexPath::init and RobustPath::init
+- Set separation instead of offset in `FlexPath::init` and `RobustPath::init`
 
 ## 0.8.1 - 2022-01-04
 ### Fixed

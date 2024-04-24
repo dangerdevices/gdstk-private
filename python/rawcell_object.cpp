@@ -16,10 +16,13 @@ static PyObject* rawcell_object_str(RawCellObject* self) {
 static void rawcell_object_dealloc(RawCellObject* self) {
     RawCell* rawcell = self->rawcell;
     if (rawcell) {
+        for (uint64_t i = 0; i < rawcell->dependencies.count; i++) {
+            Py_XDECREF(rawcell->dependencies[i]->owner);
+        }
         rawcell->clear();
         free_allocation(rawcell);
     }
-    PyObject_Del(self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static int rawcell_object_init(RawCellObject* self, PyObject* args, PyObject* kwds) {
@@ -46,7 +49,7 @@ static int rawcell_object_init(RawCellObject* self, PyObject* args, PyObject* kw
 static PyObject* rawcell_object_dependencies(RawCellObject* self, PyObject* args) {
     int recursive;
     if (!PyArg_ParseTuple(args, "p:dependencies", &recursive)) return NULL;
-    Map<RawCell*> rawcell_map = {0};
+    Map<RawCell*> rawcell_map = {};
     self->rawcell->get_dependencies(recursive > 0, rawcell_map);
     PyObject* result = PyList_New(rawcell_map.count);
     if (!result) {

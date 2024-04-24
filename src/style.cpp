@@ -5,15 +5,17 @@ Boost Software License - Version 1.0.  See the accompanying
 LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 */
 
-#include "style.h"
+#define __STDC_FORMAT_MACROS 1
+#define _USE_MATH_DEFINES
 
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "allocator.h"
-#include "map.h"
+#include <gdstk/allocator.hpp>
+#include <gdstk/map.hpp>
+#include <gdstk/style.hpp>
 
 namespace gdstk {
 
@@ -79,7 +81,7 @@ Style* StyleMap::get_slot(Tag tag) const {
 
 void StyleMap::set(Tag tag, const char* value) {
     assert(value);
-    // Equallity is important for capacity == 0
+    // Equality is important for capacity == 0
     if (count * 10 >= capacity * GDSTK_MAP_CAPACITY_THRESHOLD)
         resize(capacity >= GDSTK_INITIAL_MAP_CAPACITY ? capacity * GDSTK_MAP_GROWTH_FACTOR
                                                       : GDSTK_INITIAL_MAP_CAPACITY);

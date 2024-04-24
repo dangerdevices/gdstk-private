@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 # Copyright 2020 Lucas Heitzmann Gabrielli.
 # This file is part of gdstk, distributed under the terms of the
 # Boost Software License - Version 1.0.  See the accompanying
 # LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
+from copy import deepcopy
 import pytest
 import numpy
 import gdstk
@@ -19,7 +19,7 @@ def test_init():
     assert path.datatypes == (0,)
     assert path.tolerance == 1e-2
     assert path.max_evals == 1000
-    assert path.simple_path == False
+    assert not path.simple_path
     assert path.ends == ("flush",)
     assert path.num_paths == 1
     assert path.size == 0
@@ -33,7 +33,7 @@ def test_init():
     assert path.datatypes == (2,)
     assert path.tolerance == 1e-3
     assert path.max_evals == 10
-    assert path.simple_path == True
+    assert path.simple_path
     assert path.ends == ((1, 2),)
 
     path = gdstk.RobustPath(0j, [2, 2], layer=3, datatype=[4, 5])
@@ -79,7 +79,7 @@ def test_transforms(proof_cells):
             path0.copy().rotate(numpy.pi / 2, (2, 1)).translate(0.2, -0.3),
         ]
         assert_same_shape(
-            proof_cells[f"RobustPath: scale_width {scale_width}"].polygons, paths
+            proof_cells[f"RobustPath:scale_width_{scale_width}"].polygons, paths
         )
 
 
@@ -98,7 +98,7 @@ def test_position(robust_path):
     assert_close(robust_path.position(0), (-1, 0))
     assert_close(robust_path.position(0.5), (0, 0.5))
     assert_close(robust_path.position(1), (1, 1))
-    assert_close(robust_path.position(1.5), (1 + 2 ** 0.5, -1 + 2 ** 0.5))
+    assert_close(robust_path.position(1.5), (1 + 2**0.5, -1 + 2**0.5))
     assert_close(robust_path.position(2), (3, -1))
     assert_close(robust_path.position(2.1), (3, -1))
 
@@ -109,7 +109,7 @@ def test_gradient(robust_path):
     assert_close(robust_path.gradient(0.5), (2, 1))
     assert_close(robust_path.gradient(1), (2, 1))
     assert_close(robust_path.gradient(1, False), (numpy.pi, 0))
-    assert_close(robust_path.gradient(1.5), (numpy.pi / 2 ** 0.5, -numpy.pi / 2 ** 0.5))
+    assert_close(robust_path.gradient(1.5), (numpy.pi / 2**0.5, -numpy.pi / 2**0.5))
     assert_close(robust_path.gradient(2), (0, -numpy.pi))
     assert_close(robust_path.gradient(2, False), (0, -numpy.pi))
     assert_close(robust_path.gradient(2.1), (0, -numpy.pi))
@@ -137,3 +137,21 @@ def test_offsets(robust_path):
     assert_close(robust_path.offsets(2), (-0.1, 0))
     assert_close(robust_path.offsets(2, False), (-0.1, 0))
     assert_close(robust_path.offsets(2.1), (-0.1, 0))
+
+def test_deepcopy():
+    path = gdstk.RobustPath(0j, 2)
+    path2 = deepcopy(path)
+
+    assert path2 is not path
+    assert path.layers == path2.layers
+    assert path.datatypes == path2.datatypes
+    assert path.tolerance == path2.tolerance
+    assert path.max_evals == path2.max_evals
+    assert path.simple_path == path2.simple_path
+    assert path.ends == path2.ends
+    assert path.num_paths == path2.num_paths
+    assert path.size == path2.size
+
+    path2.set_layers(1)
+    assert path.layers == (0,)
+    assert path2.layers == (1,)

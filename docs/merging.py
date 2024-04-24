@@ -42,9 +42,9 @@ if __name__ == "__main__":
     lib2 = gdstk.read_gds(path / "lib2.gds")
 
     # We add all cells from the second library to the first
-    lib1_cell_names = set(c.name for c in lib1.cells)
+    lib1_cell_names = {c.name for c in lib1.cells}
     for cell in lib2.cells:
-        # We must check that all names are unique withing the merged library
+        # We must check that all names are unique within the merged library
         if cell.name in lib1_cell_names:
             cell.name += "-lib2"
             assert cell.name not in lib1_cell_names

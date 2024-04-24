@@ -30,7 +30,7 @@ Examples:
     >>> curve.segment((1, -1), True)
     >>> polygon = gdstk.Polygon(curve.points())
 
-    .. image:: ../curve/init.*
+    .. image:: ../curve/init.svg
        :align: center)!");
 
 PyDoc_STRVAR(curve_object_points_doc, R"!(points() -> numpy.ndarray
@@ -78,7 +78,7 @@ Examples:
     >>> curve.segment([(0, -1), (2, -1)], True)
     >>> polygon = gdstk.Polygon(curve.points())
 
-    .. image:: ../curve/segment.*
+    .. image:: ../curve/segment.svg
        :align: center)!");
 
 PyDoc_STRVAR(curve_object_cubic_doc, R"!(cubic(xy, relative=False) -> self
@@ -97,7 +97,7 @@ Examples:
     ...              (1.3, -0.2), (0.3, -0.2), (0, 0)])
     >>> polygon = gdstk.Polygon(curve.points())
 
-    .. image:: ../curve/cubic.*
+    .. image:: ../curve/cubic.svg
        :align: center)!");
 
 PyDoc_STRVAR(curve_object_cubic_smooth_doc, R"!(cubic_smooth(xy, relative=False) -> self
@@ -119,7 +119,7 @@ Examples:
     >>> polygon = gdstk.Polygon(curve.points())
     >>> polygon = gdstk.Polygon(curve.points())
 
-    .. image:: ../curve/cubic_smooth.*
+    .. image:: ../curve/cubic_smooth.svg
        :align: center)!");
 
 PyDoc_STRVAR(curve_object_quadratic_doc, R"!(quadratic(xy, relative=False) -> self
@@ -166,7 +166,7 @@ Examples:
     >>> curve.bezier(points)
     >>> polygon = gdstk.Polygon(curve.points())
 
-    .. image:: ../curve/bezier.*
+    .. image:: ../curve/bezier.svg
        :align: center)!");
 
 PyDoc_STRVAR(
@@ -221,7 +221,7 @@ Examples:
     >>> curve.interpolation(points, angles, cycle=True, relative=True)
     >>> polygon_2 = gdstk.Polygon(curve.points())
 
-    .. image:: ../curve/interpolation.*
+    .. image:: ../curve/interpolation.svg
        :align: center
 
 .. [#] Hobby, J.D. "Smooth, easy to compute interpolating splines."
@@ -251,7 +251,7 @@ Examples:
     ...           -numpy.pi / 4)
     >>> polygon_2 = gdstk.Polygon(curve.points())
 
-    .. image:: ../curve/arc.*
+    .. image:: ../curve/arc.svg
        :align: center)!");
 
 PyDoc_STRVAR(curve_object_turn_doc, R"!(turn(radius, angle) -> self
@@ -290,7 +290,7 @@ Examples:
     ... )
     >>> polygon = gdstk.Polygon(curve.points())
 
-    .. image:: ../curve/parametric.*
+    .. image:: ../curve/parametric.svg
        :align: center)!");
 
 PyDoc_STRVAR(curve_object_commands_doc, R"!(commands(*args) -> self
@@ -328,7 +328,7 @@ Examples:
     ...                "S", 1, -2, 0, -2)
     >>> polygon = gdstk.Polygon(curve.points())
 
-    .. image:: ../curve/commands.*
+    .. image:: ../curve/commands.svg
        :align: center)!");
 
 PyDoc_STRVAR(curve_object_tolerance_doc,
@@ -346,7 +346,7 @@ Examples:
     >>> print(polygon_2.size)
     62
 
-    .. image:: ../curve/tolerance.*
+    .. image:: ../curve/tolerance.svg
        :align: center)!");
 
 // Polygon
@@ -363,14 +363,24 @@ Args:
 
 Examples:
     >>> polygon_1 = gdstk.Polygon([(0, 0), (1, 0), 1 + 1.5j, 1j])
-    >>> polygon_2 = gsdkt.Polygon([0j, (-1, 1), (-1, 0)], 2, 3)
+    >>> polygon_2 = gdstk.Polygon([0j, (-1, 1), (-1, 0)], 2, 3)
 
-    .. image:: ../polygon/init.*
+    .. image:: ../polygon/init.svg
        :align: center)!");
 
 PyDoc_STRVAR(polygon_object_copy_doc, R"!(copy() -> gdstk.Polygon
 
 Create a copy this polygon.
+
+Returns:
+    Copy of this polygon.)!");
+
+PyDoc_STRVAR(polygon_object_deepcopy_doc, R"!(__deepcopy(memo)__ -> gdstk.Polygon
+
+Create a copy this polygon.
+
+Args:
+    memo: Dict used internally by the deepcopy function.
 
 Returns:
     Copy of this polygon.)!");
@@ -381,6 +391,13 @@ Polygon area.
 
 Returns:
     Area of the polygon.)!");
+
+PyDoc_STRVAR(polygon_object_perimeter_doc, R"!(perimeter() -> float
+
+Polygon perimeter.
+
+Returns:
+    Perimeter of the polygon.)!");
 
 PyDoc_STRVAR(polygon_object_bounding_box_doc, R"!(bounding_box() -> tuple
 
@@ -397,7 +414,7 @@ Examples:
     ((0.0, -1.0), (3.0, 2.0))
     >>> polygon_bb = gdstk.rectangle(*bbox, datatype=1)
 
-    .. image:: ../polygon/bounding_box.*
+    .. image:: ../polygon/bounding_box.svg
        :align: center)!");
 
 PyDoc_STRVAR(polygon_object_contain_doc, R"!(contain(*points) -> bool, tuple
@@ -478,7 +495,9 @@ Args:
     angle: Rotation angle (in radians).
     center (coordinate pair or complex): Center of the transformation.)!");
 
-PyDoc_STRVAR(polygon_object_transform_doc, R"!(transform(magnification=1, x_reflection=False, rotation=0, translation=None, matrix=None) -> self
+PyDoc_STRVAR(
+    polygon_object_transform_doc,
+    R"!(transform(magnification=1, x_reflection=False, rotation=0, translation=None, matrix=None) -> self
 
 Transform the vertices of this polygon.
 
@@ -511,7 +530,7 @@ Args:
 
 Notes:
     The actual fillet radius for a given corner is the specified value
-    or half the lenght of the shortest segment adjacent to that corner,
+    or half the length of the shortest segment adjacent to that corner,
     whichever is smaller.
 
 Examples:
@@ -520,7 +539,7 @@ Examples:
     >>> polygon_1 = gdstk.Polygon(points, datatype=1)
     >>> polygon_2 = gdstk.Polygon(points).fillet(0.3, tolerance=1e-3)
 
-    .. image:: ../polygon/fillet.*
+    .. image:: ../polygon/fillet.svg
        :align: center)!");
 
 PyDoc_STRVAR(polygon_object_fracture_doc, R"!(fracture(max_points=199, precision=1e-3) -> list
@@ -547,20 +566,20 @@ Examples:
     >>> print([p.size for p in poly_list])
     [102, 103, 103, 101, 101, 102, 102, 103, 103, 102]
 
-    .. image:: ../polygon/fracture.*
+    .. image:: ../polygon/fracture.svg
        :align: center)!");
 
 PyDoc_STRVAR(polygon_object_apply_repetition_doc, R"!(apply_repetition() -> list
 
 Create new polygons based on this object's ``repetition`` attribute.
 
-After the repetition is applyed, the original attribute is set to
+After the repetition is applied, the original attribute is set to
 ``None``.
 
 Returns:
     Newly created objects.)!");
 
-PyDoc_STRVAR(polygon_object_points_doc, R"!(Vertiecs of the polygon.
+PyDoc_STRVAR(polygon_object_points_doc, R"!(Vertices of the polygon.
 
 Notes:
     This attribute is read-only.)!");
@@ -604,7 +623,7 @@ Examples:
     >>> array_ref = gdstk.Reference(f_cell, columns=3, rows=2,
     ...                             spacing=(8, 10))
 
-    .. image:: ../reference/init.*
+    .. image:: ../reference/init.svg
        :align: center
 
 Notes:
@@ -651,7 +670,7 @@ Examples:
      (11.313708498984761, 27.66555281392367))
     >>> polygon_bb = gdstk.rectangle(*bbox, datatype=1)
 
-    .. image:: ../reference/bounding_box.*
+    .. image:: ../reference/bounding_box.svg
        :align: center)!");
 
 PyDoc_STRVAR(reference_object_convex_hull_doc, R"!(convex_hull() -> ndarray
@@ -679,24 +698,95 @@ Examples:
     >>> hull = main_cell.convex_hull()
     >>> polygon_hull = gdstk.Polygon(hull, datatype=1)
 
-    .. image:: ../reference/convex_hull.*
+    .. image:: ../reference/convex_hull.svg
        :align: center
 
 Notes:
     This operation can be slow because all paths and references are
     included in the computation.)!");
 
+PyDoc_STRVAR(
+    reference_object_get_polygons_doc,
+    R"!(get_polygons(apply_repetitions=True, include_paths=True, depth=None, layer=None, datatype=None) -> list
+
+Return a copy of all polygons created by this reference.
+
+Args:
+    apply_repetitions: Define whether repetitions should be applied in
+      the created polygons.
+    include_paths: If ``True``, polygonal representation of paths are
+      also included in the result.
+    depth: If non negative, indicates the number of reference levels
+      processed recursively.  A value of 0 will result in no references
+      being visited.  A value of ``None`` (the default) or a negative
+      integer will include all reference levels below the cell.
+    layer: If set, only polygons in the defined layer and data type are
+      returned.
+    datatype: If set, only polygons in the defined layer and data type
+      are returned.
+
+Notes:
+    Arguments ``layer`` and ``datatype`` must both be set to integers
+    for the filtering to be executed.  If either one is ``None`` they
+    are both ignored.)!");
+
+PyDoc_STRVAR(reference_object_get_paths_doc,
+             R"!(get_paths(apply_repetitions=True, depth=None, layer=None, datatype=None) -> list
+
+Return a copy of all paths created by this reference.
+
+Args:
+    apply_repetitions: Define whether repetitions should be applied in
+      the created paths.
+    depth: If non negative, indicates the number of reference levels
+      processed recursively.  A value of 0 will result in no references
+      being visited.  A value of ``None`` (the default) or a negative
+      integer will include all reference levels below the cell.
+    layer: If set, only paths in the defined layer and data type are
+      returned.
+    datatype: If set, only paths in the defined layer and data type are
+      returned.
+
+Notes:
+    Arguments ``layer`` and ``datatype`` must both be set to integers
+    for the filtering to be executed.  If either one is ``None`` they
+    are both ignored.)!");
+
+PyDoc_STRVAR(reference_object_get_labels_doc,
+             R"!(get_labels(apply_repetitions=True, depth=None, layer=None, texttype=None) -> list
+
+Return a copy of all labels created by this reference.
+
+Args:
+    apply_repetitions: Define whether repetitions should be applied in
+      the created labels.
+    depth: If non negative, indicates the number of reference levels
+      processed recursively.  A value of 0 will result in no references
+      being visited.  A value of ``None`` (the default) or a negative
+      integer will include all reference levels below the cell.
+    layer: If set, only labels in the defined layer and text type are
+      returned.
+    texttype: If set, only labels in the defined layer and text type
+      are returned.
+
+Notes:
+    Arguments ``layer`` and ``texttype`` must both be set to integers
+    for the filtering to be executed.  If either one is ``None`` they
+    are both ignored.)!");
+
 PyDoc_STRVAR(reference_object_apply_repetition_doc, R"!(apply_repetition() -> list
 
 Create new references based on this object's ``repetition`` attribute.
 
-After the repetition is applyed, the original attribute is set to
+After the repetition is applied, the original attribute is set to
 ``None``.
 
 Returns:
     Newly created objects.)!");
 
 PyDoc_STRVAR(reference_object_cell_doc, R"!(Cell referenced by this object.)!");
+
+PyDoc_STRVAR(reference_object_cell_name_doc, R"!(Name of the cell referenced by this object.)!");
 
 PyDoc_STRVAR(reference_object_origin_doc, R"!(Reference origin.)!");
 
@@ -776,14 +866,14 @@ Examples:
     ...     layer=[0, 1, 2, 3],
     ... )
 
-    .. image:: ../flexpath/init.*
+    .. image:: ../flexpath/init.svg
        :align: center
 
     >>> points = [(0, 8), (0, 0), (8, 0), (18, 13), (18, -8)]
     >>> path_1 = gdstk.FlexPath(points , 1, datatype=1)
     >>> path_2 = gdstk.FlexPath(points , 1, bend_radius=3)
 
-    .. image:: ../flexpath/init0.*
+    .. image:: ../flexpath/init0.svg
        :align: center
 
     >>> def custom_broken_join(p0, v0, p1, v1, center, width):
@@ -828,12 +918,22 @@ Examples:
     ...     ends=custom_pointy_end,
     ... )
 
-    .. image:: ../flexpath/init1.*
+    .. image:: ../flexpath/init1.svg
        :align: center)!");
 
 PyDoc_STRVAR(flexpath_object_copy_doc, R"!(copy() -> gdstk.FlexPath
 
 Create a copy this flexpath.
+
+Returns:
+    Copy of this flexpath.)!");
+
+PyDoc_STRVAR(flexpath_object_deepcopy_doc, R"!(__deepcopy(memo)__ -> gdstk.FlexPath
+
+Create a copy this flexpath.
+
+Args:
+    memo: Dict used internally by the deepcopy function.
 
 Returns:
     Copy of this flexpath.)!");
@@ -961,7 +1061,7 @@ Examples:
     ...  [4. 0.]
     ...  [6. 0.]]
 
-    .. image:: ../flexpath/horizontal.*
+    .. image:: ../flexpath/horizontal.svg
        :align: center
 
 See also:
@@ -1020,7 +1120,7 @@ Examples:
     >>> path_2 = gdstk.FlexPath((3, 0), [0.1, 0.1], 0.2)
     >>> path_2.segment(points, offset=0.6, relative=True)
 
-    .. image:: ../flexpath/segment.*
+    .. image:: ../flexpath/segment.svg
        :align: center)!");
 
 PyDoc_STRVAR(flexpath_object_cubic_doc,
@@ -1051,7 +1151,7 @@ Examples:
     >>> path.cubic([(1, -1), (2, -1), (2.5, -0.5),
     ...             (3, 0), (3, 1), (2, 1)], width=0.5)
 
-    .. image:: ../flexpath/cubic.*
+    .. image:: ../flexpath/cubic.svg
        :align: center)!");
 
 PyDoc_STRVAR(flexpath_object_cubic_smooth_doc,
@@ -1085,7 +1185,7 @@ Examples:
     >>> path.cubic_smooth([(2, -1), (2.5, -0.5), (3, 1), (2, 1)],
     ...                   width=0.5)
 
-    .. image:: ../flexpath/cubic_smooth.*
+    .. image:: ../flexpath/cubic_smooth.svg
        :align: center)!");
 
 PyDoc_STRVAR(flexpath_object_quadratic_doc,
@@ -1162,7 +1262,7 @@ Examples:
     >>> path.bezier([(4, 1), (4, 3), (0, 5),
     ...              (-4, 3), (-4, -2), (0, -4)])
 
-    .. image:: ../flexpath/bezier.*
+    .. image:: ../flexpath/bezier.svg
        :align: center)!");
 
 PyDoc_STRVAR(
@@ -1172,7 +1272,7 @@ PyDoc_STRVAR(
 Append a smooth interpolating curve through the given points.
 
 Use the Hobby algorithm [#]_ to calculate a smooth interpolating
-path made of cubic Bezier segments between each pair of points.  Angle
+path made of cubic Bézier segments between each pair of points.  Angle
 and tension parameters can be specified at each point, and the path can
 be open or closed.
 
@@ -1216,7 +1316,7 @@ Examples:
     >>> path_2 = gdstk.FlexPath((6, -8), 0.2, tolerance=1e-3)
     >>> path_2.interpolation(points, angles, cycle=True, relative=True)
 
-    .. image:: ../flexpath/interpolation.*
+    .. image:: ../flexpath/interpolation.svg
        :align: center
 
 .. [#] Hobby, J.D. "Smooth, easy to compute interpolating splines."
@@ -1250,7 +1350,7 @@ Examples:
     >>> path.arc(2.5, numpy.pi, 0)
     >>> path.arc(5, -numpy.pi, -numpy.pi / 2)
 
-    .. image:: ../flexpath/arc.*
+    .. image:: ../flexpath/arc.svg
        :align: center)!");
 
 PyDoc_STRVAR(flexpath_object_turn_doc, R"!(turn(radius, angle, width=None, offset=None) -> self
@@ -1301,7 +1401,7 @@ Examples:
     >>> path = gdstk.FlexPath((0, 0), 0.2, tolerance=1e-3)
     >>> path.parametric(spiral)
 
-    .. image:: ../flexpath/parametric.*
+    .. image:: ../flexpath/parametric.svg
        :align: center)!");
 
 PyDoc_STRVAR(flexpath_object_commands_doc, R"!(commands(path_commands...) -> self
@@ -1341,7 +1441,7 @@ Examples:
     ...               "h", 0.5,
     ...               "a", 3, -numpy.pi)
 
-    .. image:: ../flexpath/commands.*
+    .. image:: ../flexpath/commands.svg
        :align: center)!");
 
 PyDoc_STRVAR(flexpath_object_translate_doc, R"!(translate(dx, dy=None) -> self
@@ -1380,7 +1480,7 @@ PyDoc_STRVAR(flexpath_object_apply_repetition_doc, R"!(apply_repetition() -> lis
 
 Create new flexpaths based on this object's ``repetition`` attribute.
 
-After the repetition is applyed, the original attribute is set to
+After the repetition is applied, the original attribute is set to
 ``None``.
 
 Returns:
@@ -1505,7 +1605,7 @@ Examples:
     >>> rpath.arc(1, 0, numpy.pi/2)
     >>> rpath.arc(1, 0, -numpy.pi/2)
 
-    .. image:: ../robustpath/init.*
+    .. image:: ../robustpath/init.svg
        :align: center
 
     >>> path = gdstk.RobustPath((0, 0),
@@ -1517,12 +1617,22 @@ Examples:
     ... )
     >>> path.horizontal(5)
 
-    .. image:: ../robustpath/init1.*
+    .. image:: ../robustpath/init1.svg
        :align: center)!");
 
 PyDoc_STRVAR(robustpath_object_copy_doc, R"!(copy() -> gdstk.RobustPath
 
 Create a copy this robustpath.
+
+Returns:
+    Copy of this robustpath.)!");
+
+PyDoc_STRVAR(robustpath_object_deepcopy_doc, R"!(__deepcopy(memo)__ -> gdstk.RobustPath
+
+Create a copy this robustpath.
+
+Args:
+    memo: Dict used internally by the deepcopy function.
 
 Returns:
     Copy of this robustpath.)!");
@@ -1718,7 +1828,7 @@ Examples:
     ...     lambda u: 0.2 + 0.8 * numpy.cos(2 * numpy.pi * u) ** 2
     ... )
 
-    .. image:: ../robustpath/segment.*
+    .. image:: ../robustpath/segment.svg
        :align: center
 
     >>> path = gdstk.RobustPath((0, 0), [0.2, 0.2], 0.3, tolerance=1e-3)
@@ -1730,7 +1840,7 @@ Examples:
     ...     lambda u: 0.2 + 0.8 * numpy.cos(2 * numpy.pi * u) ** 2
     ... ])
 
-    .. image:: ../robustpath/segment1.*
+    .. image:: ../robustpath/segment1.svg
        :align: center)!");
 
 PyDoc_STRVAR(robustpath_object_cubic_doc,
@@ -1765,7 +1875,7 @@ Examples:
     >>> path.cubic([(0.8, -0.5), (2.2, -0.5), (3, 0)], relative=True)
     >>> path.cubic([(-0.5, -0.8), (-0.5, -2.2), (0, -3)], relative=True)
 
-    .. image:: ../robustpath/cubic.*
+    .. image:: ../robustpath/cubic.svg
        :align: center
 
 See also:
@@ -1806,7 +1916,7 @@ Examples:
     >>> path.cubic_smooth([(3.5, 0.8), (3, 0)], relative=True)
     >>> path.cubic_smooth([(-0.5, -2.2), (0, -3)], relative=True)
 
-    .. image:: ../robustpath/cubic_smooth.*
+    .. image:: ../robustpath/cubic_smooth.svg
        :align: center
 
 See also:
@@ -1906,7 +2016,7 @@ Examples:
     ...     width=lambda u: 0.2 + 0.8 * u ** 2,
     ... )
 
-    .. image:: ../robustpath/bezier.*
+    .. image:: ../robustpath/bezier.svg
        :align: center
 
 See also:
@@ -1964,7 +2074,7 @@ Examples:
     >>> path_2 = gdstk.RobustPath((6, -8), 0.2, tolerance=1e-3)
     >>> path_2.interpolation(points, angles, cycle=True, relative=True)
 
-    .. image:: ../robustpath/interpolation.*
+    .. image:: ../robustpath/interpolation.svg
        :align: center
 
 See also:
@@ -2002,7 +2112,7 @@ Examples:
     >>> path.arc(2.5, numpy.pi, 0)
     >>> path.arc((3, 5), -numpy.pi, -numpy.pi / 2)
 
-    .. image:: ../robustpath/arc.*
+    .. image:: ../robustpath/arc.svg
        :align: center)!");
 
 PyDoc_STRVAR(robustpath_object_turn_doc, R"!(turn(radius, angle, width=None, offset=None) -> self
@@ -2058,7 +2168,7 @@ Examples:
     >>> path = gdstk.RobustPath((0, 0), 0.2, tolerance=1e-3)
     >>> path.parametric(spiral, width=lambda u: 0.2 + 0.6 * u ** 2)
 
-    .. image:: ../robustpath/parametric.*
+    .. image:: ../robustpath/parametric.svg
        :align: center)!");
 
 PyDoc_STRVAR(robustpath_object_commands_doc, R"!(commands(path_commands...) -> self
@@ -2098,7 +2208,7 @@ Examples:
     ...               "h", 0.5,
     ...               "a", 3, -numpy.pi)
 
-    .. image:: ../robustpath/commands.*
+    .. image:: ../robustpath/commands.svg
        :align: center)!");
 
 PyDoc_STRVAR(robustpath_object_translate_doc, R"!(translate(dx, dy=None) -> self
@@ -2137,7 +2247,7 @@ PyDoc_STRVAR(robustpath_object_apply_repetition_doc, R"!(apply_repetition() -> l
 
 Create new robustpaths based on this object's ``repetition`` attribute.
 
-After the repetition is applyed, the original attribute is set to
+After the repetition is applied, the original attribute is set to
 ``None``.
 
 Returns:
@@ -2177,7 +2287,8 @@ Notes:
 See also:
     :meth:`gdstk.RobustPath.set_ends`)!");
 
-PyDoc_STRVAR(robustpath_object_max_evals_doc, R"!(Maximal number of path evaluations per section.)!");
+PyDoc_STRVAR(robustpath_object_max_evals_doc,
+             R"!(Maximal number of path evaluations per section.)!");
 
 // Label
 
@@ -2215,11 +2326,15 @@ Examples:
     >>> label_nw = gdstk.Label("Northwest", (-2, 1), "nw")
     >>> label_sw = gdstk.Label("Southwest", (-2, -1), "sw")
 
-    .. image:: ../label/init.*
+    .. image:: ../label/init.svg
        :align: center
 
     Note that this example can only be correctly displayed in browsers
-    with good support for text alignment in SVG images.)!");
+    with good support for text alignment in SVG images.
+
+Notes:
+    Label anchor and transformations (rotation, magnification and
+    reflection) are not supported by the OASIS format.)!");
 
 PyDoc_STRVAR(label_object_copy_doc, R"!(copy() -> gdstk.Label
 
@@ -2228,11 +2343,22 @@ Create a copy this label.
 Returns:
     Copy of this label.)!");
 
+PyDoc_STRVAR(label_object_deepcopy_doc, R"!(__deepcopy()__ -> gdstk.Label
+
+Create a copy this label.
+
+Args:
+    memo: Dict used internally by the deepcopy function.
+
+Returns:
+    Copy of this label.)!");
+
+
 PyDoc_STRVAR(label_object_apply_repetition_doc, R"!(apply_repetition() -> list
 
 Create new labels based on this object's ``repetition`` attribute.
 
-After the repetition is applyed, the original attribute is set to
+After the repetition is applied, the original attribute is set to
 ``None``.
 
 Returns:
@@ -2276,7 +2402,7 @@ Add polygons, paths, labels and references to this cell.)!");
 
 PyDoc_STRVAR(cell_object_area_doc, R"!(area(by_spec=False) -> float or dictionary
 
-Calulate the area of this cell.
+Calculate the area of this cell.
 
 Args:
     by_spec: If ``True``, return a dictionary with keys
@@ -2316,7 +2442,7 @@ Examples:
      (11.313708498984761, 27.66555281392367))
     >>> polygon_bb = gdstk.rectangle(*bbox, datatype=1)
 
-    .. image:: ../cell/bounding_box.*
+    .. image:: ../cell/bounding_box.svg
        :align: center
 
 Notes:
@@ -2348,14 +2474,16 @@ Examples:
     >>> hull = main_cell.convex_hull()
     >>> polygon_hull = gdstk.Polygon(hull, datatype=1)
 
-    .. image:: ../cell/convex_hull.*
+    .. image:: ../cell/convex_hull.svg
        :align: center
 
 Notes:
     This operation can be slow because all paths and references are
     included in the computation.)!");
 
-PyDoc_STRVAR(cell_object_get_polygons_doc, R"!(get_polygons(apply_repetitions=True, include_paths=True, depth=None, layer=None, datatype=None) -> list
+PyDoc_STRVAR(
+    cell_object_get_polygons_doc,
+    R"!(get_polygons(apply_repetitions=True, include_paths=True, depth=None, layer=None, datatype=None) -> list
 
 Return a copy of all polygons in the cell.
 
@@ -2378,7 +2506,8 @@ Notes:
     for the filtering to be executed.  If either one is ``None`` they
     are both ignored.)!");
 
-PyDoc_STRVAR(cell_object_get_paths_doc, R"!(get_paths(apply_repetitions=True, depth=None, layer=None, datatype=None) -> list
+PyDoc_STRVAR(cell_object_get_paths_doc,
+             R"!(get_paths(apply_repetitions=True, depth=None, layer=None, datatype=None) -> list
 
 Return a copy of all paths in the cell.
 
@@ -2399,7 +2528,8 @@ Notes:
     for the filtering to be executed.  If either one is ``None`` they
     are both ignored.)!");
 
-PyDoc_STRVAR(cell_object_get_labels_doc, R"!(get_labels(apply_repetitions=True, depth=None, layer=None, texttype=None) -> list
+PyDoc_STRVAR(cell_object_get_labels_doc,
+             R"!(get_labels(apply_repetitions=True, depth=None, layer=None, texttype=None) -> list
 
 Return a copy of all labels in the cell.
 
@@ -2447,7 +2577,7 @@ Examples:
     ...       len(cell2.dependencies(True)))
     5 0 0
 
-    .. image:: ../cell/flatten.*
+    .. image:: ../cell/flatten.svg
        :align: center)!");
 
 PyDoc_STRVAR(
@@ -2493,7 +2623,7 @@ Args:
       be specified as an absolute dimension or a percentage of the
       largest image dimension.
     sort_function (callable): If set, the polygons on each cell will be
-      sorted according to this fuction.  It must accept 2 polygons and
+      sorted according to this function.  It must accept 2 polygons and
       return ``True`` if the first one is below the second.
 
 Notes:
@@ -2522,7 +2652,7 @@ Examples:
     ...     sort_function=lambda p1, p2: p1.layer < p2.layer,
     ... )
 
-    .. image:: ../cell/write_svg.*
+    .. image:: ../cell/write_svg.svg
        :align: center)!");
 
 PyDoc_STRVAR(cell_object_remove_doc, R"!(remove(*elements) -> self
@@ -2536,7 +2666,7 @@ Examples:
     >>> dots = [poly for poly in cell.polygons if poly.area() < 2]
     >>> cell.remove(*dots)
 
-    .. image:: ../cell/remove.*
+    .. image:: ../cell/remove.svg
        :align: center)!");
 
 PyDoc_STRVAR(cell_object_filter_doc,
@@ -2545,7 +2675,7 @@ PyDoc_STRVAR(cell_object_filter_doc,
 Remove elements from this cell based on their layer and data/text type.
 
 Args:
-    spec (iterable of tuples): tuples of (layer, data/text type) to
+    spec (iterable of tuples): Tuples of (layer, data/text type) to
       remove or to keep in the cell.
     remove: If `True`, shapes whose layer and type specification are in
       `spec` will be removed from the cell.  If `False`, only those
@@ -2560,7 +2690,20 @@ Examples:
     >>> # Remove all elements except for those on layer 5, type 2:
     >>> cell.filter([(5, 2)], False))!");
 
-PyDoc_STRVAR(cell_object_dependencies_doc, R"!(dependencies(recursive) -> list
+PyDoc_STRVAR(cell_object_remap_doc, R"!(remap(layer_type_map) -> self
+
+Remap layers and data/text types for all elements in this cell.
+
+Args:
+    layer_type_map: Dictionary mapping existing (layer, type) tuples to
+      desired (layer, type) tuples.
+
+Notes:
+    References in this cell are *not* affected. To remap those, loop
+    over them with `get_dependencies`.  To remap a whole libarry, use
+    `Library.remap`.)!");
+
+PyDoc_STRVAR(cell_object_dependencies_doc, R"!(dependencies(recursive=True) -> list
 
 List of cells and raw cells that are referenced by this cell.
 
@@ -2640,6 +2783,18 @@ Args:
     precision: Desired precision to store the units once written to a
       GDSII/OASIS file.
 
+Examples:
+    >>> lib = gdstk.read_gds("filename.gds")
+    >>> num_cells = len(lib)
+    >>> cell = lib["CELL_NAME"]
+
+Notes:
+    Although cells can be accessed by name this is not a cached
+    operation.  If many queries are expected, using a cell dictionary
+    is more efficient, for example:
+    >>> cells = {c.name for c in lib.cells}
+    >>> cells["CELL_NAME"]
+
 See also:
     :ref:`about-units`)!");
 
@@ -2679,6 +2834,21 @@ Examples:
     >>> lib = gdstk.read_gds("layout.gds")
     >>> lib.replace(cell))!");
 
+PyDoc_STRVAR(library_object_copy_doc, R"!(copy([name=None, deep_copy=True]) -> gdstk.Library
+
+Create a copy of this library.
+
+Args:
+    name (str): Name of the new library, or ``None`` to keep the same
+      name as the copied library.
+    deep_copy (bool): If ``True`` (the default), the library's cells are also deep-copied, and the
+      resulting library is completely self-contained. If ``False``, the list of cells will be copied
+      but any changes to the contents of cells in the original library will also be reflected in
+      the copied library.
+
+Returns:
+    Copy of this library.)!");
+
 PyDoc_STRVAR(library_object_new_cell_doc, R"!(new_cell(name) -> gdstk.Cell
 
 Create a new cell and add it to this library.
@@ -2691,6 +2861,15 @@ Examples:
     >>> cell = lib.new_cell("MAIN")
     >>> polygon = gdstk.rectangle((0, 0), (1, 1))
     >>> cell.add(polygon))!");
+
+PyDoc_STRVAR(library_object_rename_cell_doc, R"!(rename_cell(old_name, new_name) -> self
+
+Rename a cell in this library, updating any references that use the old
+name with the new one.
+
+Args:
+    old_name (str or Cell): Cell or name of the cell to be renamed.
+    new_name (str): New cell name.)!");
 
 PyDoc_STRVAR(library_object_top_level_doc, R"!(top_level() -> list
 
@@ -2707,7 +2886,16 @@ PyDoc_STRVAR(library_object_layers_and_texttypes_doc, R"!(layers_and_texttypes()
 
 Return a set of tuples with the layer and text types in the library.)!");
 
-PyDoc_STRVAR(library_object_write_gds_doc, R"!(write_gds(outfile, max_points=199, timestamp=None) -> None
+PyDoc_STRVAR(library_object_remap_doc, R"!(remap(layer_type_map) -> self
+
+Remap layers and data/text types for all elements in this library.
+
+Args:
+    layer_type_map: Dictionary mapping existing (layer, type) tuples to
+      desired (layer, type) tuples.)!");
+
+PyDoc_STRVAR(library_object_write_gds_doc,
+             R"!(write_gds(outfile, max_points=199, timestamp=None) -> None
 
 Save this library to a GDSII file.
 
@@ -2739,7 +2927,7 @@ Args:
       format.
     validation ("crc32", "checksum32", None): type of validation to
       include in the saved file.
-    standard_properties: Staore standard OASIS properties in the file.
+    standard_properties: Store standard OASIS properties in the file.
 
 Notes:
     The standard OASIS options include the maximal string length and
@@ -2761,8 +2949,9 @@ Notes:
 
 // GdsWriter
 
-PyDoc_STRVAR(gdswriter_object_type_doc,
-             R"!(GdsWriter(outfile, name="library", unit=1e-6, precision=1e-9, max_points=199, timestamp=None)
+PyDoc_STRVAR(
+    gdswriter_object_type_doc,
+    R"!(GdsWriter(outfile, name="library", unit=1e-6, precision=1e-9, max_points=199, timestamp=None)
 
 Multi-step GDSII stream file writer.
 
@@ -2899,12 +3088,13 @@ have the same name.
 
 Args:
     name (str): Property name.
-    value (str, bytes, number, or sequence of those): Values associated with
-      the property.
+    value (str, bytes, number, or sequence of those): Values associated
+      with the property.
 
 Notes:
-    General properties are not supported by GDSII files. Use the
-    specific methods to access GDSII properties.)!");
+    These properties can be used to associate custom metadata with an
+    element, but general properties are not supported by GDSII files,
+    only OASIS.  Use the specific methods to access GDSII properties.)!");
 
 PyDoc_STRVAR(object_get_property_doc, R"!(get_property(name) -> list
 
@@ -2982,7 +3172,7 @@ Examples:
     >>> cross1 = gdstk.cross((0, 0), 10, 1)
     >>> cross2 = gdstk.cross((0.5, 0.5), 5, 0.75, layer=1)
 
-    .. image:: ../function/cross.*
+    .. image:: ../function/cross.svg
        :align: center)!");
 
 PyDoc_STRVAR(
@@ -3005,7 +3195,7 @@ Examples:
     >>> poly5 = gdstk.regular_polygon((0, 10), 5, 5, layer=2)
     >>> poly6 = gdstk.regular_polygon((10, 10), 4, 6, layer=3)
 
-    .. image:: ../function/regular_polygon.*
+    .. image:: ../function/regular_polygon.svg
        :align: center)!");
 
 PyDoc_STRVAR(
@@ -3039,7 +3229,7 @@ Examples:
     ...                         -3 * numpy.pi / 4, numpy.pi / 2,
     ...                         layer=4)
 
-    .. image:: ../function/ellipse.*
+    .. image:: ../function/ellipse.svg
        :align: center)!");
 
 PyDoc_STRVAR(
@@ -3063,7 +3253,7 @@ Examples:
     >>> racetrack1 = gdstk.racetrack((0, 0), 8, 5)
     >>> racetrack2 = gdstk.racetrack((18, 0), 8, 5, 3, True)
 
-    .. image:: ../function/racetrack.*
+    .. image:: ../function/racetrack.svg
        :align: center)!");
 
 PyDoc_STRVAR(text_function_doc,
@@ -3088,7 +3278,7 @@ Examples:
     >>> rect = gdstk.rectangle((0, -5 / 4), (12 * 9 / 16, 1),
     ...                        datatype=1)
 
-    .. image:: ../function/text.*
+    .. image:: ../function/text.svg
        :align: center
 
 Notes:
@@ -3097,9 +3287,8 @@ Notes:
     full height ``size``, respectively. For vertical text, characters
     and columns are respectively spaced by 9 / 8 and 1 times ``size``.)!");
 
-PyDoc_STRVAR(
-    contour_function_doc,
-    R"!(contour(data, level=0, length_scale=1, precision=0.01, layer=0, datatype=0) -> list
+PyDoc_STRVAR(contour_function_doc,
+             R"!(contour(data, level=0, length_scale=1, precision=0.01, layer=0, datatype=0) -> list
 
 Extract polygonal contours from 2-d array data at given level.
 
@@ -3122,7 +3311,7 @@ Examples:
     >>> contours = gdstk.contour(data, 0, 1 / 127, 0.01 / 127)
     >>> rect = gdstk.rectangle((0, 0), (2, 1), datatype=1)
 
-    .. image:: ../function/contour.*
+    .. image:: ../function/contour.svg
        :align: center
 
 Notes:
@@ -3164,12 +3353,13 @@ Examples:
     >>> text = gdstk.text("#A", 10, (0, 0), datatype=1)
     >>> circle = gdstk.ellipse((5, 11), 5, initial_angle=0,
     ...                        final_angle=numpy.pi, datatype=1)
-    >>> path = gdstk.FlexPath([(0, -1), (5, -10), (10, -1)], 1, datatype=1)
+    >>> path = gdstk.FlexPath([(0, -1), (5, -10), (10, -1)], 1,
+    >>>                       datatype=1)
     >>> dilated = gdstk.offset(text + [circle, path], 0.4)
     >>> eroded = gdstk.offset(text + [circle, path], -0.4,
     ...                       use_union=True, layer=1)
 
-    .. image:: ../function/offset.*
+    .. image:: ../function/offset.svg
        :align: center
 
 Notes:
@@ -3206,12 +3396,17 @@ Examples:
     >>> text = gdstk.text("GDSTK", 40, (-2.5 * 40 * 9 / 16, -40 / 2))
     >>> result = gdstk.boolean(circle, text + [path], "not")
 
-    .. image:: ../function/boolean.*
+    .. image:: ../function/boolean.svg
        :align: center
 
 Notes:
-    Repetitions are not applied to any elements, except references and
-    their contents.)!");
+    1. Repetitions are not applied to any elements, except references
+       and their contents.
+    2. All polygons in `operand1` are merged during the operation, as
+       well as those in `operand2`.  As such, if, for example,
+       `operand2` is an empty list, the result of the operation will be
+       the union of polygons in `operand1`.
+    )!");
 
 PyDoc_STRVAR(slice_function_doc, R"!(slice(polygons, position, axis, precision=1e-3) -> list
 
@@ -3240,7 +3435,7 @@ Examples:
     >>> print([len(polys) for polys in result])
     [1, 1, 0, 1, 2, 1]
 
-    .. image:: ../function/slice.*
+    .. image:: ../function/slice.svg
        :align: center
 
 Notes:
@@ -3301,31 +3496,8 @@ Args:
 Returns:
     `True` if any point is inside the polygon set, `False` otherwise.)!");
 
-PyDoc_STRVAR(
-    references_short_function_doc,
-    R"!(references_short(ref1, ref2, layers=None, offset_distance=0.01, offset_tolerance=2, offset_precision=1e-3, boolean_precision=1e-3) -> bool
-
-Check whether the two references short together.
-
-An electrical short occurs when a polygon or path from the first reference
-intersects a polygon or path in the second reference, and both
-shapes have the same layer & datatype.
-
-Args:
-    layers: A sequence of (layer, datatype) pairs to check for shorting
-      shapes on. If None, all layers will be checked.
-    offset_distance: If positive, one of the references' shapes will be
-      offset by this amount before checking for shorting shapes. Set to
-      a negative number to disable offset.
-    offset_tolerance, offset_precision: See the definition of these
-      parameters in offset().
-    boolean_precision: See the definition of precision in boolean().
-
-Returns:
-    `True` if the references short together, `False` otherwise.)!");
-
 PyDoc_STRVAR(read_gds_function_doc,
-             R"!(read_gds(infile, unit=0, tolerance=1e-2, filter=None) -> gdstk.Library
+             R"!(read_gds(infile, unit=0, tolerance=0, filter=None) -> gdstk.Library
 
 Import a library from a GDSII stream file.
 
@@ -3333,7 +3505,8 @@ Args:
     infile (str or pathlib.Path): Name of the input file.
     unit (number): If greater than zero, convert the imported geometry
       to the this unit.
-    tolerance (number): Default tolerance for loaded paths.
+    tolerance (number): Default tolerance for loaded paths.  If zero or
+      negative, the library rounding size is used (`precision / unit`).
     filter (iterable of tuples): If not ``None``, only shapes with
       layer and data type in the iterable are read.
 
@@ -3345,7 +3518,7 @@ Examples:
     >>> top_cells = library.top_level()
     >>> filtered_lib = gdstk.read_gds("layout.gds", filter={(0, 1)}))!");
 
-PyDoc_STRVAR(read_oas_function_doc, R"!(read_oas(infile, unit=0, tolerance=1e-2) -> gdstk.Library
+PyDoc_STRVAR(read_oas_function_doc, R"!(read_oas(infile, unit=0, tolerance=0) -> gdstk.Library
 
 Import a library from an OASIS stream file.
 
@@ -3353,13 +3526,15 @@ Args:
     infile (str or pathlib.Path): Name of the input file.
     unit (number): If greater than zero, convert the imported geometry
       to the this unit.
-    tolerance (number): Default tolerance for loaded paths.
+    tolerance (number): Default tolerance for loaded paths and round
+      shapes.  If zero or negative, the library rounding size is used
+      (`precision / unit`).
 
 Returns:
     The imported library.
 
 Examples:
-    >>> library = gdstk.read_gds("layout.oas")
+    >>> library = gdstk.read_oas("layout.oas")
     >>> top_cells = library.top_level())!");
 
 PyDoc_STRVAR(read_rawcells_function_doc, R"!(read_rawcells(infile) -> dict

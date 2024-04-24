@@ -19,7 +19,7 @@ static void polygon_object_dealloc(PolygonObject* self) {
         self->polygon->clear();
         free_allocation(self->polygon);
     }
-    PyObject_Del(self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static int polygon_object_init(PolygonObject* self, PyObject* args, PyObject* kwds) {
@@ -57,9 +57,18 @@ static PyObject* polygon_object_copy(PolygonObject* self, PyObject*) {
     return (PyObject*)result;
 }
 
+static PyObject* polygon_object_deepcopy(PolygonObject* self, PyObject* arg) {
+    return polygon_object_copy(self, NULL);
+}
+
 static PyObject* polygon_object_area(PolygonObject* self, PyObject*) {
     const double area = self->polygon->area();
     return PyFloat_FromDouble(area);
+}
+
+static PyObject* polygon_object_perimeter(PolygonObject* self, PyObject*) {
+    const double perimeter = self->polygon->perimeter();
+    return PyFloat_FromDouble(perimeter);
 }
 
 static PyObject* polygon_object_bounding_box(PolygonObject* self, PyObject*) {
@@ -89,7 +98,7 @@ static PyObject* polygon_object_contain(PolygonObject* self, PyObject* args) {
         }
     }
 
-    Array<Vec2> points = {0};
+    Array<Vec2> points = {};
     if (parse_point_sequence(args, points, "points") < 0) {
         points.clear();
         return NULL;
@@ -112,7 +121,7 @@ static PyObject* polygon_object_contain(PolygonObject* self, PyObject* args) {
 
 static PyObject* polygon_object_contain_all(PolygonObject* self, PyObject* args) {
     Polygon* polygon = self->polygon;
-    Array<Vec2> points = {0};
+    Array<Vec2> points = {};
     if (parse_point_sequence(args, points, "points") < 0) {
         points.clear();
         return NULL;
@@ -125,7 +134,7 @@ static PyObject* polygon_object_contain_all(PolygonObject* self, PyObject* args)
 
 static PyObject* polygon_object_contain_any(PolygonObject* self, PyObject* args) {
     Polygon* polygon = self->polygon;
-    Array<Vec2> points = {0};
+    Array<Vec2> points = {};
     if (parse_point_sequence(args, points, "points") < 0) {
         points.clear();
         return NULL;
@@ -303,7 +312,7 @@ static PyObject* polygon_object_fillet(PolygonObject* self, PyObject* args, PyOb
     double radius = 0;
     double tolerance = 0.01;
     PyObject* radius_obj = NULL;
-    Array<double> radius_array = {0};
+    Array<double> radius_array = {};
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|d:fillet", (char**)keywords, &radius_obj,
                                      &tolerance))
@@ -344,7 +353,7 @@ static PyObject* polygon_object_fracture(PolygonObject* self, PyObject* args, Py
         return NULL;
     }
 
-    Array<Polygon*> array = {0};
+    Array<Polygon*> array = {};
     self->polygon->fracture(max_points, precision, array);
     PyObject* result = PyList_New(array.count);
     for (uint64_t i = 0; i < array.count; i++) {
@@ -359,7 +368,7 @@ static PyObject* polygon_object_fracture(PolygonObject* self, PyObject* args, Py
 }
 
 static PyObject* polygon_object_apply_repetition(PolygonObject* self, PyObject*) {
-    Array<Polygon*> array = {0};
+    Array<Polygon*> array = {};
     self->polygon->apply_repetition(array);
     PyObject* result = PyList_New(array.count);
     for (uint64_t i = 0; i < array.count; i++) {
@@ -408,7 +417,7 @@ static PyObject* polygon_object_get_gds_property(PolygonObject* self, PyObject* 
         Py_INCREF(Py_None);
         return Py_None;
     }
-    return PyUnicode_FromString((char*)value->bytes);
+    return PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
 }
 
 static PyObject* polygon_object_delete_gds_property(PolygonObject* self, PyObject* args) {
@@ -421,7 +430,9 @@ static PyObject* polygon_object_delete_gds_property(PolygonObject* self, PyObjec
 
 static PyMethodDef polygon_object_methods[] = {
     {"copy", (PyCFunction)polygon_object_copy, METH_NOARGS, polygon_object_copy_doc},
+    {"__deepcopy__", (PyCFunction)polygon_object_deepcopy, METH_VARARGS | METH_KEYWORDS, polygon_object_deepcopy_doc},
     {"area", (PyCFunction)polygon_object_area, METH_NOARGS, polygon_object_area_doc},
+    {"perimeter", (PyCFunction)polygon_object_perimeter, METH_NOARGS, polygon_object_perimeter_doc},
     {"bounding_box", (PyCFunction)polygon_object_bounding_box, METH_NOARGS,
      polygon_object_bounding_box_doc},
     {"contain", (PyCFunction)polygon_object_contain, METH_VARARGS, polygon_object_contain_doc},

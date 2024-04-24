@@ -5,7 +5,8 @@ Boost Software License - Version 1.0.  See the accompanying
 LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 */
 
-#include "utils.h"
+#define __STDC_FORMAT_MACROS 1
+#define _USE_MATH_DEFINES
 
 #include <assert.h>
 #include <inttypes.h>
@@ -15,13 +16,18 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #include <string.h>
 #include <time.h>
 
-#include "allocator.h"
-#include "vec.h"
+#include <gdstk/allocator.hpp>
+#include <gdstk/utils.hpp>
+#include <gdstk/vec.hpp>
 
 // Qhull
-#include "libqhull_r/qhull_ra.h"
+#include <libqhull_r/qhull_ra.h>
 
 namespace gdstk {
+
+FILE* error_logger = stderr;
+
+void set_error_logger(FILE* log) { error_logger = log; }
 
 char* copy_string(const char* str, uint64_t* len) {
     uint64_t size = 1 + strlen(str);
@@ -559,7 +565,7 @@ void convex_hull(const Array<Vec2> points, Array<Vec2>& result) {
         Array<Vec2> partial;
         partial.count = INT_MAX - 1;
         partial.items = points.items;
-        Array<Vec2> temp = {0};
+        Array<Vec2> temp = {};
         convex_hull(partial, temp);
 
         partial.count = points.count - (INT_MAX - 1);
@@ -572,10 +578,10 @@ void convex_hull(const Array<Vec2> points, Array<Vec2>& result) {
 
     qhT qh;
     QHULL_LIB_CHECK;
-    qh_zero(&qh, stderr);
+    qh_zero(&qh, error_logger);
     char command[256] = "qhull";
     int exitcode = qh_new_qhull(&qh, 2, (int)points.count, (double*)points.items, false, command,
-                                NULL, stderr);
+                                NULL, error_logger);
 
     if (exitcode == 0) {
         result.ensure_slots(qh.num_facets);
@@ -616,10 +622,12 @@ void convex_hull(const Array<Vec2> points, Array<Vec2>& result) {
     qh_freeqhull(&qh, !qh_ALL);               /* free long memory  */
     qh_memfreeshort(&qh, &curlong, &totlong); /* free short memory and memory allocator */
     if (curlong || totlong) {
-        fprintf(
-            stderr,
-            "[GDSTK] Qhull internal warning: did not free %d bytes of long memory (%d pieces)\n",
-            totlong, curlong);
+        if (error_logger) {
+            fprintf(
+                error_logger,
+                "[GDSTK] Qhull internal warning: did not free %d bytes of long memory (%d pieces)\n",
+                totlong, curlong);
+        }
     }
 #endif
 }
