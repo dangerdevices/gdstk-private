@@ -1,3 +1,5 @@
+include(GNUInstallDirs)
+
 find_package(ZLIB 1.2.7)
 if(NOT ZLIB_FOUND)
     # Check first for header files
@@ -17,6 +19,8 @@ if(NOT ZLIB_FOUND)
         message(FATAL_ERROR "ZLIB could not be found, either via find_package, find_library, or env variable.")
     endif()
 endif(NOT ZLIB_FOUND)
+
+find_package(Qhull 8 REQUIRED)
 
 set(HEADER_LIST 
     "${gdstk_SOURCE_DIR}/include/gdstk/allocator.hpp"
@@ -63,43 +67,39 @@ set(SOURCE_LIST
     repetition.cpp
     robustpath.cpp
     style.cpp
-    utils.cpp
-    ${HEADER_LIST})
+    utils.cpp)
 
-add_library(gdstk ${SOURCE_LIST})
+add_library(gdstk ${SOURCE_LIST} ${HEADER_LIST})
 
 target_compile_features(gdstk PUBLIC cxx_std_11)
 
-set_target_properties(gdstk PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-    PUBLIC_HEADER "${HEADER_LIST}")
+set_target_properties(gdstk PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-target_include_directories(gdstk PUBLIC "${gdstk_SOURCE_DIR}/include")
-target_include_directories(gdstk PUBLIC "${gdstk_SOURCE_DIR}/external")
-target_include_directories(gdstk PUBLIC "${gdstk_SOURCE_DIR}/external/qhull/src")
-target_include_directories(gdstk PRIVATE ${ZLIB_INCLUDE_DIRS})
+set_target_properties(gdstk PROPERTIES PUBLIC_HEADER "${HEADER_LIST}")
 
-target_link_libraries(gdstk qhullstatic_r clipper)
-set(gdstk_LIBS "-lqhullstatic_r -lclipper")
+target_include_directories(gdstk PUBLIC
+    $<BUILD_INTERFACE:${gdstk_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${gdstk_SOURCE_DIR}/external>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    ${ZLIB_INCLUDE_DIRS}
+    ${QHULL_INCLUDE_DIRS})
+
+target_link_libraries(gdstk
+    ${ZLIB_LIBRARIES}
+    ${QHULL_LIBRARIES}
+    clipper)
 
 if(UNIX)
-    target_link_libraries(qhullstatic_r m)
-    set(gdstk_LIBS "${gdstk_LIBS} -lm")
+    target_link_libraries(gdstk m)
 endif(UNIX)
-
-target_link_libraries(gdstk ${ZLIB_LIBRARIES})
-foreach(IT ${ZLIB_LIBRARIES})
-    set(gdstk_LIBS "${gdstk_LIBS} ${IT}")
-endforeach()
-
-set(PKGCONF_LIBS ${gdstk_LIBS} PARENT_SCOPE)
 
 source_group(
     TREE "${PROJECT_SOURCE_DIR}/include"
     PREFIX "Header Files"
     FILES ${HEADER_LIST})
 
-include(GNUInstallDirs)
 install(TARGETS gdstk
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gdstk
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gdstk)

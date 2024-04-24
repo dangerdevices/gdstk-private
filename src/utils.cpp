@@ -5,6 +5,9 @@ Boost Software License - Version 1.0.  See the accompanying
 LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 */
 
+#define __STDC_FORMAT_MACROS 1
+#define _USE_MATH_DEFINES
+
 #include <assert.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -619,10 +622,12 @@ void convex_hull(const Array<Vec2> points, Array<Vec2>& result) {
     qh_freeqhull(&qh, !qh_ALL);               /* free long memory  */
     qh_memfreeshort(&qh, &curlong, &totlong); /* free short memory and memory allocator */
     if (curlong || totlong) {
-        fprintf(
-            error_logger,
-            "[GDSTK] Qhull internal warning: did not free %d bytes of long memory (%d pieces)\n",
-            totlong, curlong);
+        if (error_logger) {
+            fprintf(
+                error_logger,
+                "[GDSTK] Qhull internal warning: did not free %d bytes of long memory (%d pieces)\n",
+                totlong, curlong);
+        }
     }
 #endif
 }

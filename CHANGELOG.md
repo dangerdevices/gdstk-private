@@ -1,22 +1,38 @@
 # Changelog
 
-## Unreleased
+## 0.9.51 - 2024-04-17
+### Changed
+- Use scikit-build-core for building, which enables support for Python 3.12 on Windows.
+
+## 0.9.50 - 2024-02-07
+### Added
+- `Polygon.perimeter`.
+
+## 0.9.49 - 2023-12-29
+### Fixed
+- Type annotation for `Cell.write_svg`.
+
+## 0.9.48 - 2023-12-21
+### Changed
+- `Cell.dependencies` accepts keyword arguments.
+### Fixed
+- Fracturing polygons with few points is more robust.
+- Compilation improvements.
+
+## 0.9.45 - 2023-10-12
+### Changed
+- Use Qhull as an external dependecy instead of installing it ourselves to avoid conflicts.
 
 ## 0.9.43 - 2023-10-08
 ### Added
 - `Library.remap` and `Cell.remap` to remap layer and data/text types
-- enable tbump [#206](https://github.com/$OWNER/$REPOSITORY/pull/#206)
-- add release drafter [#202](https://github.com/$OWNER/$REPOSITORY/pull/#202)
-- pin version to python>=3.8 [#205](https://github.com/$OWNER/$REPOSITORY/pull/#205)
-- Add typing stub [#185](https://github.com/$OWNER/$REPOSITORY/pull/#185)
-- Add deepcopy support [#183](https://github.com/$OWNER/$REPOSITORY/pull/#183)
+- Add typing stub
+- Add deepcopy support
 ### Changed
 - Raise an error if not both layer and datatype are specified in `Cell.get_polygons` and `Reference.get_polygons`.
-- Correct ordering of path ends in `Library::read_oas()` [#196](https://github.com/$OWNER/$REPOSITORY/pull/#196)
+- Correct ordering of path ends in `Library::read_oas()`
 ### Fixed
-- Sort `slice` positions when converting from python because the internal implementation expects the coordinates to be sorted.
-- Fix outdated pip in CI [#193](https://github.com/$OWNER/$REPOSITORY/pull/#193)
-- Fix missing version [#192](https://github.com/$OWNER/$REPOSITORY/pull/#192)
+- Sort `slice` positions when converting from python because the internal implementation expects the coordinates to be sorted
 
 ## 0.9.42 - 2023-06-14
 ### Fixed
