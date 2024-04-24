@@ -17,7 +17,7 @@ If you're planning to release a new version, please follow:
 3. Create a GitHub Release e.g.,
 
    ```
-   $ gh release create --target dangerdevices --title "Release v{gdstk-upstream-version}+dd{local-release-count}" v{gdstk-upstream-version}+dd{local-release-count}
+   $ gh release create --target dangerdevices --title v{gdstk-upstream-version}+dd{local-release-count} v{gdstk-upstream-version}+dd{local-release-count}
    ```
 
    Please make sure to write the release notes separating the public and private changes. See the [`v0.8.1+dd1` release] as an example.
