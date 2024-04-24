@@ -37,4 +37,4 @@ _This pull request was automatically created via [`upstream.yml`], a GitHub Acti
 
 [`upstream.yml`]: https://github.com/dangerdevices/gdstk-private/blob/dangerdevices/.github/workflows/upstream.yml
 
-[^1]: This pull request is only pulling in the latest `git` references. So, to keep the custom build of `dangerdevices`, the branch must be merged back in here.
+[^1]: This pull request is only pulling in the latest upstream references. So, to keep the custom build of `dangerdevices`, the branch must be merged back in here.
