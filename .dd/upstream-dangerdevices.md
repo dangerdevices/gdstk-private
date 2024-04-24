@@ -26,11 +26,12 @@ If you're planning to release a new version, please follow:
 
    _Note_: If you used `gh release create`, this does not update your local repository with the tags. You can retrieve the tags via `git fetch --tags`.
 
-5. Update the respective projects to use the newly published release.
+5. Update the respective projects to use the newly published release. See the update to [`pyproject.toml`] as an example.
 
 [`dangerdevices`]: https://github.com/dangerdevices/gdstk-private
 [PEP 440]: https://www.python.org/dev/peps/pep-0440/#local-version-identifiers
 [`v0.8.1+dd1` release]: https://github.com/dangerdevices/gdstk-private/releases/tag/v0.8.1%2Bdd1
+[`pyproject.toml`]: https://github.com/dangerdevices/gdstk-private/pull/167/files#diff-50c86b7ed8ac2cf95bd48334961bf0530cdc77b5a56f852c5c61b89d735fd711
 
 _This pull request was automatically created via [`upstream.yml`], a GitHub Action._
 
