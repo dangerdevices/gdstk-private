@@ -28,7 +28,6 @@ If you're planning to release a new version, please follow:
 
 5. Update the respective projects to use the newly published release.
 
-
 [`dangerdevices`]: https://github.com/dangerdevices/gdstk-private
 [PEP 440]: https://www.python.org/dev/peps/pep-0440/#local-version-identifiers
 [`v0.8.1+dd1` release]: https://github.com/dangerdevices/gdstk-private/releases/tag/v0.8.1%2Bdd1
