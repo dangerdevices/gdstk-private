@@ -1,6 +1,7 @@
 name: Tests Runner
 
-on: [push, pull_request]
+on:
+  push
 
 jobs:
   linux-macos-test:
