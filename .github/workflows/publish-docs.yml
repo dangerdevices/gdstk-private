@@ -1,5 +1,7 @@
 name: Publish Docs
 
+# Disabled via the GitHub UI -- we do not publish docs from this internal fork.
+
 on:
   push:
     branches: [main]

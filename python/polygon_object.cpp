@@ -417,7 +417,7 @@ static PyObject* polygon_object_get_gds_property(PolygonObject* self, PyObject* 
         Py_INCREF(Py_None);
         return Py_None;
     }
-    return PyUnicode_FromString((char*)value->bytes);
+    return PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
 }
 
 static PyObject* polygon_object_delete_gds_property(PolygonObject* self, PyObject* args) {
