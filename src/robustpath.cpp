@@ -1270,19 +1270,22 @@ ErrorCode RobustPath::spine(Array<Vec2> &result) const {
 }
 
 bool RobustPath::has_nonzero_width() const {
-    for(uint64_t i = 0; i <= subpath_array.count; i++) {
-        Array<double> widths = {};
-        widths.ensure_slots(num_elements);
+    double* widths = (double *)allocate(sizeof(double) * num_elements);
 
-        width(i, false, widths.items);
+    for(uint64_t i = 0; i <= subpath_array.count; i++) {
+        memset(widths, 0, sizeof(double) * num_elements);
+
+        width(i, false, widths);
 
         for(uint64_t j = 0; j < num_elements; j++) {
-            if (widths.items[j] != 0) {
+            if (widths[j] != 0) {
+                free_allocation(widths);
                 return true;
             }
         }
     }
 
+    free_allocation(widths);
     return false;
 }
 
