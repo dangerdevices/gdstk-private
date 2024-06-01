@@ -262,6 +262,9 @@ struct RobustPath {
     // curve to result.
     ErrorCode element_center(const RobustPathElement* el, Array<Vec2>& result) const;
 
+    // If true, at least one path element has non-zero width.
+    bool has_nonzero_width() const;
+
     // Append the polygonal representation of this path to result.  If filter
     // is true, only elements with the indicated tag are processed.
     // Overlapping points are removed from the path before any processing is
