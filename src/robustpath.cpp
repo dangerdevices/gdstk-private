@@ -1274,10 +1274,10 @@ bool RobustPath::has_nonzero_width() const {
         Array<double> widths = {};
         widths.ensure_slots(num_elements);
 
-        width(i, false, (double *)widths.items);
+        width(i, false, widths.items);
 
-        for(uint64_t j = 0; j < widths.count; j++) {
-            if (widths[j] != 0) {
+        for(uint64_t j = 0; j < num_elements; j++) {
+            if (widths.items[j] != 0) {
                 return true;
             }
         }
