@@ -145,9 +145,6 @@ struct FlexPath {
                     const double* offset, bool relative);
     uint64_t commands(const CurveInstruction* items, uint64_t count);
 
-    // If true, at least one path element has non-zero width.
-    bool has_nonzero_width();
-
     // Append the polygonal representation of this path to result.  If filter
     // is true, only elements with the indicated tag are processed.
     // Overlapping points are removed from the path before any processing is
@@ -171,6 +168,7 @@ struct FlexPath {
    private:
     void remove_overlapping_points();
     void fill_offsets_and_widths(const double* width, const double* offset);
+    bool is_zero_width();
 };
 
 }  // namespace gdstk

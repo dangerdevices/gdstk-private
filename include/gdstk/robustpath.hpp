@@ -262,9 +262,6 @@ struct RobustPath {
     // curve to result.
     ErrorCode element_center(const RobustPathElement* el, Array<Vec2>& result) const;
 
-    // If true, at least one path element has non-zero width.
-    bool has_nonzero_width() const;
-
     // Append the polygonal representation of this path to result.  If filter
     // is true, only elements with the indicated tag are processed.
     // Overlapping points are removed from the path before any processing is
@@ -286,6 +283,7 @@ struct RobustPath {
     void simple_rotate(double angle);
     void x_reflection();
     void fill_widths_and_offsets(const Interpolation* width, const Interpolation* offset);
+    bool is_zero_width() const;
     ErrorCode spine_intersection(const SubPath& sub0, const SubPath& sub1, double& u0,
                                  double& u1) const;
     ErrorCode center_intersection(const SubPath& sub0, const Interpolation& offset0,
