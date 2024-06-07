@@ -239,7 +239,7 @@ bool FlexPath::is_zero_width() {
     for (uint64_t ne = 0; ne < num_elements; ne++, el++) {
         const double* half_widths = (double*)el->half_width_and_offset.items;
         for (uint64_t i = 0; i < el->half_width_and_offset.count; i++) {
-            if (half_widths[i*2] != 0) {
+            if (half_widths[2 * i] != 0) {
                 return false;
             }
         }
