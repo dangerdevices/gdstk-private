@@ -133,9 +133,7 @@ def test_deepcopy():
 
 def test_zerowidth():
     path = gdstk.FlexPath(((0.5, 50), (-0.5, 50)), 0)
-
     assert path.to_polygons() == []
 
     path.segment((-0.5, 51))
-
     assert path.to_polygons() == []
