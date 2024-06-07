@@ -234,9 +234,23 @@ void FlexPath::remove_overlapping_points() {
     }
 }
 
+bool FlexPath::is_zero_width() {
+    FlexPathElement* el = elements;
+    for (uint64_t ne = 0; ne < num_elements; ne++, el++) {
+        const double* half_widths = (double*)el->half_width_and_offset.items;
+        for (uint64_t i = 0; i < el->half_width_and_offset.count; i++) {
+            if (half_widths[2 * i] != 0) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 ErrorCode FlexPath::to_polygons(bool filter, Tag tag, Array<Polygon*>& result) {
     remove_overlapping_points();
-    if (spine.point_array.count < 2) return ErrorCode::NoError;
+    if (spine.point_array.count < 2 || is_zero_width()) return ErrorCode::NoError;
 
     const Array<Vec2> spine_points = spine.point_array;
     uint64_t curve_size_guess = spine_points.count * 2 + 4;

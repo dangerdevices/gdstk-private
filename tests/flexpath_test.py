@@ -130,3 +130,10 @@ def test_deepcopy():
     path2.set_layers(1)
     assert path.layers == (0,)
     assert path2.layers == (1,)
+
+def test_zerowidth():
+    path = gdstk.FlexPath(((0.5, 50), (-0.5, 50)), 0)
+    assert path.to_polygons() == []
+
+    path.segment((-0.5, 51))
+    assert path.to_polygons() == []
