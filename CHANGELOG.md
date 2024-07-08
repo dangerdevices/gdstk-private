@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.53 - 2024-07-04
+### Added
+- Support for Raith MBMS path data (thanks Matthew Mckee).
+- Support for numpy 2.0
+### Changed
+- Dropped support for python 3.8
+### Fixed
+- Qhull maximal number of points.
+
 ## 0.9.52 - 2024-04-18
 ### Fixed
 - Infinite loop in `Cell::remap_tags` (#246, thanks dtzitkas!)
