@@ -235,3 +235,7 @@ def test_get_labels(tree):
     assert len(labels) == 0
     labels = r3.get_labels(depth=1, layer=11, texttype=0)
     assert len(labels) == 6
+
+def test_empty_reference_convex_hull():
+    cell = gdstk.Cell("empty")
+    assert gdstk.Reference(cell).convex_hull() is None

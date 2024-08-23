@@ -166,3 +166,11 @@ def test_raith_data():
     assert path.raith_data.periods == 5
     assert path.raith_data.grating_type == 6
     assert path.raith_data.dots_per_cycle == 7
+
+
+def test_zerowidth():
+    path = gdstk.FlexPath(((0.5, 50), (-0.5, 50)), 0)
+    assert path.to_polygons() == []
+
+    path.segment((-0.5, 51))
+    assert path.to_polygons() == []
