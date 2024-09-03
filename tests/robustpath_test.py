@@ -155,3 +155,13 @@ def test_deepcopy():
     path2.set_layers(1)
     assert path.layers == (0,)
     assert path2.layers == (1,)
+
+
+def test_zerowidth():
+    path = gdstk.RobustPath((0.5, 50), 0)
+    path.horizontal(-1, relative=True)
+    assert path.to_polygons() == []
+
+    path.vertical(1, relative=True)
+    assert path.to_polygons() == []
+

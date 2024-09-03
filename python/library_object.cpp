@@ -67,6 +67,142 @@ static int library_object_init(LibraryObject* self, PyObject* args, PyObject* kw
     return 0;
 }
 
+static PyObject* library_object_copy(LibraryObject* self,  PyObject* args, PyObject* kwds) {
+    char *name = NULL;
+    int deep_copy = 1;
+    const char* keywords[] = {"name", "deep_copy", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|sp:copy", (char**)keywords, &name, &deep_copy))
+        return NULL;
+
+    LibraryObject* result = PyObject_New(LibraryObject, &library_object_type);
+    result->library = (Library*)allocate_clear(sizeof(Library));
+    Library* library = result->library;
+    library->owner = result;
+    library->copy_from(*self->library, deep_copy > 0);
+
+    // References may point to cells that were not added to the library being copied.
+    // If so, `Library::copy_from()` will have set reference->cell or reference->rawcell
+    // to NULL. `ReferenceObject`s cannot be created for these references, because
+    // those objects will try to access the cell pointers and segfault.
+    Array<Cell*>* cell_array = &library->cell_array;
+    for (uint64_t i = 0; i < cell_array->count; i++) {
+        Cell* cell = (*cell_array)[i];
+        Array<Reference*>* reference_array = &cell->reference_array;
+        for (uint64_t i = 0; i < reference_array->count; i++) {
+            Reference* reference = (*reference_array)[i];
+            if(
+                (reference->type == ReferenceType::Cell && !reference->cell) ||
+                (reference->type == ReferenceType::RawCell && !reference->rawcell)
+            ) {
+                PyErr_SetString(
+                    PyExc_RuntimeError,
+                    "Unable to copy library with dangling references"
+                );
+
+                library->clear();
+                Py_DECREF(result);
+                return NULL;
+            }
+        }
+    }
+
+    if (name) library->name = copy_string(name, NULL);
+
+    if (deep_copy) {
+        for (uint64_t i = 0; i < cell_array->count; i++) {
+            CellObject* new_obj = PyObject_New(CellObject, &cell_object_type);
+            new_obj = (CellObject*)PyObject_Init((PyObject*)new_obj, &cell_object_type);
+            Cell* cell = (*cell_array)[i];
+            cell->owner = new_obj;
+            new_obj->cell = cell;
+
+            Array<Polygon*>* polygon_array = &cell->polygon_array;
+            for (uint64_t i = 0; i < polygon_array->count; i++) {
+                PolygonObject* new_obj = PyObject_New(PolygonObject, &polygon_object_type);
+                new_obj = (PolygonObject*)PyObject_Init((PyObject*)new_obj, &polygon_object_type);
+                Polygon* polygon = (*polygon_array)[i];
+                polygon->owner = new_obj;
+                new_obj->polygon = polygon;
+            }
+
+            Array<FlexPath*>* flexpath_array = &cell->flexpath_array;
+            for (uint64_t i = 0; i < flexpath_array->count; i++) {
+                FlexPathObject* new_obj = PyObject_New(FlexPathObject, &flexpath_object_type);
+                new_obj = (FlexPathObject*)PyObject_Init((PyObject*)new_obj, &flexpath_object_type);
+                FlexPath* path = (*flexpath_array)[i];
+                path->owner = new_obj;
+                new_obj->flexpath = path;
+            }
+
+            Array<RobustPath*>* robustpath_array = &cell->robustpath_array;
+            for (uint64_t i = 0; i < robustpath_array->count; i++) {
+                RobustPathObject* new_obj = PyObject_New(RobustPathObject, &robustpath_object_type);
+                new_obj = (RobustPathObject*)PyObject_Init((PyObject*)new_obj, &robustpath_object_type);
+                RobustPath* path = (*robustpath_array)[i];
+                path->owner = new_obj;
+                new_obj->robustpath = path;
+            }
+
+            Array<Label*>* label_array = &cell->label_array;
+            for (uint64_t i = 0; i < label_array->count; i++) {
+                LabelObject* new_obj = PyObject_New(LabelObject, &label_object_type);
+                new_obj = (LabelObject*)PyObject_Init((PyObject*)new_obj, &label_object_type);
+                Label* label = (*label_array)[i];
+                label->owner = new_obj;
+                new_obj->label = label;
+            }
+        }
+    } else {
+        for (uint64_t i = 0; i < cell_array->count; i++) {
+            Cell* cell = (*cell_array)[i];
+            Py_INCREF(cell->owner);
+
+            Array<Polygon*>* polygon_array = &cell->polygon_array;
+            for (uint64_t i = 0; i < polygon_array->count; i++) Py_INCREF((*polygon_array)[i]->owner);
+
+            Array<Reference*>* reference_array = &cell->reference_array;
+            for (uint64_t i = 0; i < reference_array->count; i++) Py_INCREF((*reference_array)[i]->owner);
+
+            Array<FlexPath*>* flexpath_array = &cell->flexpath_array;
+            for (uint64_t i = 0; i < flexpath_array->count; i++) Py_INCREF((*flexpath_array)[i]->owner);
+
+            Array<RobustPath*>* robustpath_array = &cell->robustpath_array;
+            for (uint64_t i = 0; i < robustpath_array->count; i++) Py_INCREF((*robustpath_array)[i]->owner);
+
+            Array<Label*>* label_array = &cell->label_array;
+            for (uint64_t i = 0; i < label_array->count; i++) Py_INCREF((*label_array)[i]->owner);
+        }
+    }
+
+    // must update references after all cells have been assigned a new owner
+    if (deep_copy) {
+        cell_array = &library->cell_array;
+        for (uint64_t i = 0; i < cell_array->count; i++) {
+            Cell* cell = (*cell_array)[i];
+            Array<Reference*>* reference_array = &cell->reference_array;
+            for (uint64_t i = 0; i < reference_array->count; i++) {
+                ReferenceObject* new_obj = PyObject_New(ReferenceObject, &reference_object_type);
+                new_obj = (ReferenceObject*)PyObject_Init((PyObject*)new_obj, &reference_object_type);
+                Reference* reference = (*reference_array)[i];
+                reference->owner = new_obj;
+                new_obj->reference = reference;
+
+                if (reference->type == ReferenceType::Cell)
+                    Py_INCREF(reference->cell->owner);
+                else if (reference->type == ReferenceType::RawCell)
+                    Py_INCREF(reference->rawcell->owner);
+            }
+        }
+    }
+
+    // raw cells should be immutable, so there's no need to perform a deep copy
+    Array<RawCell*>* rawcell_array = &library->rawcell_array;
+    for (uint64_t i = 0; i < rawcell_array->count; i++)
+        Py_INCREF((*rawcell_array)[i]->owner);
+
+    return (PyObject*)result;
+}
+
 static PyObject* library_object_add(LibraryObject* self, PyObject* args) {
     uint64_t len = PyTuple_GET_SIZE(args);
     Library* library = self->library;
@@ -482,6 +618,7 @@ static PyObject* library_object_delete_property(LibraryObject* self, PyObject* a
 
 static PyMethodDef library_object_methods[] = {
     {"add", (PyCFunction)library_object_add, METH_VARARGS, library_object_add_doc},
+    {"copy", (PyCFunction)library_object_copy, METH_VARARGS | METH_KEYWORDS, library_object_copy_doc},
     {"remove", (PyCFunction)library_object_remove, METH_VARARGS, library_object_remove_doc},
     {"replace", (PyCFunction)library_object_replace, METH_VARARGS, library_object_replace_doc},
     {"new_cell", (PyCFunction)library_object_new_cell, METH_VARARGS, library_object_new_cell_doc},
