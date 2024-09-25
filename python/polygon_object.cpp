@@ -523,6 +523,10 @@ int polygon_object_set_properties(PolygonObject* self, PyObject* arg, void*) {
 }
 
 static PyObject* polygon_object_get_repetition(PolygonObject* self, void*) {
+    if(self->polygon->repetition.type == RepetitionType::None) {
+        Py_RETURN_NONE;
+    }
+
     RepetitionObject* obj = PyObject_New(RepetitionObject, &repetition_object_type);
     obj = (RepetitionObject*)PyObject_Init((PyObject*)obj, &repetition_object_type);
     obj->repetition.copy_from(self->polygon->repetition);
