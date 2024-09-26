@@ -54,6 +54,17 @@ def test_x_reflection():
     assert not ref.x_reflection
 
 
+def test_repetition():
+    ref = gdstk.Reference(gdstk.Cell("foo"))
+    assert ref.repetition is None
+
+    ref.repetition = gdstk.Repetition(rows=4, columns=1, spacing=(2, 2))
+    assert isinstance(ref.repetition, gdstk.Repetition)
+
+    _ = ref.apply_repetition()
+    assert ref.repetition is None
+
+
 def test_empty():
     name = "ca_empty"
     c = gdstk.Cell(name)
