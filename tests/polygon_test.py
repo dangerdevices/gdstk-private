@@ -135,6 +135,17 @@ def test_mirror():
     numpy.testing.assert_array_equal(poly.points, [[1, -1], [1, -2], [2, -1]])
 
 
+def test_repetition():
+    poly = gdstk.rectangle((0, 0), (10, 10))
+    assert poly.repetition is None
+
+    poly.repetition = gdstk.Repetition(rows=2, columns=3, spacing=(1, 1))
+    assert isinstance(poly.repetition, gdstk.Repetition)
+
+    _ = poly.apply_repetition()
+    assert poly.repetition is None
+
+
 def test_rotate():
     poly = gdstk.Polygon([0j, 1 + 0j, 1j])
     poly.rotate(numpy.pi / 2, 0.5 + 0.5j)
