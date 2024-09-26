@@ -430,6 +430,10 @@ int label_object_set_properties(LabelObject* self, PyObject* arg, void*) {
 }
 
 static PyObject* label_object_get_repetition(LabelObject* self, void*) {
+    if(self->label->repetition.type == RepetitionType::None) {
+        Py_RETURN_NONE;
+    }
+
     RepetitionObject* obj = PyObject_New(RepetitionObject, &repetition_object_type);
     obj = (RepetitionObject*)PyObject_Init((PyObject*)obj, &repetition_object_type);
     obj->repetition.copy_from(self->label->repetition);

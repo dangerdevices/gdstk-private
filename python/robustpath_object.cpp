@@ -2099,6 +2099,10 @@ int robustpath_object_set_properties(RobustPathObject* self, PyObject* arg, void
 }
 
 static PyObject* robustpath_object_get_repetition(RobustPathObject* self, void*) {
+    if(self->robustpath->repetition.type == RepetitionType::None) {
+        Py_RETURN_NONE;
+    }
+
     RepetitionObject* obj = PyObject_New(RepetitionObject, &repetition_object_type);
     obj = (RepetitionObject*)PyObject_Init((PyObject*)obj, &repetition_object_type);
     obj->repetition.copy_from(self->robustpath->repetition);
