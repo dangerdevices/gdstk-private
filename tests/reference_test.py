@@ -54,6 +54,17 @@ def test_x_reflection():
     assert not ref.x_reflection
 
 
+def test_repetition():
+    ref = gdstk.Reference(gdstk.Cell("foo"))
+    assert ref.repetition is None
+
+    ref.repetition = gdstk.Repetition(rows=4, columns=1, spacing=(2, 2))
+    assert isinstance(ref.repetition, gdstk.Repetition)
+
+    _ = ref.apply_repetition()
+    assert ref.repetition is None
+
+
 def test_empty():
     name = "ca_empty"
     c = gdstk.Cell(name)
@@ -235,3 +246,7 @@ def test_get_labels(tree):
     assert len(labels) == 0
     labels = r3.get_labels(depth=1, layer=11, texttype=0)
     assert len(labels) == 6
+
+def test_empty_reference_convex_hull():
+    cell = gdstk.Cell("empty")
+    assert gdstk.Reference(cell).convex_hull() is None
