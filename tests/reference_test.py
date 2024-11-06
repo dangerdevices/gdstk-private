@@ -247,6 +247,56 @@ def test_get_labels(tree):
     labels = r3.get_labels(depth=1, layer=11, texttype=0)
     assert len(labels) == 6
 
+
 def test_empty_reference_convex_hull():
     cell = gdstk.Cell("empty")
     assert gdstk.Reference(cell).convex_hull() is None
+
+
+def test_delete_gds_property():
+    def create_ref() -> gdstk.Reference:
+        ref = gdstk.Reference("foo")
+        ref.set_gds_property(100, "bar")
+        ref.set_gds_property(101, "baz")
+        ref.set_gds_property(102, "quux")
+
+        assert ref.properties == [
+            ["S_GDS_PROPERTY", 102, b"quux"],
+            ["S_GDS_PROPERTY", 101, b"baz"],
+            ["S_GDS_PROPERTY", 100, b"bar"],
+        ]
+
+        return ref
+
+    ref = create_ref()
+    ref.delete_gds_property(102)
+
+    assert ref.get_gds_property(100) == "bar"
+    assert ref.get_gds_property(101) == "baz"
+    assert ref.get_gds_property(102) is None
+    assert ref.properties == [
+        ["S_GDS_PROPERTY", 101, b"baz"],
+        ["S_GDS_PROPERTY", 100, b"bar"],
+    ]
+
+    ref = create_ref()
+    ref.delete_gds_property(101)
+
+    assert ref.get_gds_property(100) == "bar"
+    assert ref.get_gds_property(101) is None
+    assert ref.get_gds_property(102) == "quux"
+    assert ref.properties == [
+        ["S_GDS_PROPERTY", 102, b"quux"],
+        ["S_GDS_PROPERTY", 100, b"bar"],
+    ]
+
+    ref = create_ref()
+    ref.delete_gds_property(100)
+
+    assert ref.get_gds_property(100) is None
+    assert ref.get_gds_property(101) == "baz"
+    assert ref.get_gds_property(102) == "quux"
+    assert ref.properties == [
+        ["S_GDS_PROPERTY", 102, b"quux"],
+        ["S_GDS_PROPERTY", 101, b"baz"],
+    ]
