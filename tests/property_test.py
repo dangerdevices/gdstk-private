@@ -82,3 +82,72 @@ def test_oasis_gds_property_roundtrip():
     ref.set_property("S_GDS_PROPERTY", (102, b"p\x00"))
     assert ref.get_gds_property(102) == "p"
     assert ref.get_property("S_GDS_PROPERTY") == [102, b"p\x00"]
+
+
+def test_delete_gds_property():
+    def create_props(obj) -> gdstk.Reference:
+        obj.set_gds_property(100, "bar")
+        obj.set_gds_property(101, "baz")
+        obj.set_gds_property(102, "quux")
+
+        assert obj.properties == [
+            ["S_GDS_PROPERTY", 102, b"quux"],
+            ["S_GDS_PROPERTY", 101, b"baz"],
+            ["S_GDS_PROPERTY", 100, b"bar"],
+        ]
+
+        return obj
+
+    for obj in (
+        gdstk.FlexPath(0j, 2),
+        gdstk.Label("foo", (0, 0)),
+        gdstk.rectangle((0, 0), (1, 1)),
+        gdstk.Reference("foo"),
+        gdstk.RobustPath((0.5, 50), 0),
+    ):
+        create_props(obj)
+        obj.delete_gds_property(102)
+
+        assert obj.get_gds_property(100) == "bar"
+        assert obj.get_gds_property(101) == "baz"
+        assert obj.get_gds_property(102) is None
+        assert obj.properties == [
+            ["S_GDS_PROPERTY", 101, b"baz"],
+            ["S_GDS_PROPERTY", 100, b"bar"],
+        ]
+
+    for obj in (
+        gdstk.FlexPath(0j, 2),
+        gdstk.Label("foo", (0, 0)),
+        gdstk.rectangle((0, 0), (1, 1)),
+        gdstk.Reference("foo"),
+        gdstk.RobustPath((0.5, 50), 0),
+    ):
+        create_props(obj)
+        obj.delete_gds_property(101)
+
+        assert obj.get_gds_property(100) == "bar"
+        assert obj.get_gds_property(101) is None
+        assert obj.get_gds_property(102) == "quux"
+        assert obj.properties == [
+            ["S_GDS_PROPERTY", 102, b"quux"],
+            ["S_GDS_PROPERTY", 100, b"bar"],
+        ]
+
+    for obj in (
+        gdstk.FlexPath(0j, 2),
+        gdstk.Label("foo", (0, 0)),
+        gdstk.rectangle((0, 0), (1, 1)),
+        gdstk.Reference("foo"),
+        gdstk.RobustPath((0.5, 50), 0),
+    ):
+        create_props(obj)
+        obj.delete_gds_property(100)
+
+        assert obj.get_gds_property(100) is None
+        assert obj.get_gds_property(101) == "baz"
+        assert obj.get_gds_property(102) == "quux"
+        assert obj.properties == [
+            ["S_GDS_PROPERTY", 102, b"quux"],
+            ["S_GDS_PROPERTY", 101, b"baz"],
+        ]
