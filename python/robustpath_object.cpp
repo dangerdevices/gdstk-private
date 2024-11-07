@@ -1841,7 +1841,7 @@ static PyObject* robustpath_object_get_gds_property(RobustPathObject* self, PyOb
         Py_INCREF(Py_None);
         return Py_None;
     }
-    return PyUnicode_FromString((char*)value->bytes);
+    return PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
 }
 
 static PyObject* robustpath_object_delete_gds_property(RobustPathObject* self, PyObject* args) {
@@ -2099,6 +2099,10 @@ int robustpath_object_set_properties(RobustPathObject* self, PyObject* arg, void
 }
 
 static PyObject* robustpath_object_get_repetition(RobustPathObject* self, void*) {
+    if(self->robustpath->repetition.type == RepetitionType::None) {
+        Py_RETURN_NONE;
+    }
+
     RepetitionObject* obj = PyObject_New(RepetitionObject, &repetition_object_type);
     obj = (RepetitionObject*)PyObject_Init((PyObject*)obj, &repetition_object_type);
     obj->repetition.copy_from(self->robustpath->repetition);

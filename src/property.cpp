@@ -214,7 +214,7 @@ void set_gds_property(Property*& properties, uint16_t attribute, const char* val
     for (; property; property = property->next) {
         if (is_gds_property(property) && property->value->unsigned_integer == attribute) {
             gds_value = property->value->next;
-            gds_value->count = strlen(value) + 1;
+            gds_value->count = strlen(value);
             gds_value->bytes = (uint8_t*)reallocate(gds_value->bytes, gds_value->count);
             memcpy(gds_value->bytes, value, gds_value->count);
             return;
@@ -226,7 +226,9 @@ void set_gds_property(Property*& properties, uint16_t attribute, const char* val
     gds_attribute->unsigned_integer = attribute;
     gds_attribute->next = gds_value;
     gds_value->type = PropertyType::String;
-    gds_value->bytes = (uint8_t*)copy_string(value, &gds_value->count);
+    gds_value->count = strlen(value);
+    gds_value->bytes = (uint8_t*)allocate(gds_value->count);
+    memcpy(gds_value->bytes, value, gds_value->count);
     gds_value->next = NULL;
     property = (Property*)allocate(sizeof(Property));
     property->name = (char*)allocate(COUNT(s_gds_property_name));
@@ -378,11 +380,11 @@ ErrorCode properties_to_oas(const Property* properties, OasisStream& out, OasisS
                     oasis_write_real(out, value->real);
                     break;
                 case PropertyType::UnsignedInteger:
-                    oasis_putc(8, out);
+                    oasis_putc((uint8_t)OasisDataType::UnsignedInteger, out);
                     oasis_write_unsigned_integer(out, value->unsigned_integer);
                     break;
                 case PropertyType::Integer:
-                    oasis_putc(9, out);
+                    oasis_putc((uint8_t)OasisDataType::SignedInteger, out);
                     oasis_write_integer(out, value->integer);
                     break;
                 case PropertyType::String: {
@@ -397,22 +399,41 @@ ErrorCode properties_to_oas(const Property* properties, OasisStream& out, OasisS
                             space = true;
                         }
                     }
-                    if (binary) {
-                        oasis_putc(14, out);
-                    } else if (space) {
-                        oasis_putc(13, out);
+
+                    // If the property value lookup table grows to more than 1000
+                    // unique values, switch to writing the property values directly
+                    // in order to avoid degenerate O(n^2) complexity.
+                    //
+                    // 1000 is an arbitrary threshold.
+                    if (state.property_value_array.count < 1000) {
+                        if (binary) {
+                            oasis_putc((uint8_t)OasisDataType::ReferenceB, out);
+                        } else if (space) {
+                            oasis_putc((uint8_t)OasisDataType::ReferenceA, out);
+                        } else {
+                            oasis_putc((uint8_t)OasisDataType::ReferenceN, out);
+                        }
+
+                        for (index = 0; index < state.property_value_array.count; index++) {
+                            PropertyValue* it = state.property_value_array[index];
+                            if (it->count == value->count &&
+                                memcmp(it->bytes, value->bytes, it->count) == 0)
+                                break;
+                        }
+                        if (index == state.property_value_array.count)
+                            state.property_value_array.append(value);
+                        oasis_write_unsigned_integer(out, index);
                     } else {
-                        oasis_putc(15, out);
+                        if (binary) {
+                            oasis_putc((uint8_t)OasisDataType::BString, out);
+                        } else if (space) {
+                            oasis_putc((uint8_t)OasisDataType::AString, out);
+                        } else {
+                            oasis_putc((uint8_t)OasisDataType::NString, out);
+                        }
+                        oasis_write_unsigned_integer(out, value->count);
+                        oasis_write(value->bytes, 1, value->count, out);
                     }
-                    for (index = 0; index < state.property_value_array.count; index++) {
-                        PropertyValue* it = state.property_value_array[index];
-                        if (it->count == value->count &&
-                            memcmp(it->bytes, value->bytes, it->count) == 0)
-                            break;
-                    }
-                    if (index == state.property_value_array.count)
-                        state.property_value_array.append(value);
-                    oasis_write_unsigned_integer(out, index);
                 }
             }
         }
