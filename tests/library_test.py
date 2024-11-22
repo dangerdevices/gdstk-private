@@ -623,6 +623,21 @@ def test_oasis_polygon_points(complex_polygon_oasis_lib: gdstk.Library):
     )
 
 
+def test_oasis_min_length_path(tmp_path: pathlib.Path):
+    source = gdstk.read_oas(pathlib.Path(__file__).parent / "min_length_path.oas")
+    assert source.cells[0].paths
+
+    rw_path = tmp_path / "mlp_out.oas"
+    source.write_oas(rw_path)
+    rw = gdstk.read_oas(rw_path)
+    assert rw.cells[0].paths
+
+    assert numpy.array_equal(
+        source.cells[0].paths[0].spine(),
+        rw.cells[0].paths[0].spine(),
+    )
+
+
 def test_no_stdout_stderr_logging(capfd, tmp_path):
     top = gdstk.Cell("top")
     top.add(gdstk.Reference(gdstk.Cell("bar")))
