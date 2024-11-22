@@ -253,7 +253,9 @@ bool FlexPath::is_zero_width() {
 
 ErrorCode FlexPath::to_polygons(bool filter, Tag tag, Array<Polygon*>& result) {
     remove_overlapping_points();
-    if (spine.point_array.count < 2 || is_zero_width()) return ErrorCode::NoError;
+    if (spine.point_array.count < 2 || is_zero_width()) {
+        return ErrorCode::EmptyPath;
+    }
 
     const Array<Vec2> spine_points = spine.point_array;
     uint64_t curve_size_guess = spine_points.count * 2 + 4;
@@ -788,6 +790,10 @@ ErrorCode FlexPath::to_gds(FILE* out, double scaling) {
 
     remove_overlapping_points();
 
+    if (spine.point_array.count < 2) {
+        return ErrorCode::EmptyPath;
+    }
+
     if (spine.point_array.count < 2) return error_code;
 
     uint16_t buffer_end[] = {4, 0x1100};
@@ -932,7 +938,9 @@ ErrorCode FlexPath::to_oas(OasisStream& out, OasisState& state) {
 
     remove_overlapping_points();
 
-    if (spine.point_array.count < 2) return error_code;
+    if (spine.point_array.count < 2) {
+        return ErrorCode::EmptyPath;
+    }
 
     bool has_repetition = repetition.get_count() > 1;
 
