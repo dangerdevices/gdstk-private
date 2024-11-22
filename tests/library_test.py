@@ -8,6 +8,7 @@
 import hashlib
 import pathlib
 from datetime import datetime
+from typing import Callable
 
 import numpy
 import pytest
@@ -623,13 +624,24 @@ def test_oasis_polygon_points(complex_polygon_oasis_lib: gdstk.Library):
     )
 
 
-def test_oasis_min_length_path(tmp_path: pathlib.Path):
+@pytest.mark.parametrize(
+    "write_f, read_f",
+    (
+        (gdstk.Library.write_oas, gdstk.read_oas),
+        (gdstk.Library.write_gds, gdstk.read_gds),
+    ),
+)
+def test_write_min_length_path(
+    write_f: Callable[[gdstk.Library, str | pathlib.Path], None],
+    read_f: Callable[[str | pathlib.Path], gdstk.Library],
+    tmp_path: pathlib.Path
+):
     source = gdstk.read_oas(pathlib.Path(__file__).parent / "min_length_path.oas")
     assert source.cells[0].paths
 
-    rw_path = tmp_path / "mlp_out.oas"
-    source.write_oas(rw_path)
-    rw = gdstk.read_oas(rw_path)
+    rw_path = tmp_path / "out"
+    write_f(source, rw_path)
+    rw = read_f(rw_path)
     assert rw.cells[0].paths
 
     assert numpy.array_equal(
@@ -638,11 +650,24 @@ def test_oasis_min_length_path(tmp_path: pathlib.Path):
     )
 
 
-@pytest.mark.parametrize("simple_path", (True, False))
-def test_empty_path_warning(simple_path: bool, tmp_path: pathlib.Path):
+
+@pytest.mark.parametrize(
+    "simple_path", (True, False),
+)
+@pytest.mark.parametrize(
+    "write_f",
+    (gdstk.Library.write_oas, gdstk.Library.write_gds),
+)
+def test_empty_path_warning(
+    simple_path: bool,
+    write_f: Callable[[gdstk.Library, str | pathlib.Path], None],
+    tmp_path: pathlib.Path
+):
     lib = gdstk.Library("test")
     tol = lib.precision / lib.unit
 
+    # Simple paths are written to GDS & OASIS with PATH records; non-simple
+    # paths are serialized as polygons.
     path = gdstk.FlexPath(
         ((0, 0), (tol / 2, 0)),
         width=0.01,
@@ -655,7 +680,7 @@ def test_empty_path_warning(simple_path: bool, tmp_path: pathlib.Path):
     lib.add(cell)
 
     with pytest.warns(RuntimeWarning, match="Empty path"):
-        lib.write_oas(tmp_path / "test.oas")
+        write_f(lib, tmp_path / "out")
 
 
 def test_no_stdout_stderr_logging(capfd, tmp_path):
