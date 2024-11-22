@@ -638,6 +638,26 @@ def test_oasis_min_length_path(tmp_path: pathlib.Path):
     )
 
 
+@pytest.mark.parametrize("simple_path", (True, False))
+def test_empty_path_warning(simple_path: bool, tmp_path: pathlib.Path):
+    lib = gdstk.Library("test")
+    tol = lib.precision / lib.unit
+
+    path = gdstk.FlexPath(
+        ((0, 0), (tol / 2, 0)),
+        width=0.01,
+        tolerance=tol,
+        simple_path=simple_path
+    )
+
+    cell = gdstk.Cell("top")
+    cell.add(path)
+    lib.add(cell)
+
+    with pytest.warns(RuntimeWarning, match="Empty path"):
+        lib.write_oas(tmp_path / "test.oas")
+
+
 def test_no_stdout_stderr_logging(capfd, tmp_path):
     top = gdstk.Cell("top")
     top.add(gdstk.Reference(gdstk.Cell("bar")))
