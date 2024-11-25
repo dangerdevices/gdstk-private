@@ -417,7 +417,7 @@ static PyObject* polygon_object_get_gds_property(PolygonObject* self, PyObject* 
         Py_INCREF(Py_None);
         return Py_None;
     }
-    return PyUnicode_FromString((char*)value->bytes);
+    return PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
 }
 
 static PyObject* polygon_object_delete_gds_property(PolygonObject* self, PyObject* args) {
@@ -523,6 +523,10 @@ int polygon_object_set_properties(PolygonObject* self, PyObject* arg, void*) {
 }
 
 static PyObject* polygon_object_get_repetition(PolygonObject* self, void*) {
+    if(self->polygon->repetition.type == RepetitionType::None) {
+        Py_RETURN_NONE;
+    }
+
     RepetitionObject* obj = PyObject_New(RepetitionObject, &repetition_object_type);
     obj = (RepetitionObject*)PyObject_Init((PyObject*)obj, &repetition_object_type);
     obj->repetition.copy_from(self->polygon->repetition);

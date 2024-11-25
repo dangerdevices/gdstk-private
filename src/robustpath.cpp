@@ -1269,9 +1269,29 @@ ErrorCode RobustPath::spine(Array<Vec2> &result) const {
     return error_code;
 }
 
+bool RobustPath::is_zero_width() const {
+    double* widths = (double *)allocate(sizeof(double) * num_elements);
+
+    for(uint64_t i = 0; i <= subpath_array.count; i++) {
+        memset(widths, 0, sizeof(double) * num_elements);
+
+        width(i, false, widths);
+
+        for(uint64_t j = 0; j < num_elements; j++) {
+            if (widths[j] != 0) {
+                free_allocation(widths);
+                return false;
+            }
+        }
+    }
+
+    free_allocation(widths);
+    return true;
+}
+
 ErrorCode RobustPath::to_polygons(bool filter, Tag tag, Array<Polygon *> &result) const {
     ErrorCode error_code = ErrorCode::NoError;
-    if (num_elements == 0 || subpath_array.count == 0) return error_code;
+    if (num_elements == 0 || subpath_array.count == 0 || is_zero_width()) return error_code;
 
     const double tolerance_sq = tolerance * tolerance;
     RobustPathElement *el = elements;

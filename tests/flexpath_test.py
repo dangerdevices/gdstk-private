@@ -128,6 +128,17 @@ def test_path_ends(tmp_path):
     ).write_gds(tmp_path / "path_ends.gds")
 
 
+def test_repetition():
+    path = gdstk.FlexPath(((0.5, 50), (-0.5, 50)), 0)
+    assert path.repetition is None
+
+    path.repetition = gdstk.Repetition(rows=2, columns=8, spacing=(1, 1))
+    assert isinstance(path.repetition, gdstk.Repetition)
+
+    _ = path.apply_repetition()
+    assert path.repetition is None
+
+
 def test_deepcopy():
     path = gdstk.FlexPath(0j, 2)
     path2 = deepcopy(path)
@@ -175,3 +186,10 @@ def test_min_length():
     path = gdstk.FlexPath(((0, 0), (tol, 0)), width=0.01, tolerance=tol)
     assert path.to_polygons()
 
+
+def test_zerowidth():
+    path = gdstk.FlexPath(((0.5, 50), (-0.5, 50)), 0)
+    assert path.to_polygons() == []
+
+    path.segment((-0.5, 51))
+    assert path.to_polygons() == []

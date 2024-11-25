@@ -19,6 +19,7 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #include "polygon.hpp"
 #include "property.hpp"
 #include "robustpath.hpp"
+#include "set.hpp"
 #include "vec.hpp"
 
 namespace gdstk {

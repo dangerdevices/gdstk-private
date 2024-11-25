@@ -16,9 +16,11 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
 #include <gdstk/allocator.hpp>
 #include <gdstk/cell.hpp>
+#include <gdstk/clipper_tools.hpp>
 #include <gdstk/gdsii.hpp>
 #include <gdstk/rawcell.hpp>
 #include <gdstk/reference.hpp>
+#include <gdstk/set.hpp>
 #include <gdstk/utils.hpp>
 
 namespace gdstk {
