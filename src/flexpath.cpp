@@ -790,9 +790,7 @@ ErrorCode FlexPath::to_gds(FILE* out, double scaling) {
 
     remove_overlapping_points();
 
-    if (spine.point_array.count < 2) {
-        return ErrorCode::EmptyPath;
-    }
+    if (spine.point_array.count < 2) return ErrorCode::EmptyPath;
 
     uint16_t buffer_end[] = {4, 0x1100};
     big_endian_swap16(buffer_end, COUNT(buffer_end));
@@ -936,9 +934,7 @@ ErrorCode FlexPath::to_oas(OasisStream& out, OasisState& state) {
 
     remove_overlapping_points();
 
-    if (spine.point_array.count < 2) {
-        return ErrorCode::EmptyPath;
-    }
+    if (spine.point_array.count < 2) return ErrorCode::EmptyPath;
 
     bool has_repetition = repetition.get_count() > 1;
 

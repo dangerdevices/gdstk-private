@@ -650,7 +650,6 @@ def test_write_min_length_path(
     )
 
 
-
 @pytest.mark.parametrize(
     "simple_path", (True, False),
 )
