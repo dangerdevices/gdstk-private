@@ -476,9 +476,9 @@ void oasis_read_repetition(OasisStream& in, double scaling, Repetition& repetiti
             if (type == 5) {
                 grid_factor *= oasis_read_unsigned_integer(in);
             }
-            for (double x = 0; count > 0; count--) {
-                x += grid_factor * oasis_read_unsigned_integer(in);
-                repetition.coords.append_unsafe(x);
+            for (uint64_t x = 0; count > 0; count--) {
+                x += oasis_read_unsigned_integer(in);
+                repetition.coords.append_unsafe(x * grid_factor);
             }
         } break;
         case 6:
@@ -490,9 +490,9 @@ void oasis_read_repetition(OasisStream& in, double scaling, Repetition& repetiti
             if (type == 7) {
                 grid_factor *= oasis_read_unsigned_integer(in);
             }
-            for (double y = 0; count > 0; count--) {
-                y += grid_factor * oasis_read_unsigned_integer(in);
-                repetition.coords.append_unsafe(y);
+            for (uint64_t y = 0; count > 0; count--) {
+                y += oasis_read_unsigned_integer(in);
+                repetition.coords.append_unsafe(y * grid_factor);
             }
         } break;
         case 8: {
