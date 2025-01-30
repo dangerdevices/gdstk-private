@@ -527,12 +527,14 @@ void oasis_read_repetition(OasisStream& in, double scaling, Repetition& repetiti
             if (type == 11) {
                 grid_factor *= oasis_read_unsigned_integer(in);
             }
-            for (Vec2 v = {0, 0}; count > 0; count--) {
+            for (IntVec2 v = {0, 0}; count > 0; count--) {
                 int64_t x, y;
                 oasis_read_gdelta(in, x, y);
-                v.x += grid_factor * x;
-                v.y += grid_factor * y;
-                repetition.offsets.append_unsafe(v);
+                v.x += x;
+                v.y += y;
+                repetition.offsets.append_unsafe(
+                    Vec2 {v.x * grid_factor, v.y * grid_factor}
+                );
             }
         } break;
     }
