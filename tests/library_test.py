@@ -624,6 +624,39 @@ def test_oasis_polygon_points(complex_polygon_oasis_lib: gdstk.Library):
     )
 
 
+def test_oasis_degenerate_polygon(tmpdir: pathlib.Path):
+    """
+    Degenerate polygons must not be encoded with `CTRAPEZOID` records;
+    doing so yields non-spec-compliant OASIS files.
+    """
+    cell = gdstk.Cell("not_a_trapezoid")
+    cell.add(
+        gdstk.Polygon(
+            (
+                (-148.037, 125.407),
+                (-151.785, 129.155),
+                (-150.092, 129.155),
+                (-150.092, 125.407),
+            )
+        )
+    )
+
+    wlib = gdstk.Library("degenerate_polygon")
+    wlib.add(cell)
+    wlib.write_oas(tmpdir / "degenerate_polygon.oas")
+
+    rlib = gdstk.read_oas(tmpdir / "degenerate_polygon.oas")
+    numpy.testing.assert_allclose(
+        rlib.cells[0].polygons[0].points,
+        [
+            [-148.037, 125.407],
+            [-151.785, 129.155],
+            [-150.092, 129.155],
+            [-150.092, 125.407],
+        ],
+    )
+
+
 @pytest.mark.parametrize(
     "write_f, read_f",
     (
