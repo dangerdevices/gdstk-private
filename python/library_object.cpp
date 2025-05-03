@@ -28,7 +28,6 @@ static void library_object_dealloc(LibraryObject* self) {
 
 static int library_object_init(LibraryObject* self, PyObject* args, PyObject* kwds) {
     const char* keywords[] = {"name", "unit", "precision", NULL};
-    const char* default_name = "library";
     char* name = NULL;
     double unit = 1e-6;
     double precision = 1e-9;
@@ -58,8 +57,9 @@ static int library_object_init(LibraryObject* self, PyObject* args, PyObject* kw
         library = self->library;
     }
 
-    if (!name) name = (char*)default_name;
-    library->name = copy_string(name, NULL);
+    if (name) {
+        library->name = copy_string(name, NULL);
+    }
 
     library->unit = unit;
     library->precision = precision;
@@ -644,6 +644,10 @@ static PyMethodDef library_object_methods[] = {
     {NULL}};
 
 PyObject* library_object_get_name(LibraryObject* self, void*) {
+    if (self->library->name == NULL) {
+        Py_RETURN_NONE;
+    }
+
     PyObject* result = PyUnicode_FromString(self->library->name);
     if (!result) {
         PyErr_SetString(PyExc_TypeError, "Unable to convert value to string.");

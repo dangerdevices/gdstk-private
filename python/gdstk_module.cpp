@@ -103,6 +103,9 @@ static int return_error(ErrorCode error_code) {
         case ErrorCode::ChecksumError:
             PyErr_SetString(PyExc_RuntimeError, "Checksum error.");
             return -1;
+        case ErrorCode::MissingGdsName:
+            PyErr_SetString(PyExc_RuntimeError, "Missing GDS library name.");
+            return -1;
         case ErrorCode::ZlibError:
             PyErr_SetString(PyExc_RuntimeError, "Error in zlib library.");
             return -1;

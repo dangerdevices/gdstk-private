@@ -59,7 +59,9 @@ void Library::print(bool all) const {
 }
 
 void Library::copy_from(const Library& library, bool deep_copy) {
-    name = copy_string(library.name, NULL);
+    if (library.name != NULL) {
+        name = copy_string(library.name, NULL);
+    }
     properties = properties_copy(library.properties);
     unit = library.unit;
     precision = library.precision;
@@ -334,6 +336,11 @@ void Library::replace_cell(RawCell* old_cell, RawCell* new_cell) {
 
 ErrorCode Library::write_gds(const char* filename, uint64_t max_points, tm* timestamp) const {
     ErrorCode error_code = ErrorCode::NoError;
+    if (name == NULL) {
+        if (error_logger) fputs("[GDSTK] Cannot write unnamed library to GDSII file.\n", error_logger);
+        return ErrorCode::MissingGdsName;
+    }
+
     FILE* out = fopen(filename, "wb");
     if (out == NULL) {
         if (error_logger) fputs("[GDSTK] Unable to open GDSII file for output.\n", error_logger);
