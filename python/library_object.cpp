@@ -657,6 +657,12 @@ PyObject* library_object_get_name(LibraryObject* self, void*) {
 }
 
 int library_object_set_name(LibraryObject* self, PyObject* arg, void*) {
+    if (arg == Py_None) {
+        if (self->library->name) free_allocation(self->library->name);
+        self->library->name = NULL;
+        return 0;
+    }
+
     if (!PyUnicode_Check(arg)) {
         PyErr_SetString(PyExc_TypeError, "Name must be a string.");
         return -1;
