@@ -1513,11 +1513,6 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 break;
             case OasisRecord::END: {
                 FSEEK64(in.file, 0, SEEK_END);
-                library.name = (char*)allocate(4);
-                library.name[0] = 'L';
-                library.name[1] = 'I';
-                library.name[2] = 'B';
-                library.name[3] = 0;
 
                 uint64_t c_size = library.cell_array.count;
                 Map<Cell*> map = {};
