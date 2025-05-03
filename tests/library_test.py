@@ -749,3 +749,26 @@ def test_oasis_roundtrip_properties(tmp_path):
         ) == sorted(
             [p.get_property("unique")[0].decode() for p in new_lib.top_level()[0].polygons]
         )
+
+def test_library_name(tmp_path):
+    lib = gdstk.Library()
+    cell = gdstk.Cell("test")
+    lib.add(cell)
+    assert lib.name is None
+
+    lib.write_oas(tmp_path / "foo.oas")
+    with pytest.raises(RuntimeError):
+        lib.write_gds(tmp_path / "foo.gds")
+
+    lib.name = "foo"
+
+    assert lib.name == "foo"
+    lib.write_oas(tmp_path / "foo.oas")
+    lib.write_gds(tmp_path / "foo.gds")
+
+    lib.name = None
+
+    assert lib.name is None
+    lib.write_oas(tmp_path / "foo.oas")
+    with pytest.raises(RuntimeError):
+        lib.write_gds(tmp_path / "foo.gds")
