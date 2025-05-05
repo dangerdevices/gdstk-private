@@ -110,7 +110,7 @@ def test_points():
 
 
 def test_path_ends(tmp_path):
-    gdstk.Library().add(
+    gdstk.Library("test_path_ends").add(
         gdstk.Cell("Round").add(
             gdstk.FlexPath(2j, 0.5, ends="round", simple_path=True).turn(
                 5, numpy.pi / 2, width=(0.5, "smooth")

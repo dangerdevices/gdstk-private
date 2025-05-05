@@ -19,7 +19,7 @@ import gdstk
 @pytest.fixture
 def tree():
     c = [gdstk.Cell("tree_" + str(i)) for i in range(8)]
-    lib = gdstk.Library()
+    lib = gdstk.Library("tree")
     lib.add(*c)
     c[0].add(gdstk.Reference(c[1]))
     c[0].add(gdstk.Reference(c[3]))
@@ -247,7 +247,7 @@ def test_read_gds_missing_refs(tmpdir):
     c2 = gdstk.Cell("c2")
     c2.add(r1)
 
-    lib = gdstk.Library()
+    lib = gdstk.Library("missing_refs")
     lib.add(c2)
 
     fname = str(tmpdir.join("test_missing_refs.gds"))
@@ -318,7 +318,7 @@ def test_rw_oas(tmpdir, sample_library):
     sample_library.write_oas(fname)
     library = gdstk.read_oas(fname, unit=1e-3)
 
-    assert library.name == "LIB"
+    assert library.name is None
     assert len(library.cells) == 4
     cells = {c.name: c for c in library.cells}
     assert set(cells.keys()) == {
@@ -670,6 +670,7 @@ def test_write_min_length_path(
     tmp_path: pathlib.Path
 ):
     source = gdstk.read_oas(pathlib.Path(__file__).parent / "min_length_path.oas")
+    source.name = "min_length_path"
     assert source.cells[0].paths
 
     rw_path = tmp_path / "out"
@@ -748,3 +749,26 @@ def test_oasis_roundtrip_properties(tmp_path):
         ) == sorted(
             [p.get_property("unique")[0].decode() for p in new_lib.top_level()[0].polygons]
         )
+
+def test_library_name(tmp_path):
+    lib = gdstk.Library()
+    cell = gdstk.Cell("test")
+    lib.add(cell)
+    assert lib.name is None
+
+    lib.write_oas(tmp_path / "foo.oas")
+    with pytest.raises(RuntimeError):
+        lib.write_gds(tmp_path / "foo.gds")
+
+    lib.name = "foo"
+
+    assert lib.name == "foo"
+    lib.write_oas(tmp_path / "foo.oas")
+    lib.write_gds(tmp_path / "foo.gds")
+
+    lib.name = None
+
+    assert lib.name is None
+    lib.write_oas(tmp_path / "foo.oas")
+    with pytest.raises(RuntimeError):
+        lib.write_gds(tmp_path / "foo.gds")
