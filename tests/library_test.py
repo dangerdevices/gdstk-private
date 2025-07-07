@@ -679,7 +679,6 @@ def test_oasis_degenerate_polygon(tmpdir: pathlib.Path):
             [-150.092, 125.407],
         ],
     )
->>>>>>> origin/dangerdevices
 
 
 @pytest.mark.parametrize(
