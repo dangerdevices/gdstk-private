@@ -1,0 +1,66 @@
+name: Fetch Upstream
+on:
+  schedule:
+  - cron: '*/15 * * * *'
+  workflow_dispatch:
+jobs:
+  heitzmann:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: main
+        token: ${{ secrets.DD_GITHUB_REPO_TOKEN }}
+        # Credentials used to perform `git push`.
+        persist-credentials: true
+    - run: |
+        git remote add upstream https://github.com/heitzmann/gdstk.git
+        git fetch upstream
+        git merge --ff-only upstream/main
+        git push
+
+  dangerdevices:
+    needs: heitzmann
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: main
+        token: ${{ secrets.DD_GITHUB_REPO_TOKEN }}
+        # Credentials used to perform `git push origin ${branch}`.
+        persist-credentials: true
+    - env:
+        GITHUB_TOKEN: ${{ secrets.DD_GITHUB_REPO_TOKEN }}
+      run: |
+        [[ -z "$(git rev-list main ^origin/dangerdevices)" ]] && {
+          echo "up to date! nothing to do..."
+          exit
+        }
+
+        head_sha="$(git rev-parse HEAD)"
+        open_prs=$(gh pr list \
+          --base dangerdevices \
+          --limit 1 \
+          --search "${head_sha}" \
+          --state open \
+          --json number,title \
+          --template '{{range .}}{{.title}} (#{{.number}}){{end}}'
+        )
+        [[ -n "${open_prs}" ]] && {
+          echo "A PR is already open containing ${head_sha}:"
+          echo "  ${open_prs}"
+          exit
+        }
+
+        pr_body_file="$(mktemp)"
+        git show origin/dangerdevices:.dd/upstream-dangerdevices.md > "${pr_body_file}"
+
+        branch="from-main-$(date +%s)"
+        git switch -c "${branch}"
+        git push origin "${branch}"
+        gh pr create \
+          --title 'Merge latest `main` into `dangerdevices`' \
+          --body-file "${pr_body_file}" \
+          --head "${branch}" \
+          --base dangerdevices
