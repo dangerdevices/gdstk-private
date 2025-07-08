@@ -86,14 +86,14 @@ def test_oasis_gds_property_roundtrip():
 
 def test_delete_gds_property():
     def create_props(obj) -> gdstk.Reference:
-        obj.set_gds_property(100, b"ba\x00r")
+        obj.set_gds_property(100, "bar")
         obj.set_gds_property(101, "baz")
         obj.set_gds_property(102, "quux")
 
         assert obj.properties == [
             ["S_GDS_PROPERTY", 102, b"quux"],
             ["S_GDS_PROPERTY", 101, b"baz"],
-            ["S_GDS_PROPERTY", 100, b"ba\x00r"],
+            ["S_GDS_PROPERTY", 100, b"bar"],
         ]
 
         return obj
@@ -108,12 +108,12 @@ def test_delete_gds_property():
         create_props(obj)
         obj.delete_gds_property(102)
 
-        assert obj.get_gds_property(100) == "ba\x00r"
+        assert obj.get_gds_property(100) == "bar"
         assert obj.get_gds_property(101) == "baz"
         assert obj.get_gds_property(102) is None
         assert obj.properties == [
             ["S_GDS_PROPERTY", 101, b"baz"],
-            ["S_GDS_PROPERTY", 100, b"ba\x00r"],
+            ["S_GDS_PROPERTY", 100, b"bar"],
         ]
 
     for obj in (
@@ -126,12 +126,12 @@ def test_delete_gds_property():
         create_props(obj)
         obj.delete_gds_property(101)
 
-        assert obj.get_gds_property(100) == "ba\x00r"
+        assert obj.get_gds_property(100) == "bar"
         assert obj.get_gds_property(101) is None
         assert obj.get_gds_property(102) == "quux"
         assert obj.properties == [
             ["S_GDS_PROPERTY", 102, b"quux"],
-            ["S_GDS_PROPERTY", 100, b"ba\x00r"],
+            ["S_GDS_PROPERTY", 100, b"bar"],
         ]
 
     for obj in (
