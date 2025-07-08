@@ -137,6 +137,10 @@ static PyObject* reference_object_bounding_box(ReferenceObject* self, PyObject*)
 static PyObject* reference_object_convex_hull(ReferenceObject* self, PyObject*) {
     Array<Vec2> points = {};
     self->reference->convex_hull(points);
+    if (points.count == 0) {
+        points.clear();
+        Py_RETURN_NONE;
+    }
     npy_intp dims[] = {(npy_intp)points.count, 2};
     PyObject* result = PyArray_SimpleNew(2, dims, NPY_DOUBLE);
     if (!result) {
@@ -424,11 +428,11 @@ static PyObject* reference_object_get_gds_property(ReferenceObject* self, PyObje
         Py_INCREF(Py_None);
         return Py_None;
     }
-    PyObject* result = PyUnicode_FromStringAndSize((char*)value->bytes, (Py_ssize_t)value->count);
+    PyObject* result = PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
     if (PyErr_Occurred()) {
         Py_XDECREF(result);
         PyErr_Clear();
-        result = PyBytes_FromStringAndSize((char*)value->bytes, (Py_ssize_t)value->count);
+        result = PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
     }
     return result;
 }
@@ -626,6 +630,10 @@ int reference_object_set_properties(ReferenceObject* self, PyObject* arg, void*)
 }
 
 static PyObject* reference_object_get_repetition(ReferenceObject* self, void*) {
+    if(self->reference->repetition.type == RepetitionType::None) {
+        Py_RETURN_NONE;
+    }
+
     RepetitionObject* obj = PyObject_New(RepetitionObject, &repetition_object_type);
     obj = (RepetitionObject*)PyObject_Init((PyObject*)obj, &repetition_object_type);
     obj->repetition.copy_from(self->reference->repetition);
