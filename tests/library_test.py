@@ -264,7 +264,7 @@ def test_large_layer_number(tmpdir):
     c1.add(gdstk.rectangle((0, 0), (1, 1), 2**16 - 1, 2**16))
     c1.add(gdstk.rectangle((0, 0), (1, 1), 100000, 100001))
 
-    lib = gdstk.Library()
+    lib = gdstk.Library("large_layer_number")
     lib.add(c1)
 
     expected = {
