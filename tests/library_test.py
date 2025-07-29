@@ -313,6 +313,30 @@ def test_read_gds_missing_refs(tmpdir):
 #     assert c.references[0].repetition.v2 == (0.0, 8.0)
 
 
+def test_oas_filter(tmpdir):
+    test_lib = gdstk.Library("test")
+    test_lib.add(gdstk.Cell("top").add(
+            gdstk.rectangle((0, 0), (10, 10), 5, 10),
+            gdstk.rectangle((0, 0), (10, 10), 20, 20),
+            gdstk.rectangle((0, 0), (10, 10), 20, 20),
+            gdstk.Label("foo", (0, 0), layer=5, texttype=10),
+            gdstk.Label("bar", (0, 0), layer=20, texttype=20),
+        )
+    )    
+    test_lib.write_oas(tmpdir / "test.oas")
+    
+    lib = gdstk.read_oas(tmpdir / "test.oas", filter={(5, 10)})
+    polys = lib.top_level()[0].get_polygons()
+    assert polys
+    assert all((p.layer, p.datatype) == (5, 10) for p in polys)
+    labels = lib.top_level()[0].get_labels()
+    assert labels
+    assert all((l.layer, l.texttype) == (5, 10) for l in labels)
+    
+    with pytest.raises(TypeError):
+        gdstk.read_oas(tmpdir / "test.oas", filter="foo")
+
+
 def test_rw_oas(tmpdir, sample_library):
     fname = str(tmpdir.join("test.oas"))
     sample_library.write_oas(fname)
