@@ -1551,17 +1551,30 @@ static PyObject* read_gds_function(PyObject* mod, PyObject* args, PyObject* kwds
 
 static PyObject* read_oas_function(PyObject* mod, PyObject* args, PyObject* kwds) {
     PyObject* pybytes = NULL;
+    PyObject* pyfilter = NULL;
     double unit = 0;
     double tolerance = 0;
-    const char* keywords[] = {"infile", "unit", "tolerance", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O&|dd:read_oas", (char**)keywords,
-                                     PyUnicode_FSConverter, &pybytes, &unit, &tolerance))
+    const char* keywords[] = {"infile", "unit", "tolerance", "filter", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O&|dd$O:read_oas", (char**)keywords,
+                                     PyUnicode_FSConverter, &pybytes, &unit, &tolerance, &pyfilter))
         return NULL;
 
     const char* filename = PyBytes_AS_STRING(pybytes);
+
+    Set<Tag> layers_filter = {};
+    Set<Tag>* layers_filter_ptr = NULL;
+    if (pyfilter != Py_None) {
+        if (parse_tag_sequence(pyfilter, layers_filter, "filter") < 0) {
+            layers_filter.clear();
+            Py_DECREF(pyfilter);
+            return NULL;
+        }
+        layers_filter_ptr = &layers_filter;
+    }
+
     Library* library = (Library*)allocate_clear(sizeof(Library));
     ErrorCode error_code = ErrorCode::NoError;
-    *library = read_oas(filename, unit, tolerance, &error_code);
+    *library = read_oas(filename, unit, tolerance, layers_filter_ptr, &error_code);
     Py_DECREF(pybytes);
 
     if (return_error(error_code)) {
