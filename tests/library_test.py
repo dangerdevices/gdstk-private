@@ -324,7 +324,8 @@ def test_oas_filter(tmpdir):
         )
     )    
     test_lib.write_oas(tmpdir / "test.oas")
-    
+
+    # Test filtering
     lib = gdstk.read_oas(tmpdir / "test.oas", filter={(5, 10)})
     polys = lib.top_level()[0].get_polygons()
     assert polys
@@ -332,7 +333,15 @@ def test_oas_filter(tmpdir):
     labels = lib.top_level()[0].get_labels()
     assert labels
     assert all((l.layer, l.texttype) == (5, 10) for l in labels)
-    
+
+    # Test not filtering
+    lib = gdstk.read_oas(tmpdir / "test.oas")
+    assert lib.top_level()[0].get_polygons(layer=5, datatype=10)
+    assert lib.top_level()[0].get_polygons(layer=20, datatype=20)
+    assert lib.top_level()[0].get_labels(layer=20, texttype=20)
+    assert lib.top_level()[0].get_labels(layer=20, texttype=20)
+
+    # Test that incorrect type doesn't crash
     with pytest.raises(TypeError):
         gdstk.read_oas(tmpdir / "test.oas", filter="foo")
 
