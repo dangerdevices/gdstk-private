@@ -1551,7 +1551,7 @@ static PyObject* read_gds_function(PyObject* mod, PyObject* args, PyObject* kwds
 
 static PyObject* read_oas_function(PyObject* mod, PyObject* args, PyObject* kwds) {
     PyObject* pybytes = NULL;
-    PyObject* pyfilter = NULL;
+    PyObject* pyfilter = Py_None;
     double unit = 0;
     double tolerance = 0;
     const char* keywords[] = {"infile", "unit", "tolerance", "filter", NULL};
