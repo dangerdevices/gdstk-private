@@ -1576,6 +1576,8 @@ static PyObject* read_oas_function(PyObject* mod, PyObject* args, PyObject* kwds
     ErrorCode error_code = ErrorCode::NoError;
     *library = read_oas(filename, unit, tolerance, layers_filter_ptr, &error_code);
     Py_DECREF(pybytes);
+    
+    layers_filter.clear();
 
     if (return_error(error_code)) {
         library->free_all();
