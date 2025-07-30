@@ -956,6 +956,7 @@ def read_oas(
     infile: str | pathlib.Path,
     unit: float = 0,
     tolerance: float = 0,
+    *,
     filter: Optional[Iterable[tuple[int, int]]] = None,
 ) -> Library: ...
 def read_rawcells(infile: str | pathlib.Path) -> dict[str, RawCell]: ...

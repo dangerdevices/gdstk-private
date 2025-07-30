@@ -1842,6 +1842,7 @@ Library read_oas(const char* filename, double unit, double tolerance, const Set<
                 }
 
                 if (filter_layers && !filter_layers->has_value(label->tag)) {
+                    label->clear();
                     free_allocation(label);
                 } else {
                     cell->label_array.append(label);
@@ -1891,6 +1892,7 @@ Library read_oas(const char* filename, double unit, double tolerance, const Set<
                 }
                 
                 if (filter_layers && !filter_layers->has_value(polygon->tag)) {
+                    polygon->clear();
                     free_allocation(polygon);
                 } else {
                     cell->polygon_array.append(polygon);
@@ -1944,6 +1946,7 @@ Library read_oas(const char* filename, double unit, double tolerance, const Set<
                 }
 
                 if (filter_layers && !filter_layers->has_value(polygon->tag)) {
+                    polygon->clear();
                     free_allocation(polygon);
                 } else {
                     cell->polygon_array.append(polygon);
@@ -2041,7 +2044,7 @@ Library read_oas(const char* filename, double unit, double tolerance, const Set<
                 }
 
                 if (filter_layers && !filter_layers->has_value(element->tag)) {
-                    free_allocation(element);
+                    path->clear();
                     free_allocation(path);
                 } else {
                     cell->flexpath_array.append(path);
@@ -2144,6 +2147,7 @@ Library read_oas(const char* filename, double unit, double tolerance, const Set<
                 }
 
                 if (filter_layers && !filter_layers->has_value(polygon->tag)) {
+                    polygon->clear();
                     free_allocation(polygon);
                 } else {
                     cell->polygon_array.append(polygon);
@@ -2318,6 +2322,7 @@ Library read_oas(const char* filename, double unit, double tolerance, const Set<
                 }
 
                 if (filter_layers && !filter_layers->has_value(polygon->tag)) {
+                    polygon->clear();
                     free_allocation(polygon);
                 } else {
                     cell->polygon_array.append(polygon);
@@ -2362,6 +2367,7 @@ Library read_oas(const char* filename, double unit, double tolerance, const Set<
                 }
 
                 if (filter_layers && !filter_layers->has_value(polygon->tag)) {
+                    polygon->clear();
                     free_allocation(polygon);
                 } else {
                     cell->polygon_array.append(polygon);
