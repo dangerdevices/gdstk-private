@@ -1109,7 +1109,12 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
             case GdsiiRecord::TEXT:
                 label = (Label*)allocate_clear(sizeof(Label));
                 label->magnification = 1;
-                if (cell) cell->label_array.append(label);
+                if (cell && (!shape_tags || shape_tags->has_value(label->tag))) {
+                    cell->label_array.append(label);
+                } else {
+                    label->clear();
+                    free_allocation(label);
+                }
                 break;
             case GdsiiRecord::LAYER:
                 if (polygon)
