@@ -1559,18 +1559,18 @@ static PyObject* read_oas_function(PyObject* mod, PyObject* args, PyObject* kwds
                                      PyUnicode_FSConverter, &pybytes, &unit, &tolerance, &pyfilter))
         return NULL;
 
-    const char* filename = PyBytes_AS_STRING(pybytes);
-
     Set<Tag> layers_filter = {};
     Set<Tag>* layers_filter_ptr = NULL;
     if (pyfilter != Py_None) {
         if (parse_tag_sequence(pyfilter, layers_filter, "filter") < 0) {
             layers_filter.clear();
-            Py_DECREF(pyfilter);
+            Py_DECREF(pybytes);
             return NULL;
         }
         layers_filter_ptr = &layers_filter;
     }
+
+    const char* filename = PyBytes_AS_STRING(pybytes);
 
     Library* library = (Library*)allocate_clear(sizeof(Library));
     ErrorCode error_code = ErrorCode::NoError;
