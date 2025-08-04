@@ -1215,6 +1215,13 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
                         path->clear();
                         free_allocation(path);
                     }
+                } else if (label) {
+                    if (shape_tags && !shape_tags->has_value(label->tag) && cell && cell->label_array.count > 0) {
+                        uint64_t index = cell->label_array.count - 1;
+                        cell->label_array.remove(index);
+                        label->clear();
+                        free_allocation(label);
+                    }
                 }
                 polygon = NULL;
                 path = NULL;
@@ -1367,7 +1374,7 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
 }
 
 // TODO: verify modal variables are correctly updated
-Library read_oas(const char* filename, double unit, double tolerance, ErrorCode* error_code) {
+Library read_oas(const char* filename, double unit, double tolerance, const Set<Tag>* filter_layers, ErrorCode* error_code) {
     Library library = {};
 
     OasisStream in = {};
@@ -1791,7 +1798,6 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 Label* label = (Label*)allocate_clear(sizeof(Label));
                 label->magnification = 1;
                 label->anchor = Anchor::SW;
-                cell->label_array.append(label);
                 next_property = &label->properties;
                 uint8_t info;
                 oasis_read(&info, 1, 1, in);
@@ -1841,10 +1847,16 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     oasis_read_repetition(in, factor, modal_repetition);
                     label->repetition.copy_from(modal_repetition);
                 }
+
+                if (filter_layers && !filter_layers->has_value(label->tag)) {
+                    label->clear();
+                    free_allocation(label);
+                } else {
+                    cell->label_array.append(label);
+                }
             } break;
             case OasisRecord::RECTANGLE: {
                 Polygon* polygon = (Polygon*)allocate_clear(sizeof(Polygon));
-                cell->polygon_array.append(polygon);
                 next_property = &polygon->properties;
                 uint8_t info;
                 oasis_read(&info, 1, 1, in);
@@ -1885,10 +1897,17 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     oasis_read_repetition(in, factor, modal_repetition);
                     polygon->repetition.copy_from(modal_repetition);
                 }
+                
+                if (filter_layers && !filter_layers->has_value(polygon->tag)) {
+                    polygon->clear();
+                    free_allocation(polygon);
+                } else {
+                    cell->polygon_array.append(polygon);
+                }
+                
             } break;
             case OasisRecord::POLYGON: {
                 Polygon* polygon = (Polygon*)allocate_clear(sizeof(Polygon));
-                cell->polygon_array.append(polygon);
                 next_property = &polygon->properties;
                 uint8_t info;
                 oasis_read(&info, 1, 1, in);
@@ -1932,12 +1951,18 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     oasis_read_repetition(in, factor, modal_repetition);
                     polygon->repetition.copy_from(modal_repetition);
                 }
+
+                if (filter_layers && !filter_layers->has_value(polygon->tag)) {
+                    polygon->clear();
+                    free_allocation(polygon);
+                } else {
+                    cell->polygon_array.append(polygon);
+                }
             } break;
             case OasisRecord::PATH: {
                 FlexPath* path = (FlexPath*)allocate_clear(sizeof(FlexPath));
                 FlexPathElement* element =
                     (FlexPathElement*)allocate_clear(sizeof(FlexPathElement));
-                cell->flexpath_array.append(path);
                 next_property = &path->properties;
                 path->spine.tolerance = tolerance;
                 path->elements = element;
@@ -2024,12 +2049,18 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     oasis_read_repetition(in, factor, modal_repetition);
                     path->repetition.copy_from(modal_repetition);
                 }
+
+                if (filter_layers && !filter_layers->has_value(element->tag)) {
+                    path->clear();
+                    free_allocation(path);
+                } else {
+                    cell->flexpath_array.append(path);
+                }
             } break;
             case OasisRecord::TRAPEZOID_AB:
             case OasisRecord::TRAPEZOID_A:
             case OasisRecord::TRAPEZOID_B: {
                 Polygon* polygon = (Polygon*)allocate_clear(sizeof(Polygon));
-                cell->polygon_array.append(polygon);
                 next_property = &polygon->properties;
                 uint8_t info;
                 oasis_read(&info, 1, 1, in);
@@ -2121,10 +2152,16 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     oasis_read_repetition(in, factor, modal_repetition);
                     polygon->repetition.copy_from(modal_repetition);
                 }
+
+                if (filter_layers && !filter_layers->has_value(polygon->tag)) {
+                    polygon->clear();
+                    free_allocation(polygon);
+                } else {
+                    cell->polygon_array.append(polygon);
+                }
             } break;
             case OasisRecord::CTRAPEZOID: {
                 Polygon* polygon = (Polygon*)allocate_clear(sizeof(Polygon));
-                cell->polygon_array.append(polygon);
                 next_property = &polygon->properties;
                 uint8_t info;
                 oasis_read(&info, 1, 1, in);
@@ -2290,10 +2327,16 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                     oasis_read_repetition(in, factor, modal_repetition);
                     polygon->repetition.copy_from(modal_repetition);
                 }
+
+                if (filter_layers && !filter_layers->has_value(polygon->tag)) {
+                    polygon->clear();
+                    free_allocation(polygon);
+                } else {
+                    cell->polygon_array.append(polygon);
+                }
             } break;
             case OasisRecord::CIRCLE: {
                 Polygon* polygon = (Polygon*)allocate_clear(sizeof(Polygon));
-                cell->polygon_array.append(polygon);
                 next_property = &polygon->properties;
                 uint8_t info;
                 oasis_read(&info, 1, 1, in);
@@ -2328,6 +2371,13 @@ Library read_oas(const char* filename, double unit, double tolerance, ErrorCode*
                 if (info & 0x04) {
                     oasis_read_repetition(in, factor, modal_repetition);
                     polygon->repetition.copy_from(modal_repetition);
+                }
+
+                if (filter_layers && !filter_layers->has_value(polygon->tag)) {
+                    polygon->clear();
+                    free_allocation(polygon);
+                } else {
+                    cell->polygon_array.append(polygon);
                 }
             } break;
             case OasisRecord::PROPERTY:

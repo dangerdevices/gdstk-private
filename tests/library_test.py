@@ -200,15 +200,7 @@ def test_rw_gds_filter(tmpdir, sample_library):
     }
     c = cells["gl_rw_gds_1"]
     assert len(c.polygons) == 0
-    assert len(c.labels) == 1
-    assert c.labels[0].text == "label"
-    assert c.labels[0].origin[0] == 2 and c.labels[0].origin[1] == -2
-    assert c.labels[0].anchor == "w"
-    assert c.labels[0].rotation == 10
-    assert c.labels[0].magnification == 1.5
-    assert c.labels[0].x_reflection
-    assert c.labels[0].layer == 5
-    assert c.labels[0].texttype == 6
+    assert len(c.labels) == 0
 
     c = cells["gl_rw_gds_2"]
     assert len(c.polygons) == 2
@@ -311,6 +303,46 @@ def test_read_gds_missing_refs(tmpdir):
 #     assert c.references[0].repetition.rows == 3
 #     assert c.references[0].repetition.v1 == (-2.0, 0.0)
 #     assert c.references[0].repetition.v2 == (0.0, 8.0)
+
+
+def test_oas_filter(tmpdir):
+    test_lib = gdstk.Library("test")
+    test_lib.add(gdstk.Cell("top").add(
+            gdstk.rectangle((0, 0), (10, 10), 5, 10),
+            gdstk.rectangle((0, 0), (10, 10), 20, 20),
+            gdstk.rectangle((0, 0), (10, 10), 20, 20),
+            gdstk.Label("foo", (0, 0), layer=5, texttype=10),
+            gdstk.Label("bar", (0, 0), layer=20, texttype=20),
+            gdstk.FlexPath(((0, 0), (5, 5)), 1.2, ends=(0.1, 0.0), simple_path=True, layer=5, datatype=10),
+            gdstk.FlexPath(((0, 0), (5, 5)), 1.2, ends=(0.1, 0.0), simple_path=True, layer=20, datatype=20),
+        )
+    )
+    test_lib.write_oas(tmpdir / "test.oas")
+
+    # Test filtering
+    lib = gdstk.read_oas(tmpdir / "test.oas", filter={(5, 10)})
+    polys = lib.top_level()[0].get_polygons()
+    assert polys
+    assert all((p.layer, p.datatype) == (5, 10) for p in polys)
+    labels = lib.top_level()[0].get_labels()
+    assert labels
+    assert all((l.layer, l.texttype) == (5, 10) for l in labels)
+    paths = lib.top_level()[0].get_paths()
+    assert paths
+    assert all(all(l == (5, 10) for l in zip(p.layers, p.datatypes)) for p in paths)
+
+    # Test not filtering
+    lib = gdstk.read_oas(tmpdir / "test.oas")
+    assert lib.top_level()[0].get_polygons(layer=5, datatype=10)
+    assert lib.top_level()[0].get_polygons(layer=20, datatype=20)
+    assert lib.top_level()[0].get_labels(layer=20, texttype=20)
+    assert lib.top_level()[0].get_labels(layer=20, texttype=20)
+    assert lib.top_level()[0].get_paths(layer=5, datatype=10)
+    assert lib.top_level()[0].get_paths(layer=20, datatype=20)
+
+    # Test that incorrect type doesn't crash
+    with pytest.raises(TypeError):
+        gdstk.read_oas(tmpdir / "test.oas", filter="foo")
 
 
 def test_rw_oas(tmpdir, sample_library):
