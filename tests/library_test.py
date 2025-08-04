@@ -252,59 +252,6 @@ def test_read_gds_missing_refs(tmpdir):
     assert lib2.cells[0].name == "c2"
 
 
-# def test_rw_oas_filter(tmpdir, sample_library):
-#     fname = str(tmpdir.join("test.oas"))
-#     sample_library.write_oas(fname)
-#     library = gdstk.read_oas(fname, unit=1e-3, filter={(0, 0)})
-
-#     assert library.name == "LIB"
-#     assert len(library.cells) == 4
-#     cells = {c.name: c for c in library.cells}
-#     assert set(cells.keys()) == {
-#         "gl_rw_gds_1",
-#         "gl_rw_gds_2",
-#         "gl_rw_gds_3",
-#         "gl_rw_gds_4",
-#     }
-#     c = cells["gl_rw_gds_1"]
-#     assert len(c.polygons) == 0
-#     assert len(c.labels) == 1
-#     assert c.labels[0].text == "label"
-#     assert c.labels[0].origin[0] == 2 and c.labels[0].origin[1] == -2
-#     assert c.labels[0].anchor == "sw"
-#     assert c.labels[0].rotation == 0
-#     assert c.labels[0].magnification == 1
-#     assert c.labels[0].x_reflection == False
-#     assert c.labels[0].layer == 5
-#     assert c.labels[0].texttype == 6
-
-#     c = cells["gl_rw_gds_2"]
-#     assert len(c.polygons) == 1
-#     assert isinstance(c.polygons[0], gdstk.Polygon)
-
-#     c = cells["gl_rw_gds_3"]
-#     assert len(c.references) == 1
-#     assert isinstance(c.references[0], gdstk.Reference)
-#     assert c.references[0].cell == cells["gl_rw_gds_1"]
-#     assert c.references[0].origin[0] == 0 and c.references[0].origin[1] == 2
-#     assert c.references[0].rotation == -90
-#     assert c.references[0].magnification == 2
-#     assert c.references[0].x_reflection == True
-
-#     c = cells["gl_rw_gds_4"]
-#     assert len(c.references) == 1
-#     assert isinstance(c.references[0], gdstk.Reference)
-#     assert c.references[0].cell == cells["gl_rw_gds_2"]
-#     assert c.references[0].origin[0] == -2 and c.references[0].origin[1] == -4
-#     assert c.references[0].rotation == numpy.pi
-#     assert c.references[0].magnification == 0.5
-#     assert c.references[0].x_reflection == True
-#     assert c.references[0].repetition.columns == 2
-#     assert c.references[0].repetition.rows == 3
-#     assert c.references[0].repetition.v1 == (-2.0, 0.0)
-#     assert c.references[0].repetition.v2 == (0.0, 8.0)
-
-
 def test_read_oas_snapshot():
     fixture = pathlib.Path(__file__).parent / "snapshot.oas"
     lib = gdstk.read_oas(
