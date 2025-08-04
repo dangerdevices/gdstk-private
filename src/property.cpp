@@ -78,7 +78,7 @@ static bool is_gds_property(const Property* property) {
     return true;
 }
 
-static void property_values_clear(PropertyValue* values) {
+void property_values_clear(PropertyValue* values) {
     while (values) {
         if (values->type == PropertyType::String) {
             free_allocation(values->bytes);
