@@ -305,16 +305,103 @@ def test_read_gds_missing_refs(tmpdir):
 #     assert c.references[0].repetition.v2 == (0.0, 8.0)
 
 
+def test_read_oas_snapshot():
+    fixture = pathlib.Path(__file__).parent / "snapshot.oas"
+    lib = gdstk.read_oas(
+        fixture,
+        filter=[
+            (36, 240),
+            (37, 245),
+            (38, 40),
+            (39, 40),
+            (40, 60),
+            (51, 70),
+            (52, 70),
+            (53, 150),
+            (54, 240),
+            (55, 240),
+            (56, 240),
+            (57, 40),
+            (58, 40),
+            (59, 60),
+            (74, 0),
+            (75, 0),
+            (84, 0),
+            (84, 2),
+            (84, 7),
+            (84, 47),
+            (85, 0),
+            (86, 0),
+            (108, 0),
+            (108, 250),
+            (110, 0),
+            (110, 2),
+            (111, 0),
+            (115, 0),
+            (116, 4),
+            (116, 6),
+            (116, 7),
+            (116, 9),
+            (116, 10),
+        ]
+    )
+
+
 def test_oas_filter(tmpdir):
     test_lib = gdstk.Library("test")
+    # top = gdstk.Cell("top")
+    # a_cell = gdstk.Cell("a")
+    # b_cell = gdstk.Cell("b")
+    # test_lib.add(top, a_cell, b_cell)
+    # top.add(gdstk.Reference(a_cell))
+    # top.add(gdstk.Reference(b_cell))
+    
+    # a_cell.add(
+    #     gdstk.rectangle((0, 0), (10, 10), 5, 10).set_property("a", "b"),
+    #     gdstk.rectangle((0, 0), (10, 10), 20, 20).set_property("c", "d"),
+    #     gdstk.rectangle((0, 0), (10, 10), 20, 20).set_property("e", "f"),
+    #     gdstk.Label("foo", (0, 0), layer=5, texttype=10).set_property("foo", "bar"),
+    #     gdstk.Label("bar", (0, 0), layer=20, texttype=20).set_property("foo", "bar"),
+    #     gdstk.FlexPath(
+    #         ((0, 0), (5, 5)),
+    #         1.2,
+    #         ends=(0.1, 0.0),
+    #         simple_path=True,
+    #         layer=5,
+    #         datatype=10
+    #     ).set_property("foo", "bar"),
+    #     gdstk.FlexPath(
+    #         ((0, 0), (5, 5)),
+    #         1.2,
+    #         ends=(0.1, 0.0),
+    #         simple_path=True,
+    #         layer=20,
+    #         datatype=20
+    #     ).set_property("foo", "bar"),
+    # )
+    
     test_lib.add(gdstk.Cell("top").add(
-            gdstk.rectangle((0, 0), (10, 10), 5, 10),
-            gdstk.rectangle((0, 0), (10, 10), 20, 20),
-            gdstk.rectangle((0, 0), (10, 10), 20, 20),
-            gdstk.Label("foo", (0, 0), layer=5, texttype=10),
-            gdstk.Label("bar", (0, 0), layer=20, texttype=20),
-            gdstk.FlexPath(((0, 0), (5, 5)), 1.2, ends=(0.1, 0.0), simple_path=True, layer=5, datatype=10),
-            gdstk.FlexPath(((0, 0), (5, 5)), 1.2, ends=(0.1, 0.0), simple_path=True, layer=20, datatype=20),
+            gdstk.rectangle((0, 0), (10, 10), 5, 10).set_property("a", "b"),
+            gdstk.rectangle((0, 0), (10, 10), 20, 20).set_property("a", "d"),
+            gdstk.rectangle((0, 0), (10, 10), 20, 20).set_property("a", "f"),
+            gdstk.Label("foo", (0, 0), layer=5, texttype=10).set_property("a", "h"),
+            gdstk.Label("bar", (0, 0), layer=20, texttype=20).set_property("a", "j"),
+            gdstk.FlexPath(
+                ((0, 0), (5, 5)),
+                1.2,
+                ends=(0.1, 0.0),
+                simple_path=True,
+                layer=5,
+                datatype=10
+            ).set_property("a", "l"),
+            gdstk.FlexPath(
+                ((0, 0), (5, 5)),
+                1.2,
+                ends=(0.1, 0.0),
+                simple_path=True,
+                layer=20,
+                datatype=20
+            ).set_property("a", "n"),
         )
     )
     test_lib.write_oas(tmpdir / "test.oas")
