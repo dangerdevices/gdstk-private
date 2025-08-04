@@ -473,6 +473,13 @@ static bool add_value(PropertyValue* value, PyObject* item) {
 
 static int parse_properties(Property*& properties, PyObject* arg) {
     properties_clear(properties);
+
+    // `del` is implemented by passing NULL to the attribute's setter.
+    // See the PyGetSetDef docs.
+    if (arg == NULL) {
+        return 0;
+    }
+
     if (!PySequence_Check(arg)) {
         PyErr_SetString(PyExc_TypeError, "Properties must be a sequence.");
         return -1;
