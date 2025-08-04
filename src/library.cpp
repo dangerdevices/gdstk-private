@@ -1215,6 +1215,13 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
                         path->clear();
                         free_allocation(path);
                     }
+                } else if (label) {
+                    if (shape_tags && !shape_tags->has_value(label->tag) && cell && cell->label_array.count > 0) {
+                        uint64_t index = cell->label_array.count - 1;
+                        cell->label_array.remove(index);
+                        label->clear();
+                        free_allocation(label);
+                    }
                 }
                 polygon = NULL;
                 path = NULL;

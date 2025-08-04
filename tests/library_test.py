@@ -200,15 +200,7 @@ def test_rw_gds_filter(tmpdir, sample_library):
     }
     c = cells["gl_rw_gds_1"]
     assert len(c.polygons) == 0
-    assert len(c.labels) == 1
-    assert c.labels[0].text == "label"
-    assert c.labels[0].origin[0] == 2 and c.labels[0].origin[1] == -2
-    assert c.labels[0].anchor == "w"
-    assert c.labels[0].rotation == 10
-    assert c.labels[0].magnification == 1.5
-    assert c.labels[0].x_reflection
-    assert c.labels[0].layer == 5
-    assert c.labels[0].texttype == 6
+    assert len(c.labels) == 0
 
     c = cells["gl_rw_gds_2"]
     assert len(c.polygons) == 2
