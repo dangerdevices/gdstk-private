@@ -322,7 +322,7 @@ def test_oas_filter(tmpdir):
             gdstk.Label("foo", (0, 0), layer=5, texttype=10),
             gdstk.Label("bar", (0, 0), layer=20, texttype=20),
         )
-    )    
+    )
     test_lib.write_oas(tmpdir / "test.oas")
 
     # Test filtering
