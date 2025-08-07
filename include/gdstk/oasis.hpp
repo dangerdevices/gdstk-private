@@ -162,6 +162,7 @@ struct OasisState {
     Map<uint64_t> property_name_map;
     Array<PropertyValue*> property_value_array;
     uint16_t config_flags;
+    bool strict_property_string_values;
 };
 
 ErrorCode oasis_read(void* buffer, size_t size, size_t count, OasisStream& in);
