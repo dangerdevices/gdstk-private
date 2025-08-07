@@ -6,9 +6,10 @@
 # LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
 import hashlib
+import os
 import pathlib
 from datetime import datetime
-from typing import Callable
+from typing import Callable, BinaryIO
 
 import numpy
 import pytest
@@ -765,17 +766,111 @@ def test_no_stdout_stderr_logging(capfd, tmp_path):
     assert not err
 
 
+def _read_unsigned_int(oas: BinaryIO) -> int:
+    """
+    Read an unsigned int from an OASIS byte stream.
+
+    See the OASIS spec, section 7.2, which describes the variable-length
+    encoding scheme.
+    """
+    CONTINUATION_BIT = 0x80
+    value = 0
+
+    # Don't worry about integers >64bit in size.
+    #
+    # OASIS can represent those, but gdstk cannot, so it will never
+    # write them to a file.
+    for i in range(0, 9):
+        b = oas.read(1)[0]
+
+        # For each byte read, discard the continuation bit and add the
+        # value.
+        value += (b & (CONTINUATION_BIT ^ 0xFF)) << (i * 7)
+
+        # If the continuation bit is clear, the current byte is the
+        # end of the integer. Otherwise, there's more to be read.
+        match bool(b & CONTINUATION_BIT), i:
+            case False, _:
+                break
+            case True, 8:
+                raise OverflowError("value too large to fit in 9 bytes")
+            case True, _:
+                pass
+
+    return value
+
+
 def test_oasis_roundtrip_properties(tmp_path):
     library = gdstk.Library("test")
     top = gdstk.Cell("top")
     library.add(top)
     for idx in range(10_000):
-        top.add(gdstk.rectangle((0, idx), (idx, 0)).set_property("unique", f"foo_{idx}"))
+        top.add(gdstk.rectangle((0, idx), (idx, 0)))
 
-    oas_path = tmp_path / "foo.oas"
-    library.write_oas(oas_path)
+    for idx in range(0, 20):
+        top.polygons[idx].set_property("unique", f"foo_{idx}")
 
-    new_lib = gdstk.read_oas(oas_path)
+    library.write_oas(tmp_path / "fewprops.oas")
+
+    # With only a few unique properties added, all OASIS tables
+    # should be in strict mode.
+    #
+    # Although this test does not care about the actual offset values,
+    # the offsets must still be read because the byte size of each
+    # one is variable. Without reading those values, there's no way to
+    # accurately find where the next table entry starts.
+    with open(tmp_path / "fewprops.oas", "rb") as oas:
+        # END record with reference tables is found 256 bytes before EOF.
+        oas.seek(-256, os.SEEK_END)
+
+        # END record marker.
+        assert oas.read(1)[0] == 0x02
+
+        # Cell name table in strict mode.
+        assert oas.read(1)[0] == 0x01
+        _ = _read_unsigned_int(oas)
+
+        # Text string table in strict mode.
+        assert oas.read(1)[0] == 0x01
+        _ = _read_unsigned_int(oas)
+
+        # Property name table in strict mode.
+        assert oas.read(1)[0] == 0x01
+        _ = _read_unsigned_int(oas)
+
+        # Property string table in strict mode.
+        assert oas.read(1)[0] == 0x01
+        _ = _read_unsigned_int(oas)
+
+    for idx, polygon in enumerate(top.polygons):
+        polygon.set_property("unique", f"foo_{idx}")
+
+    library.write_oas(tmp_path / "manyprops.oas")
+
+    # Many unique property strings have been added, so some of them will
+    # have been stored inline rather than in the property string table.
+    # That table must be marked as being in non-strict mode.
+    with open(tmp_path / "manyprops.oas", "rb") as oas:
+        oas.seek(-256, os.SEEK_END)
+        assert oas.read(1)[0] == 0x02
+
+        # Cell name table in strict mode.
+        assert oas.read(1)[0] == 0x01
+        _ = _read_unsigned_int(oas)
+
+        # Text string table in strict mode.
+        assert oas.read(1)[0] == 0x01
+        _ = _read_unsigned_int(oas)
+
+        # Property name table in strict mode.
+        assert oas.read(1)[0] == 0x01
+        _ = _read_unsigned_int(oas)
+
+        # Property string table in relaxed mode.
+        assert oas.read(1)[0] == 0x00
+        _ = _read_unsigned_int(oas)
+
+    new_lib = gdstk.read_oas(tmp_path / "manyprops.oas")
     assert sorted(
             [f"foo_{idx}" for idx in range(10_000)]
         ) == sorted(
