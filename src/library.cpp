@@ -435,6 +435,7 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
     OasisState state = {};
     state.circle_tolerance = circle_tolerance;
     state.config_flags = config_flags;
+    state.strict_property_string_values = true;
 
     if (compression_level > 9) compression_level = 9;
 
@@ -900,7 +901,7 @@ ErrorCode Library::write_oas(const char* filename, double circle_tolerance,
     oasis_write_unsigned_integer(out, text_string_offset);
     oasis_putc(1, out);
     oasis_write_unsigned_integer(out, prop_name_offset);
-    oasis_putc(1, out);
+    oasis_putc((int)state.strict_property_string_values, out);
     oasis_write_unsigned_integer(out, prop_string_offset);
     oasis_putc(1, out);
     oasis_putc(0, out);  // LAYERNAME table
