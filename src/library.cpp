@@ -1451,8 +1451,13 @@ Library read_oas(const char* filename, double unit, double tolerance, const Set<
     PropertyValue* modal_property_value_list = NULL;
 
     Property** next_property = &library.properties;
-    Array<Property*> garbage_properties = {};
-    Array<Property*> garbage_properties_with_names = {};
+    
+    // These properties belong to polygons, paths, or labels that have
+    // been filtered out of the output. Other objects' properties may refer
+    // to their values via OASIS modal variables, so they cannot be safely
+    // freed until the end of the read loop.
+    Array<Property*> filtered_properties = {};
+    Array<Property*> filtered_properties_with_names = {};
 
     Array<Property*> unfinished_property_name = {};
     Array<PropertyValue*> unfinished_property_value = {};
@@ -2488,9 +2493,9 @@ Library read_oas(const char* filename, double unit, double tolerance, const Set<
                     next_property = &property->next;
                 } else {
                     if (modal_property_unfinished) {
-                        garbage_properties.append(property);
+                        filtered_properties.append(property);
                     } else {
-                        garbage_properties_with_names.append(property);
+                        filtered_properties_with_names.append(property);
                     }
                 }
             } break;
@@ -2639,18 +2644,18 @@ CLEANUP:
     unfinished_property_name.clear();
     unfinished_property_value.clear();
 
-    for (uint64_t i = 0; i < garbage_properties.count; i++) {
-        property_values_clear(garbage_properties[i]->value);
-        free_allocation(garbage_properties[i]);
+    for (uint64_t i = 0; i < filtered_properties.count; i++) {
+        property_values_clear(filtered_properties[i]->value);
+        free_allocation(filtered_properties[i]);
     }
-    garbage_properties.clear();
+    filtered_properties.clear();
     
-    for (uint64_t i = 0; i < garbage_properties_with_names.count; i++) {
-        property_values_clear(garbage_properties_with_names[i]->value);
-        free_allocation(garbage_properties_with_names[i]->name);
-        free_allocation(garbage_properties_with_names[i]);
+    for (uint64_t i = 0; i < filtered_properties_with_names.count; i++) {
+        property_values_clear(filtered_properties_with_names[i]->value);
+        free_allocation(filtered_properties_with_names[i]->name);
+        free_allocation(filtered_properties_with_names[i]);
     }
-    garbage_properties_with_names.clear();
+    filtered_properties_with_names.clear();
     
     return library;
 }
