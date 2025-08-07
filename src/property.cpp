@@ -404,6 +404,11 @@ ErrorCode properties_to_oas(const Property* properties, OasisStream& out, OasisS
                     // unique values, switch to writing the property values directly
                     // in order to avoid degenerate O(n^2) complexity.
                     //
+                    // When that occurs, mark the property string value table as
+                    // non-strict. It's not spec-compliant to mix property string
+                    // references and inline values if the table claims to be
+                    // strict.
+                    //
                     // 1000 is an arbitrary threshold.
                     if (state.property_value_array.count < 1000) {
                         if (binary) {
@@ -424,6 +429,8 @@ ErrorCode properties_to_oas(const Property* properties, OasisStream& out, OasisS
                             state.property_value_array.append(value);
                         oasis_write_unsigned_integer(out, index);
                     } else {
+                        state.strict_property_string_values = false;
+
                         if (binary) {
                             oasis_putc((uint8_t)OasisDataType::BString, out);
                         } else if (space) {
