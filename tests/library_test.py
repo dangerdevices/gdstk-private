@@ -346,6 +346,8 @@ def test_read_oas_snapshot():
         ]
     )
 
+    assert len(lib.top_level()[0].get_polygons()) == 18681511
+
 
 def test_oas_filter(tmpdir):
     test_lib = gdstk.Library("test")
