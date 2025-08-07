@@ -104,6 +104,7 @@ docs/gdstk
 *.svg
 *.gds
 *.oas
+!tests/*.oas
 docs/geometry/
 docs/library/
 

@@ -52,6 +52,7 @@ struct Property {
 };
 
 void properties_print(Property* properties);
+void property_values_clear(PropertyValue* values);
 void properties_clear(Property*& properties);
 Property* properties_copy(const Property* properties);
 
