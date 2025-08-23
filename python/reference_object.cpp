@@ -134,25 +134,6 @@ static PyObject* reference_object_bounding_box(ReferenceObject* self, PyObject*)
     return Py_BuildValue("((dd)(dd))", min.x, min.y, max.x, max.y);
 }
 
-static PyObject* reference_object_convex_hull(ReferenceObject* self, PyObject*) {
-    Array<Vec2> points = {};
-    self->reference->convex_hull(points);
-    if (points.count == 0) {
-        points.clear();
-        Py_RETURN_NONE;
-    }
-    npy_intp dims[] = {(npy_intp)points.count, 2};
-    PyObject* result = PyArray_SimpleNew(2, dims, NPY_DOUBLE);
-    if (!result) {
-        PyErr_SetString(PyExc_MemoryError, "Unable to create return array.");
-        return NULL;
-    }
-    double* data = (double*)PyArray_DATA((PyArrayObject*)result);
-    memcpy(data, points.items, sizeof(double) * points.count * 2);
-    points.clear();
-    return (PyObject*)result;
-}
-
 static PyObject* reference_object_get_polygons(ReferenceObject* self, PyObject* args,
                                                PyObject* kwds) {
     int apply_repetitions = 1;
@@ -441,8 +422,6 @@ static PyMethodDef reference_object_methods[] = {
     {"copy", (PyCFunction)reference_object_copy, METH_NOARGS, reference_object_copy_doc},
     {"bounding_box", (PyCFunction)reference_object_bounding_box, METH_NOARGS,
      reference_object_bounding_box_doc},
-    {"convex_hull", (PyCFunction)reference_object_convex_hull, METH_NOARGS,
-     reference_object_convex_hull_doc},
     {"get_polygons", (PyCFunction)reference_object_get_polygons, METH_VARARGS | METH_KEYWORDS,
      reference_object_get_polygons_doc},
     {"get_paths", (PyCFunction)reference_object_get_paths, METH_VARARGS | METH_KEYWORDS,
