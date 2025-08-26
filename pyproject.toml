@@ -37,7 +37,6 @@ requires-python = ">=3.9"
 dev = [
     "gdstk",
     "pytest",
-    "uv" = ">=0.8"
 ]
 docs = ["sphinx", "sphinx_rtd_theme", "sphinx-inline-tabs", "matplotlib"]
 
