@@ -14,10 +14,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+            **/uv.lock
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -26,23 +28,11 @@ jobs:
       - name: Install dependencies (MacOS)
         if: runner.os == 'macOS'
         run: |
-          # Temporary fix, see https://github.com/actions/setup-python/issues/577
-          rm /usr/local/bin/2to3* || true
-          rm /usr/local/bin/idle3* || true
-          rm /usr/local/bin/pydoc3* || true
-          rm /usr/local/bin/python3* || true
-          rm /usr/local/bin/python3-config* || true
           brew update
           brew install qhull
       - name: Install python dependencies
         run: |
-          pip install pip-tools pytest
-          python -m piptools compile --resolver=backtracking -o requirements.txt pyproject.toml
-          pip install -r requirements.txt
-      - name: Build and install
-        run: |
-          python -m build -w
-          mv gdstk gdstk_src
-          pip install --no-index --find-links dist gdstk
+          uv sync --locked
       - name: Test
-        run: python -m pytest
+        run: |
+          uv run pytest --locked
