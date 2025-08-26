@@ -32,7 +32,7 @@ jobs:
           brew install qhull
       - name: Install python dependencies
         run: |
-          uv sync --locked
+          uv sync --python "${{ matrix.python-version }}" --locked
       - name: Test
         run: |
-          uv run --locked pytest
+          uv run --python "${{ matrix.python-version }}" --locked pytest
