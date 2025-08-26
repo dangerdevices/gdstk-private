@@ -33,7 +33,11 @@ dependencies = [
 ]
 requires-python = ">=3.9"
 
-[project.optional-dependencies]
+[dependency-groups]
+dev = [
+    "gdstk",
+    "pytest",
+]
 docs = ["sphinx", "sphinx_rtd_theme", "sphinx-inline-tabs", "matplotlib"]
 
 [project.urls]
@@ -52,3 +56,14 @@ install.components = ["_gdstk"]
 
 [tool.black]
 line-length = 100
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.uv.workspace]
+members = [
+    ".",
+]
+
+[tool.uv.sources]
+gdstk = { workspace = true }
