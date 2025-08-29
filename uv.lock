@@ -464,7 +464,7 @@ wheels = [
 
 [[package]]
 name = "gdstk"
-version = "0.9.58+dd40"
+version = "0.9.58+dd41"
 source = { editable = "." }
 dependencies = [
     { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
