@@ -404,6 +404,15 @@ def test_oas_filter(tmpdir):
     with pytest.raises(TypeError):
         gdstk.read_oas(tmpdir / "test.oas", filter="foo")
 
+    # Test filtering to only layers that don't exist in the library
+    lib = gdstk.read_oas(tmpdir / "test.oas", filter=[(0, 0)])
+    assert not lib.layers_and_datatypes()
+    assert not lib.layers_and_texttypes()
+
+    lib = gdstk.read_oas(tmpdir / "test.oas", filter=[])
+    assert not lib.layers_and_datatypes()
+    assert not lib.layers_and_texttypes()
+
 
 def test_rw_oas(tmpdir, sample_library):
     fname = str(tmpdir.join("test.oas"))
