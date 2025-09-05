@@ -2063,6 +2063,7 @@ Library read_oas(const char* filename, double unit, double tolerance, const Set<
 
                 if (filter_layers && !filter_layers->has_value(element->tag)) {
                     path->clear();
+                    next_property = NULL;
                     free_allocation(path);
                 } else {
                     cell->flexpath_array.append(path);
