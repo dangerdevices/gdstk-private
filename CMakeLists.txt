@@ -34,6 +34,8 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
         set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
     endif()
 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -v")
+
     include(CTest)
     add_subdirectory(docs/cpp)
 endif()
