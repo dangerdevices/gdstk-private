@@ -8,16 +8,14 @@ target_compile_features(_gdstk PRIVATE cxx_std_11)
 
 target_link_libraries(_gdstk PRIVATE gdstk Python::NumPy)
 
-# Statically link libstdc++ on Linux.
+# On machines with Cadence installed, use the libstd++ it provides,
+# rather than the system-wide one.
 #
-# On machines with Cadence installed, the system libstdc++ may be a
-# newer version than the Cadence-provided one. CDBA _must_ dynamically
-# link to the Cadence libstdc++, which causes conflicts.
-#
-# Gdstk's use of C++ is strictly internal, so it can use its own
-# libstdc++ and not have to care what anyone else does.
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    target_link_options(_gdstk PRIVATE -static-libgcc -static-libstdc++)
+# This prevents version conflicts when the Cadence libstdc++ version
+# differs from the system's, and CDBA, which _must_ dynamically
+# link to the Cadence-provided libstdc++, is used.
+if(DEFINED $ENV{CDSHOME})
+    list(PREPEND CMAKE_LIBRARY_PATH "$ENV{CDSHOME}/tools/cdsgcc/gcc/install/lib64")
 endif()
 
 install(TARGETS _gdstk
