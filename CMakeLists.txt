@@ -11,6 +11,20 @@ set(GDSTK_VERSION ${CMAKE_MATCH_1})
 # the project version string.
 string(REPLACE "+dd" "." GDSTK_VERSION ${GDSTK_VERSION})
 
+if(DEFINED ENV{CDSHOME})
+    set(CMAKE_C_COMPILER "$ENV{CDSHOME}/tools/cdsgcc/gcc/install/bin/gcc")
+    set(CMAKE_CXX_COMPILER "$ENV{CDSHOME}/tools/cdsgcc/gcc/install/bin/g++")
+
+    list(PREPEND CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES "$ENV{CDSHOME}/tools/cdsgcc/gcc/install/include")
+    list(PREPEND CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES "$ENV{CDSHOME}/tools/cdsgcc/gcc/install/lib64")
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -v")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-rpath,$ENV{CDSHOME}/tools/cdsgcc/gcc/install/lib64")
+
+    # TODO: This does not work.
+    # set(ENV{LD_LIBRARY_PATH}, "$ENV{CDSHOME}/tools/cdsgcc/install/lib64")
+endif()
+
 project(gdstk
     VERSION ${GDSTK_VERSION}
     LANGUAGES CXX C)
