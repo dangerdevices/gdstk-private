@@ -11,6 +11,17 @@ set(GDSTK_VERSION ${CMAKE_MATCH_1})
 # the project version string.
 string(REPLACE "+dd" "." GDSTK_VERSION ${GDSTK_VERSION})
 
+# If building on a machine with an active Cadence install, use the
+# Cadence-provided gcc and libstdc++.
+#
+# This prevents libstdc++ version conflicts when Florist loads both
+# gdstk and CDBA, because CDBA must use the same compiler & libs as
+# the Cadence installation does.
+#
+# The tool which invokes `cmake --build` must set `LD_LIBARY_PATH` to
+# `${CDSHOME}/tools/cdsgcc/install/lib64`, so that the Cadence compiler can
+# find its own libraries during the build. This is temporary and not needed
+# to use the built gdstk wheel.
 if(DEFINED ENV{CDSHOME})
     set(CMAKE_C_COMPILER "$ENV{CDSHOME}/tools/cdsgcc/gcc/install/bin/gcc")
     set(CMAKE_CXX_COMPILER "$ENV{CDSHOME}/tools/cdsgcc/gcc/install/bin/g++")
@@ -19,10 +30,11 @@ if(DEFINED ENV{CDSHOME})
     list(PREPEND CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES "$ENV{CDSHOME}/tools/cdsgcc/gcc/install/lib64")
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -v")
-    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-rpath,$ENV{CDSHOME}/tools/cdsgcc/gcc/install/lib64")
 
-    # TODO: This does not work.
-    # set(ENV{LD_LIBRARY_PATH}, "$ENV{CDSHOME}/tools/cdsgcc/install/lib64")
+    # Put the Cadence directory in the gdstk shared library's rpath. This
+    # causes ld(1) to look there first when loading libraries, without having
+    # to munge `LD_LIBRARY_PATH`.
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-rpath,$ENV{CDSHOME}/tools/cdsgcc/gcc/install/lib64")
 endif()
 
 project(gdstk
