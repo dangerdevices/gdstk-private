@@ -1451,6 +1451,7 @@ Library read_oas(const char* filename, double unit, double tolerance, const Set<
     // freed until the end of the read loop.
     Array<Property*> filtered_properties = {};
     Array<Property*> filtered_properties_with_names = {};
+    Array<Label *> filtered_labels = {};
 
     Array<Property*> unfinished_property_name = {};
     Array<PropertyValue*> unfinished_property_value = {};
@@ -1849,9 +1850,8 @@ Library read_oas(const char* filename, double unit, double tolerance, const Set<
                 }
 
                 if (filter_layers && !filter_layers->has_value(label->tag)) {
-                    label->clear();
+                    filtered_labels.append(label);
                     next_property = NULL;
-                    free_allocation(label);
                 } else {
                     cell->label_array.append(label);
                 }
@@ -2055,6 +2055,7 @@ Library read_oas(const char* filename, double unit, double tolerance, const Set<
 
                 if (filter_layers && !filter_layers->has_value(element->tag)) {
                     path->clear();
+                    next_property = NULL;
                     free_allocation(path);
                 } else {
                     cell->flexpath_array.append(path);
@@ -2649,6 +2650,12 @@ CLEANUP:
         free_allocation(filtered_properties_with_names[i]);
     }
     filtered_properties_with_names.clear();
+
+    for (uint64_t i = 0; i < filtered_labels.count; i++) {
+        filtered_labels[i]->clear();
+        free_allocation(filtered_labels[i]);
+    }
+    filtered_labels.clear();
     
     return library;
 }

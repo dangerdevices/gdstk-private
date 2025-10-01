@@ -404,6 +404,15 @@ def test_oas_filter(tmpdir):
     with pytest.raises(TypeError):
         gdstk.read_oas(tmpdir / "test.oas", filter="foo")
 
+    # Test filtering to only layers that don't exist in the library
+    lib = gdstk.read_oas(tmpdir / "test.oas", filter=[(0, 0)])
+    assert not lib.layers_and_datatypes()
+    assert not lib.layers_and_texttypes()
+
+    lib = gdstk.read_oas(tmpdir / "test.oas", filter=[])
+    assert not lib.layers_and_datatypes()
+    assert not lib.layers_and_texttypes()
+
 
 def test_rw_oas(tmpdir, sample_library):
     fname = str(tmpdir.join("test.oas"))
@@ -747,6 +756,24 @@ def test_oasis_degenerate_polygon(tmpdir: pathlib.Path):
             [-150.092, 125.407],
         ],
     )
+
+
+def test_oasis_explicit_repetitions(tmpdir: pathlib.Path):
+    polygon = gdstk.rectangle((0, 0), (10, 10))
+    polygon.repetition = gdstk.Repetition(offsets=((2, 3), (6, 8)))
+    cell = gdstk.Cell("top").add(polygon)
+
+    wlib = gdstk.Library("explicit_repetition")
+    wlib.add(cell)
+    wlib.write_oas(tmpdir / "explicit_repetition.oas")
+
+    rlib = gdstk.read_oas(tmpdir / "explicit_repetition.oas")
+    rpolygon = rlib.top_level()[0].polygons[0]
+
+    assert rpolygon.repetition
+    repeats = rpolygon.apply_repetition()
+    assert repeats[0].bounding_box() == ((2, 3), (12, 13))
+    assert repeats[1].bounding_box() == ((6, 8), (16, 18))
 
 
 @pytest.mark.parametrize(
