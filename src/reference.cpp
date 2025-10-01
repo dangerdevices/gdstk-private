@@ -120,6 +120,7 @@ void Reference::bounding_box(Vec2& min, Vec2& max) const {
     // delegate the bounding box calculation to the cell. Only the 4 bounding
     // box points then need to be repeated + transformed.
     if (is_multiple_of_pi_over_2(rotation, m)) {
+        fprintf(stderr, "fastpath\n");
         Vec2 cmin, cmax;
         cell->bounding_box(cmin, cmax);
 
@@ -130,107 +131,40 @@ void Reference::bounding_box(Vec2& min, Vec2& max) const {
             point_array.append_unsafe(Vec2{cmin.x, cmax.y});
             point_array.append_unsafe(Vec2{cmax.x, cmin.y});
         }
+
+        repeat_and_transform(point_array);
     // Slow path: rotation is at a non-cardinal angle. Must calculate the
-    // bounding box of all cell elements, then repeat + transform every
-    // resulting point.
+    // bounding box over all points of the referenced cell's elements.
     } else {
+        fprintf(stderr, "slowpath\n");
         Vec2 emin, emax;
 
-        Polygon** polygon = cell->polygon_array.items;
-        for (uint64_t i = 0; i < cell->polygon_array.count; i++, polygon++) {
-            (*polygon)->bounding_box(emin, emax);
+        Array<Polygon*> polygon_array = {0};
+        get_polygons(true, true, -1, false, 0, polygon_array);
 
-            if (emin.x <= emax.x) {
-                point_array.ensure_slots(4);
-                point_array.append_unsafe(emin);
-                point_array.append_unsafe(emax);
-                point_array.append_unsafe(Vec2{emin.x, emax.y});
-                point_array.append_unsafe(Vec2{emax.x, emin.y});
-            }
+        Polygon** polygon = polygon_array.items;
+        for (uint64_t i = 0; i < polygon_array.count; i++, polygon++) {
+            point_array.extend((*polygon)->point_array);
+
+            polygon_array[i]->clear();
+            free_allocation(polygon_array[i]);
         }
+        polygon_array.clear();
 
         Label** label = cell->label_array.items;
-        point_array.ensure_slots(cell->label_array.count);
+        Array<Vec2> label_offsets = {};
         for (uint64_t i = 0; i < cell->label_array.count; i++, label++) {
-            // Use `bounding_box()` rather than `(*label)->origin` directly,
-            // because the label (as well as all the other cell elements) may
-            // have repetitions.
-            (*label)->bounding_box(emin, emax);
+            if((*label)->repetition.type == RepetitionType::None) {
+               point_array.append((*label)->origin);
+           } else {
+                (*label)->repetition.get_offsets(label_offsets);
+                point_array.extend(label_offsets);
 
-            if (emin.x <= emax.x) {
-                point_array.ensure_slots(4);
-                point_array.append_unsafe(emin);
-                point_array.append_unsafe(emax);
-                point_array.append_unsafe(Vec2{emin.x, emax.y});
-                point_array.append_unsafe(Vec2{emax.x, emin.y});
-            }
+                label_offsets.count = 0;
+           }
         }
-
-        Reference** reference = cell->reference_array.items;
-        for (uint64_t i = 0; i < cell->reference_array.count; i++, reference++) {
-            (*reference)->bounding_box(emin, emax);
-
-            if (emin.x <= emax.x) {
-                point_array.ensure_slots(4);
-                point_array.append_unsafe(emin);
-                point_array.append_unsafe(emax);
-                point_array.append_unsafe(Vec2{emin.x, emax.y});
-                point_array.append_unsafe(Vec2{emax.x, emin.y});
-            }
-        }
-
-        Array<Polygon*> array = {};
-        FlexPath** flexpath = cell->flexpath_array.items;
-        for (uint64_t i = 0; i < cell->flexpath_array.count; i++, flexpath++) {
-            // to_polygons() may return an error if the path has less than
-            // two points in its spine, or is zero-width. That will leave
-            // the return array in a valid state, but with 0 items.
-            (*flexpath)->to_polygons(false, 0, array);
-
-            for (uint64_t j = 0; j < array.count; j++) {
-                array[j]->bounding_box(emin, emax);
-
-                if (emin.x <= emax.x) {
-                    point_array.ensure_slots(4);
-                    point_array.append_unsafe(emin);
-                    point_array.append_unsafe(emax);
-                    point_array.append_unsafe(Vec2{emin.x, emax.y});
-                    point_array.append_unsafe(Vec2{emax.x, emin.y});
-                }
-
-                array[j]->clear();
-                free_allocation(array[j]);
-            }
-            array.count = 0;
-        }
-
-        RobustPath** robustpath = cell->robustpath_array.items;
-        for (uint64_t i = 0; i < cell->robustpath_array.count; i++, robustpath++) {
-            // to_polygons() may return an error if the path has no elements
-            // or is zero-width. That will leave the return array in a valid
-            // state, but with 0 items.
-            (*robustpath)->to_polygons(false, 0, array);
-
-            for (uint64_t j = 0; j < array.count; j++) {
-                array[j]->bounding_box(emin, emax);
-
-                if (emin.x <= emax.x) {
-                    point_array.ensure_slots(4);
-                    point_array.append_unsafe(emin);
-                    point_array.append_unsafe(emax);
-                    point_array.append_unsafe(Vec2{emin.x, emax.y});
-                    point_array.append_unsafe(Vec2{emax.x, emin.y});
-                }
-
-                array[j]->clear();
-                free_allocation(array[j]);
-            }
-            array.count = 0;
-        }
-        array.clear();
+        label_offsets.clear();
     }
-
-    repeat_and_transform(point_array);
 
     Vec2* point = point_array.items;
     for (uint64_t i = point_array.count; i > 0; i--, point++) {
