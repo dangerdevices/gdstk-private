@@ -76,16 +76,8 @@ struct Reference {
 
     // Calculate the bounding box of this reference and return the lower left
     // and upper right corners in min and max, respectively.  If the bounding
-    // box cannot be calculated, return min.x > max.x.  The cached version can
-    // be used to retain the cache for latter use, but it is the user
-    // responsibility to invalidate the cache if any geometry changes.
+    // box cannot be calculated, return min.x > max.x.
     void bounding_box(Vec2& min, Vec2& max) const;
-    void bounding_box(Vec2& min, Vec2& max, Map<GeometryInfo>& cache) const;
-
-    // Append the convex hull of this reference to result.  The cached version
-    // follows the same rules explained for bounding_box.
-    void convex_hull(Array<Vec2>& result) const;
-    void convex_hull(Array<Vec2>& result, Map<GeometryInfo>& cache) const;
 
     // Transformations are applied in the order of arguments, starting with
     // magnification and translating by origin at the end.  This is equivalent

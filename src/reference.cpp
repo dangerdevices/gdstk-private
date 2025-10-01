@@ -109,30 +109,20 @@ void Reference::repeat_and_transform(Array<Vec2>& point_array) const {
 }
 
 void Reference::bounding_box(Vec2& min, Vec2& max) const {
-    Map<GeometryInfo> cache = {};
-    bounding_box(min, max, cache);
-    for (MapItem<GeometryInfo>* item = cache.next(NULL); item; item = cache.next(item)) {
-        item->value.clear();
-    }
-    cache.clear();
-}
-
-void Reference::bounding_box(Vec2& min, Vec2& max, Map<GeometryInfo>& cache) const {
     min.x = min.y = DBL_MAX;
     max.x = max.y = -DBL_MAX;
     if (type != ReferenceType::Cell) return;
 
-    GeometryInfo info = cache.get(cell->name);
     int64_t m;
     Array<Vec2> point_array = {};
 
+    // Fast path: if the rotation is a multiple of 90 degrees (aka pi/2 radians),
+    // delegate the bounding box calculation to the cell. Only the 4 bounding
+    // box points then need to be repeated + transformed.
     if (is_multiple_of_pi_over_2(rotation, m)) {
         Vec2 cmin, cmax;
-        if (!info.bounding_box_valid) {
-            info = cell->bounding_box(cache);
-        }
-        cmin = info.bounding_box_min;
-        cmax = info.bounding_box_max;
+        cell->bounding_box(cmin, cmax);
+
         if (cmin.x <= cmax.x) {
             point_array.ensure_slots(4);
             point_array.append_unsafe(cmin);
@@ -140,14 +130,38 @@ void Reference::bounding_box(Vec2& min, Vec2& max, Map<GeometryInfo>& cache) con
             point_array.append_unsafe(Vec2{cmin.x, cmax.y});
             point_array.append_unsafe(Vec2{cmax.x, cmin.y});
         }
-    } else {
-        if (!info.convex_hull_valid) {
-            info = cell->convex_hull(cache);
-        }
-        point_array.extend(info.convex_hull);
-    }
 
-    repeat_and_transform(point_array);
+        repeat_and_transform(point_array);
+    // Slow path: rotation is at a non-cardinal angle. Must calculate the
+    // bounding box over all points of the referenced cell's elements.
+    } else {
+        Vec2 emin, emax;
+
+        Array<Polygon*> polygon_array = {0};
+        get_polygons(true, true, -1, false, 0, polygon_array);
+
+        Polygon** polygon = polygon_array.items;
+        for (uint64_t i = 0; i < polygon_array.count; i++, polygon++) {
+            point_array.extend((*polygon)->point_array);
+
+            polygon_array[i]->clear();
+            free_allocation(polygon_array[i]);
+        }
+        polygon_array.clear();
+
+        Array<Label*> label_array = {0};
+        get_labels(true, -1, false, 0, label_array);
+
+        Label** label = label_array.items;
+        point_array.ensure_slots(label_array.count);
+        for (uint64_t i = 0; i < label_array.count; i++, label++) {
+            point_array.append_unsafe((*label)->origin);
+
+            label_array[i]->clear();
+            free_allocation(label_array[i]);
+        }
+        label_array.clear();
+    }
 
     Vec2* point = point_array.items;
     for (uint64_t i = point_array.count; i > 0; i--, point++) {
@@ -156,29 +170,6 @@ void Reference::bounding_box(Vec2& min, Vec2& max, Map<GeometryInfo>& cache) con
         if (point->x > max.x) max.x = point->x;
         if (point->y > max.y) max.y = point->y;
     }
-    point_array.clear();
-}
-
-void Reference::convex_hull(Array<Vec2>& result) const {
-    if (type != ReferenceType::Cell) return;
-    Map<GeometryInfo> cache = {};
-    convex_hull(result, cache);
-    for (MapItem<GeometryInfo>* item = cache.next(NULL); item; item = cache.next(item)) {
-        item->value.clear();
-    }
-    cache.clear();
-}
-
-void Reference::convex_hull(Array<Vec2>& result, Map<GeometryInfo>& cache) const {
-    if (type != ReferenceType::Cell) return;
-    GeometryInfo info = cache.get(cell->name);
-    if (!info.convex_hull_valid) {
-        info = cell->convex_hull(cache);
-    }
-    Array<Vec2> point_array = {};
-    point_array.extend(info.convex_hull);
-    repeat_and_transform(point_array);
-    gdstk::convex_hull(point_array, result);
     point_array.clear();
 }
 

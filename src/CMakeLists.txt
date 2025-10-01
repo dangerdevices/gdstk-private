@@ -20,8 +20,6 @@ if(NOT ZLIB_FOUND)
     endif()
 endif(NOT ZLIB_FOUND)
 
-find_package(Qhull 8 REQUIRED)
-
 set(HEADER_LIST 
     "${gdstk_SOURCE_DIR}/include/gdstk/allocator.hpp"
     "${gdstk_SOURCE_DIR}/include/gdstk/array.hpp"
@@ -83,12 +81,10 @@ target_include_directories(gdstk PUBLIC
     $<BUILD_INTERFACE:${gdstk_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${gdstk_SOURCE_DIR}/external>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    ${ZLIB_INCLUDE_DIRS}
-    ${QHULL_INCLUDE_DIRS})
+    ${ZLIB_INCLUDE_DIRS})
 
 target_link_libraries(gdstk
     ${ZLIB_LIBRARIES}
-    ${QHULL_LIBRARIES}
     clipper)
 
 if(UNIX)

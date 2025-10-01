@@ -5,6 +5,8 @@
 # Boost Software License - Version 1.0.  See the accompanying
 # LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
+import math
+
 import pytest
 import numpy
 import gdstk
@@ -107,6 +109,64 @@ def test_label_bounding_box():
     assert_close(bb, ((x, y), (x, y)))
 
 
+def test_bounding_box_rotation():
+    c = gdstk.Cell("foo")
+
+    cs = gdstk.Cell("bar")
+    cs.add(gdstk.regular_polygon((20, 20), 4, 6))
+
+    label = gdstk.Label("bar", (-5, -5))
+    label.repetition = gdstk.Repetition(
+        columns=2,
+        rows=2,
+        spacing=(0.5, 0.5),
+    )
+
+    c.add(
+        gdstk.rectangle((0, 0), (10, 10)),
+        label,
+        gdstk.FlexPath(((9, 0), (0, -9), (-9, -9)), width=3.14),
+        gdstk.RobustPath((-3, -22), width=1.5).horizontal(10).vertical(10),
+        gdstk.Reference(cs),
+    )
+
+    ref_nr = gdstk.Reference(c)
+    assert_close(
+        ref_nr.bounding_box(),
+        (
+            (-9.0, -22.75),
+            (24.0, 23.464101615137757),
+        ),
+    )
+
+    ref_33 = gdstk.Reference(c, rotation=math.radians(33))
+    assert_close(
+        ref_33.bounding_box(),
+        (
+            (-5.446390350150271, -20.713672525803478),
+            (21.406246652005713, 31.660710198227317),
+        ),
+    )
+
+    ref_90 = gdstk.Reference(c, rotation=math.radians(90))
+    assert_close(
+        ref_90.bounding_box(),
+        (
+            (-23.464101615137757, -9.0),
+            (22.75, 24.0),
+        ),
+    )
+
+    ref_227_refl = gdstk.Reference(c, rotation=math.radians(227), x_reflection=True)
+    assert_close(
+        ref_227_refl.bounding_box(),
+        (
+            (-32.16452149277432, -23.377514983828394),
+            (18.684291792023622, 6.819983600624986),
+        ),
+    )
+
+
 def _create_cell_reference(raw=False):
     if raw:
         c = gdstk.RawCell("CELL")
@@ -148,13 +208,9 @@ def test_gds_array(tmpdir):
                 for dx in (-3, 0, 3):
                     for dy in (-4, 0, 4):
                         if rect:
-                            rep = gdstk.Repetition(
-                                columns=cols, rows=rows, spacing=(dx, dy)
-                            )
+                            rep = gdstk.Repetition(columns=cols, rows=rows, spacing=(dx, dy))
                         else:
-                            rep = gdstk.Repetition(
-                                columns=cols, rows=rows, v1=(dx, 0), v2=(0, dy)
-                            )
+                            rep = gdstk.Repetition(columns=cols, rows=rows, v1=(dx, 0), v2=(0, dy))
                         for rot in range(-3, 4):
                             for refl in (True, False):
                                 cell = lib.new_cell(
@@ -246,7 +302,3 @@ def test_get_labels(tree):
     assert len(labels) == 0
     labels = r3.get_labels(depth=1, layer=11, texttype=0)
     assert len(labels) == 6
-
-def test_empty_reference_convex_hull():
-    cell = gdstk.Cell("empty")
-    assert gdstk.Reference(cell).convex_hull() is None
