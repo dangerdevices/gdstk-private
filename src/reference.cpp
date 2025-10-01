@@ -120,7 +120,6 @@ void Reference::bounding_box(Vec2& min, Vec2& max) const {
     // delegate the bounding box calculation to the cell. Only the 4 bounding
     // box points then need to be repeated + transformed.
     if (is_multiple_of_pi_over_2(rotation, m)) {
-        fprintf(stderr, "fastpath\n");
         Vec2 cmin, cmax;
         cell->bounding_box(cmin, cmax);
 
@@ -136,7 +135,6 @@ void Reference::bounding_box(Vec2& min, Vec2& max) const {
     // Slow path: rotation is at a non-cardinal angle. Must calculate the
     // bounding box over all points of the referenced cell's elements.
     } else {
-        fprintf(stderr, "slowpath\n");
         Vec2 emin, emax;
 
         Array<Polygon*> polygon_array = {0};
@@ -151,19 +149,18 @@ void Reference::bounding_box(Vec2& min, Vec2& max) const {
         }
         polygon_array.clear();
 
-        Label** label = cell->label_array.items;
-        Array<Vec2> label_offsets = {};
-        for (uint64_t i = 0; i < cell->label_array.count; i++, label++) {
-            if((*label)->repetition.type == RepetitionType::None) {
-               point_array.append((*label)->origin);
-           } else {
-                (*label)->repetition.get_offsets(label_offsets);
-                point_array.extend(label_offsets);
+        Array<Label*> label_array = {0};
+        get_labels(true, -1, false, 0, label_array);
 
-                label_offsets.count = 0;
-           }
+        Label** label = label_array.items;
+        point_array.ensure_slots(label_array.count);
+        for (uint64_t i = 0; i < label_array.count; i++, label++) {
+            point_array.append_unsafe((*label)->origin);
+
+            label_array[i]->clear();
+            free_allocation(label_array[i]);
         }
-        label_offsets.clear();
+        label_array.clear();
     }
 
     Vec2* point = point_array.items;
