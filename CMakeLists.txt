@@ -34,7 +34,11 @@ if(DEFINED ENV{CDSHOME})
     # Put the Cadence directory in the gdstk shared library's rpath. This
     # causes ld(1) to look there first when loading libraries, without having
     # to munge `LD_LIBRARY_PATH`.
-    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-rpath,$ENV{CDSHOME}/tools/cdsgcc/gcc/install/lib64")
+    #
+    # --disable-new-dtags causes GNU `ld` to write the rpath into the ELF `DT_RPATH`,
+    # rather than `DT_RUNPATH`. The difference is that `DT_RPATH` cannot be overridden
+    # at runtime by `LD_LIBRARY_PATH`.
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--disable-new-dtags -Wl,-rpath,$ENV{CDSHOME}/tools/cdsgcc/gcc/install/lib64")
 endif()
 
 project(gdstk
