@@ -18,7 +18,7 @@ lib:
 	cmake --build build --target install
 
 module:
-	python -m build -w
+	uv sync --reinstall-package gdstk
 
 docs: module
 	sphinx-build docs docs/_build
@@ -29,8 +29,9 @@ lint: lint-actions
 lint-actions:
 	uv run zizmor --offline --persona=regular .
 
+.PHONY: test
 test: module
-	python -m pytest
+	uv run pytest
 
 examples: lib
 	cmake --build build --target examples
