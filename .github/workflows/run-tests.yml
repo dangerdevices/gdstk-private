@@ -1,5 +1,5 @@
 name: Tests Runner
-
+permissions: {}
 on:
   push
 
@@ -12,6 +12,8 @@ jobs:
         python-version: ['3.13']
     name: Test for ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
