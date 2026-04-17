@@ -23,6 +23,12 @@ module:
 docs: module
 	sphinx-build docs docs/_build
 
+lint: lint-actions
+
+.PHONY: lint-actions
+lint-actions:
+	uv run zizmor --offline --persona=regular .
+
 test: module
 	python -m pytest
 
