@@ -37,6 +37,7 @@ requires-python = ">=3.9"
 dev = [
     "gdstk",
     "pytest",
+    "zizmor>=1.16.3",
 ]
 docs = ["sphinx", "sphinx_rtd_theme", "sphinx-inline-tabs", "matplotlib"]
 
