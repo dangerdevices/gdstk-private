@@ -198,7 +198,10 @@ def test_rw_gds(tmpdir, sample_library):
     assert c.references[0].x_reflection
     assert c.references[0].repetition.columns == 2
     assert c.references[0].repetition.rows == 3
-    assert c.references[0].repetition.v1 == pytest.approx((-2.0, 0.0))
+    # GDSTK converts references with rotation and/or x-reflection to use
+    # v1 & v2 when reading a GDSII file. See library.cpp::read_gds(),
+    # specifically the case for GdsiiRecord::XY.
+    assert c.references[0].repetition.v1 == pytest.approx((2.0, 0.0))
     assert c.references[0].repetition.v2 == pytest.approx((0.0, 8.0))
 
 
@@ -245,7 +248,10 @@ def test_rw_gds_filter(tmpdir, sample_library):
     assert c.references[0].x_reflection
     assert c.references[0].repetition.columns == 2
     assert c.references[0].repetition.rows == 3
-    assert c.references[0].repetition.v1 == pytest.approx((-2.0, 0.0))
+    # GDSTK converts references with rotation and/or x-reflection to use
+    # v1 & v2 when reading a GDSII file. See library.cpp::read_gds(),
+    # specifically the case for GdsiiRecord::XY.
+    assert c.references[0].repetition.v1 == pytest.approx((2.0, 0.0))
     assert c.references[0].repetition.v2 == pytest.approx((0.0, 8.0))
 
 
@@ -482,8 +488,7 @@ def test_rw_oas(tmpdir, sample_library):
     assert c.references[0].x_reflection
     assert c.references[0].repetition.columns == 2
     assert c.references[0].repetition.rows == 3
-    assert c.references[0].repetition.v1 == (-2.0, 0.0)
-    assert c.references[0].repetition.v2 == (0.0, 8.0)
+    assert c.references[0].repetition.spacing == (2.0, 8.0)
 
 
 def test_replace(tree, tmpdir):
