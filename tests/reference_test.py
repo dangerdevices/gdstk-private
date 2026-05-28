@@ -90,6 +90,12 @@ def test_repetition_constructor():
     assert ref.repetition is None
 
 
+def test_repetition_constructor_none():
+    ref = gdstk.Reference(gdstk.Cell("foo"), repetition=None)
+    assert ref.cell_name == "foo"
+    assert ref.repetition is None
+
+
 def test_empty():
     name = "ca_empty"
     c = gdstk.Cell(name)

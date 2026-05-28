@@ -83,7 +83,7 @@ static int reference_object_init(ReferenceObject* self, PyObject* args, PyObject
         return -1;
     }
 
-    if (repetition_obj != NULL) {
+    if (repetition_obj != NULL && repetition_obj != Py_None) {
         if (!RepetitionObject_Check(repetition_obj)) {
             PyErr_SetString(PyExc_TypeError, "Value must be a Repetition object.");
             return -1;
