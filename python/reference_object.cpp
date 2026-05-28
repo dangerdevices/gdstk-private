@@ -37,7 +37,7 @@ static void reference_object_dealloc(ReferenceObject* self) {
 static int reference_object_init(ReferenceObject* self, PyObject* args, PyObject* kwds) {
     PyObject* cell_obj = NULL;
     PyObject* origin_obj = NULL;
-    PyObject* repetition_obj = NULL;
+    PyObject* repetition_obj = Py_None;
     double rotation = 0;
     double magnification = 1;
     int x_reflection = 0;
@@ -83,7 +83,7 @@ static int reference_object_init(ReferenceObject* self, PyObject* args, PyObject
         return -1;
     }
 
-    if (repetition_obj != NULL && repetition_obj != Py_None) {
+    if (repetition_obj != Py_None) {
         if (!RepetitionObject_Check(repetition_obj)) {
             PyErr_SetString(PyExc_TypeError, "Value must be a Repetition object.");
             return -1;
