@@ -69,6 +69,17 @@ def test_properties():
             ["Three", b"\xFF\xEE", 0],
         ]
 
+        obj.set_property("Three", 3)
+        assert obj.properties == [
+            ["Three", 3],
+            ["ONE", -1],
+            ["TWO", -2.3e-4, b"two"],
+            ["Three", b"\xFF\xEE", 0],
+        ]
+
+        del obj.properties
+        assert obj.properties == []
+
 
 def test_oasis_gds_property_roundtrip():
     ref = gdstk.Reference("foo")
