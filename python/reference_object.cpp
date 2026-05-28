@@ -37,19 +37,17 @@ static void reference_object_dealloc(ReferenceObject* self) {
 static int reference_object_init(ReferenceObject* self, PyObject* args, PyObject* kwds) {
     PyObject* cell_obj = NULL;
     PyObject* origin_obj = NULL;
-    PyObject* spacing_obj = Py_None;
+    PyObject* repetition_obj = NULL;
     double rotation = 0;
     double magnification = 1;
     int x_reflection = 0;
     Vec2 origin = {0, 0};
-    uint64_t columns = 1;
-    uint64_t rows = 1;
     const char* keywords[] = {"cell",          "origin",       "rotation",
-                              "magnification", "x_reflection", "columns",
-                              "rows",          "spacing",      NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|OddpKKO:Reference", (char**)keywords, &cell_obj,
+                              "magnification", "x_reflection", "repetition",
+                              NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|OddpO:Reference", (char**)keywords, &cell_obj,
                                      &origin_obj, &rotation, &magnification, &x_reflection,
-                                     &columns, &rows, &spacing_obj))
+                                     &repetition_obj))
         return -1;
     if (parse_point(origin_obj, origin, "origin") < 0) return -1;
 
@@ -85,20 +83,13 @@ static int reference_object_init(ReferenceObject* self, PyObject* args, PyObject
         return -1;
     }
 
-    if (spacing_obj != Py_None && columns > 0 && rows > 0) {
-        Repetition* repetition = &reference->repetition;
-        Vec2 spacing;
-        if (parse_point(spacing_obj, spacing, "spacing") < 0) return -1;
-        // If any of these are zero, we won't be able to detect the AREF construction in to_gds().
-        if (columns == 1 && spacing.x == 0) spacing.x = 1;
-        if (rows == 1 && spacing.y == 0) spacing.y = 1;
-        repetition->type = RepetitionType::Rectangular;
-        repetition->columns = columns;
-        repetition->rows = rows;
-        repetition->spacing = spacing;
-        if (rotation != 0 || x_reflection) {
-            repetition->transform(1, x_reflection > 0, rotation);
+    if (repetition_obj != NULL) {
+        if (!RepetitionObject_Check(repetition_obj)) {
+            PyErr_SetString(PyExc_TypeError, "Value must be a Repetition object.");
+            return -1;
         }
+        RepetitionObject* robj = (RepetitionObject*)repetition_obj;
+        self->reference->repetition.copy_from(robj->repetition);
     }
 
     reference->origin = origin;
