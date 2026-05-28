@@ -9,7 +9,7 @@ import pytest
 import numpy
 import gdstk
 
-from conftest import assert_same_shape, assert_close
+from conftest import assert_same_shape, assert_close, repetition_transform
 
 
 @pytest.fixture
@@ -135,7 +135,11 @@ def test_copy_transform(proof_cells):
             -numpy.pi / 3,
             0.5,
             True,
-            gdstk.Repetition(columns=3, rows=2, spacing=(5, 4))
+            repetition_transform(
+                gdstk.Repetition(columns=3, rows=2, spacing=(5, 4)),
+                -numpy.pi / 3,
+                True,
+            )
         )
     )
     cell.add(
@@ -145,7 +149,11 @@ def test_copy_transform(proof_cells):
             numpy.pi / 3,
             0.5,
             True,
-            gdstk.Repetition(columns=3, rows=2, spacing=(5, 8))
+            repetition_transform(
+                gdstk.Repetition(columns=3, rows=2, spacing=(5, 8)),
+                numpy.pi / 3,
+                True,
+            )
         )
     )
 
