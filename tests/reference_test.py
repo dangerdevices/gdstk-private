@@ -11,7 +11,7 @@ import pytest
 import numpy
 import gdstk
 
-from conftest import assert_same_shape, assert_close
+from conftest import assert_same_shape, assert_close, repetition_transform
 
 
 @pytest.fixture
@@ -114,7 +114,11 @@ def test_notempty():
         numpy.pi / 2,
         2,
         True,
-        gdstk.Repetition(columns=2, rows=3, spacing=(3, 2))
+        repetition_transform(
+            gdstk.Repetition(columns=2, rows=3, spacing=(3, 2)),
+            numpy.pi / 2,
+            True,
+        )
     )
     ref.origin = (0, 0)
     c.add(gdstk.rectangle((0, 0), (1, 2), 2, 3))
