@@ -11,7 +11,7 @@ import pytest
 import numpy
 import gdstk
 
-from conftest import assert_same_shape, assert_close
+from conftest import assert_same_shape, assert_close, repetition_transform
 
 
 @pytest.fixture
@@ -28,7 +28,17 @@ def tree():
     c2.add(p2)
     c2.add(gdstk.Reference(c1))
     c3 = gdstk.Cell("tree3")
-    c3.add(gdstk.Reference(c2, (0, 0), columns=3, rows=2, spacing=(3, 3)))
+    c3.add(
+        gdstk.Reference(
+            c2,
+            (0, 0),
+            repetition=gdstk.Repetition(
+                columns=3,
+                rows=2,
+                spacing=(3, 3)
+            )
+        )
+    )
     return c3, c2, c1
 
 
@@ -67,10 +77,35 @@ def test_repetition():
     assert ref.repetition is None
 
 
+def test_repetition_constructor():
+    repetition = gdstk.Repetition(rows=4, columns=1, spacing=(2, 2))
+
+    ref = gdstk.Reference(gdstk.Cell("foo"), repetition=repetition)
+    assert isinstance(ref.repetition, gdstk.Repetition)
+    assert ref.repetition.rows == repetition.rows
+    assert ref.repetition.columns == repetition.columns
+    assert ref.repetition.spacing == repetition.spacing
+
+    _ = ref.apply_repetition()
+    assert ref.repetition is None
+
+
+def test_repetition_constructor_none():
+    ref = gdstk.Reference(gdstk.Cell("foo"), repetition=None)
+    assert ref.cell_name == "foo"
+    assert ref.repetition is None
+
+
 def test_empty():
     name = "ca_empty"
     c = gdstk.Cell(name)
-    ref = gdstk.Reference(c, (1, -1), numpy.pi / 2, 2, True, 2, 3, (3, 2))
+    ref = gdstk.Reference(
+        c,
+        (1, -1),
+        numpy.pi / 2, 2,
+        True,
+        gdstk.Repetition(columns=2, rows=3, spacing=(3, 2))
+    )
     assert ref.cell is c
     assert ref.cell_name == name
     assert ref.bounding_box() is None
@@ -79,7 +114,18 @@ def test_empty():
 def test_notempty():
     name = "ca_notempty"
     c = gdstk.Cell(name)
-    ref = gdstk.Reference(c, (1, -1), numpy.pi / 2, 2, True, 2, 3, (3, 2))
+    ref = gdstk.Reference(
+        c,
+        (1, -1),
+        numpy.pi / 2,
+        2,
+        True,
+        repetition_transform(
+            gdstk.Repetition(columns=2, rows=3, spacing=(3, 2)),
+            numpy.pi / 2,
+            True,
+        )
+    )
     ref.origin = (0, 0)
     c.add(gdstk.rectangle((0, 0), (1, 2), 2, 3))
     assert_close(ref.bounding_box(), ((0, 0), (8, 5)))
