@@ -25,10 +25,25 @@ def tree():
     c[0].add(gdstk.Reference(c[1]))
     c[0].add(gdstk.Reference(c[3]))
     c[1].add(gdstk.Reference(c[2]))
-    c[1].add(gdstk.Reference(c[2], columns=2, rows=1, spacing=(0, 0)))
-    c[1].add(gdstk.Reference(c[3], columns=2, rows=1, spacing=(0, 0)))
+    c[1].add(
+        gdstk.Reference(
+            c[2],
+            repetition=gdstk.Repetition(columns=2, rows=1, spacing=(0, 0))
+        )
+    )
+    c[1].add(
+        gdstk.Reference(
+            c[3],
+            repetition=gdstk.Repetition(columns=2, rows=1, spacing=(0, 0))
+        )
+    )
     c[4].add(gdstk.Reference(c[3]))
-    c[6].add(gdstk.Reference(c[5], columns=2, rows=1, spacing=(0, 0)))
+    c[6].add(
+        gdstk.Reference(
+            c[5],
+            repetition=gdstk.Repetition(columns=2, rows=1, spacing=(0, 0))
+        )
+    )
     return lib, c
 
 
@@ -85,12 +100,14 @@ def sample_library():
         gdstk.Reference(
             c2,
             (-1, -2),
-            columns=2,
-            rows=3,
-            spacing=(1, 4),
             rotation=numpy.pi,
             magnification=0.5,
             x_reflection=True,
+            repetition=gdstk.Repetition(
+                columns=2,
+                rows=3,
+                spacing=(1, 4),
+            )
         )
     )
     lib.add(c1, c2, c3, c4)
@@ -546,7 +563,13 @@ def test_frozen_gds_with_cell_array_has_constant_hash(tmpdir):
     cell2 = gdstk.Cell(name="Olaf")
     cell2.add(gdstk.rectangle((0, 0), (50, 100)))
     cell_array = gdstk.Reference(
-        cell2, columns=5, rows=2, spacing=(60, 120), origin=(1000, 0)
+        cell2,
+        origin=(1000, 0),
+        repetition=gdstk.Repetition(
+            columns=5,
+            rows=2,
+            spacing=(60, 120),
+        )
     )
     cell.add(cell_array)
     lib.add(cell)
