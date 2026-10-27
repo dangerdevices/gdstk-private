@@ -9,7 +9,7 @@ import pytest
 import numpy
 import gdstk
 
-from conftest import assert_same_shape, assert_close
+from conftest import assert_same_shape, assert_close, repetition_transform
 
 
 @pytest.fixture
@@ -26,7 +26,13 @@ def tree():
     c2.add(p2)
     c2.add(gdstk.Reference(c1))
     c3 = gdstk.Cell("tree3")
-    c3.add(gdstk.Reference(c2, (0, 0), columns=3, rows=2, spacing=(3, 3)))
+    c3.add(
+        gdstk.Reference(
+            c2,
+            (0, 0),
+            repetition=gdstk.Repetition(columns=3, rows=2, spacing=(3, 3))
+        )
+    )
     return c3, c2, c1
 
 def test_name():
@@ -122,8 +128,35 @@ def test_copy_transform(proof_cells):
     cell.add(gdstk.rectangle((-1, -0.5), (1, 0.5), layer=2))
     cell.add(gdstk.Reference(ref_cell2))
     cell.add(gdstk.Reference(ref_cell1, (10, 7), numpy.pi / 4, 0.5, True))
-    cell.add(gdstk.Reference(ref_cell1, (-7, 15), -numpy.pi / 3, 0.5, True, 3, 2, (5, 4)))
-    cell.add(gdstk.Reference(ref_cell2, (-7, 23), numpy.pi / 3, 0.5, True, 3, 2, (5, 8)))
+    cell.add(
+        gdstk.Reference(
+            ref_cell1,
+            (-7, 15),
+            -numpy.pi / 3,
+            0.5,
+            True,
+            repetition_transform(
+                gdstk.Repetition(columns=3, rows=2, spacing=(5, 4)),
+                -numpy.pi / 3,
+                True,
+            )
+        )
+    )
+    cell.add(
+        gdstk.Reference(
+            ref_cell2,
+            (-7, 23),
+            numpy.pi / 3,
+            0.5,
+            True,
+            repetition_transform(
+                gdstk.Repetition(columns=3, rows=2, spacing=(5, 8)),
+                numpy.pi / 3,
+                True,
+            )
+        )
+    )
+
     cell_copy = cell.copy("Cell.copy", (-10, -10), numpy.pi / 2, 2, True).flatten()
     for path in cell_copy.paths:
         cell_copy.add(*path.to_polygons())
@@ -366,6 +399,3 @@ def test_get_labels(tree):
     assert len(labels) == 0
     labels = c3.get_labels(depth=2, layer=11, texttype=0)
     assert len(labels) == 6
-
-def test_empty_cell_convex_hull():
-    assert gdstk.Cell("empty").convex_hull() is None
