@@ -1958,11 +1958,11 @@ static PyObject* flexpath_object_get_gds_property(FlexPathObject* self, PyObject
         Py_INCREF(Py_None);
         return Py_None;
     }
-    PyObject* result = PyUnicode_FromStringAndSize((char*)value->bytes, (Py_ssize_t)value->count);
+    PyObject* result = PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
     if (PyErr_Occurred()) {
         Py_XDECREF(result);
         PyErr_Clear();
-        result = PyBytes_FromStringAndSize((char*)value->bytes, (Py_ssize_t)value->count);
+        result = PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
     }
     return result;
 }
@@ -2281,6 +2281,10 @@ int flexpath_object_set_properties(FlexPathObject* self, PyObject* arg, void*) {
 }
 
 static PyObject* flexpath_object_get_repetition(FlexPathObject* self, void*) {
+    if(self->flexpath->repetition.type == RepetitionType::None) {
+        Py_RETURN_NONE;
+    }
+
     RepetitionObject* obj = PyObject_New(RepetitionObject, &repetition_object_type);
     obj = (RepetitionObject*)PyObject_Init((PyObject*)obj, &repetition_object_type);
     obj->repetition.copy_from(self->flexpath->repetition);
