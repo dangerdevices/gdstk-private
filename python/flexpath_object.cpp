@@ -1943,9 +1943,8 @@ static PyObject* flexpath_object_delete_property(FlexPathObject* self, PyObject*
 static PyObject* flexpath_object_set_gds_property(FlexPathObject* self, PyObject* args) {
     uint16_t attribute;
     char* value;
-    Py_ssize_t count;
-    if (!PyArg_ParseTuple(args, "Hs#:set_gds_property", &attribute, &value, &count)) return NULL;
-    if (count >= 0) set_gds_property(self->flexpath->properties, attribute, value, (uint64_t)count);
+    if (!PyArg_ParseTuple(args, "Hs:set_gds_property", &attribute, &value)) return NULL;
+    set_gds_property(self->flexpath->properties, attribute, value);
     Py_INCREF(self);
     return (PyObject*)self;
 }
@@ -1958,13 +1957,7 @@ static PyObject* flexpath_object_get_gds_property(FlexPathObject* self, PyObject
         Py_INCREF(Py_None);
         return Py_None;
     }
-    PyObject* result = PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
-    if (PyErr_Occurred()) {
-        Py_XDECREF(result);
-        PyErr_Clear();
-        result = PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
-    }
-    return result;
+    return PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
 }
 
 static PyObject* flexpath_object_delete_gds_property(FlexPathObject* self, PyObject* args) {

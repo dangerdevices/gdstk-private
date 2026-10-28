@@ -207,7 +207,7 @@ void set_property(Property*& properties, const char* name, const uint8_t* bytes,
     memcpy(value->bytes, bytes, count);
 }
 
-void set_gds_property(Property*& properties, uint16_t attribute, const char* value, uint64_t count) {
+void set_gds_property(Property*& properties, uint16_t attribute, const char* value) {
     PropertyValue* gds_attribute;
     PropertyValue* gds_value;
     Property* property = properties;

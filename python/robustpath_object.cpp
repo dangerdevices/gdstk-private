@@ -1827,10 +1827,8 @@ static PyObject* robustpath_object_delete_property(RobustPathObject* self, PyObj
 static PyObject* robustpath_object_set_gds_property(RobustPathObject* self, PyObject* args) {
     uint16_t attribute;
     char* value;
-    Py_ssize_t count;
-    if (!PyArg_ParseTuple(args, "Hs#:set_gds_property", &attribute, &value, &count)) return NULL;
-    if (count >= 0)
-        set_gds_property(self->robustpath->properties, attribute, value, (uint64_t)count);
+    if (!PyArg_ParseTuple(args, "Hs:set_gds_property", &attribute, &value)) return NULL;
+    set_gds_property(self->robustpath->properties, attribute, value);
     Py_INCREF(self);
     return (PyObject*)self;
 }
@@ -1843,13 +1841,7 @@ static PyObject* robustpath_object_get_gds_property(RobustPathObject* self, PyOb
         Py_INCREF(Py_None);
         return Py_None;
     }
-    PyObject* result = PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
-    if (PyErr_Occurred()) {
-        Py_XDECREF(result);
-        PyErr_Clear();
-        result = PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
-    }
-    return result;
+    return PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
 }
 
 static PyObject* robustpath_object_delete_gds_property(RobustPathObject* self, PyObject* args) {
