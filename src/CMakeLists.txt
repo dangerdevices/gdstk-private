@@ -4,7 +4,6 @@ include(CMakePackageConfigHelpers)
 # --- Dependencies ---
 
 find_package(ZLIB 1.2.7 REQUIRED)
-find_package(Qhull 8 REQUIRED)
 
 # --- Source and header lists ---
 
@@ -95,13 +94,6 @@ target_include_directories(gdstk
 target_link_libraries(gdstk
     PUBLIC
         ZLIB::ZLIB)
-
-# Qhull is only used internally (src/utils.cpp) — no Qhull headers are exposed
-# in gdstk's public API. We use BUILD_LOCAL_INTERFACE to link Qhull during the
-# build without it appearing in the exported targets file. GdstkConfig.cmake
-# handles finding Qhull and appending it to gdstk::gdstk's link interface for
-# downstream static-library consumers.
-target_link_libraries(gdstk PRIVATE $<BUILD_LOCAL_INTERFACE:QHULL::QHULL>)
 
 if(UNIX)
     target_link_libraries(gdstk PUBLIC m)
