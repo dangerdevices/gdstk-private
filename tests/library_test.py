@@ -6,9 +6,10 @@
 # LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
 import hashlib
+import os
 import pathlib
 from datetime import datetime
-from typing import Callable, Union
+from typing import Callable, BinaryIO
 
 import numpy
 import pytest
@@ -19,15 +20,30 @@ import gdstk
 @pytest.fixture
 def tree():
     c = [gdstk.Cell("tree_" + str(i)) for i in range(8)]
-    lib = gdstk.Library()
+    lib = gdstk.Library("tree")
     lib.add(*c)
     c[0].add(gdstk.Reference(c[1]))
     c[0].add(gdstk.Reference(c[3]))
     c[1].add(gdstk.Reference(c[2]))
-    c[1].add(gdstk.Reference(c[2], columns=2, rows=1, spacing=(0, 0)))
-    c[1].add(gdstk.Reference(c[3], columns=2, rows=1, spacing=(0, 0)))
+    c[1].add(
+        gdstk.Reference(
+            c[2],
+            repetition=gdstk.Repetition(columns=2, rows=1, spacing=(0, 0))
+        )
+    )
+    c[1].add(
+        gdstk.Reference(
+            c[3],
+            repetition=gdstk.Repetition(columns=2, rows=1, spacing=(0, 0))
+        )
+    )
     c[4].add(gdstk.Reference(c[3]))
-    c[6].add(gdstk.Reference(c[5], columns=2, rows=1, spacing=(0, 0)))
+    c[6].add(
+        gdstk.Reference(
+            c[5],
+            repetition=gdstk.Repetition(columns=2, rows=1, spacing=(0, 0))
+        )
+    )
     return lib, c
 
 
@@ -84,12 +100,14 @@ def sample_library():
         gdstk.Reference(
             c2,
             (-1, -2),
-            columns=2,
-            rows=3,
-            spacing=(1, 4),
             rotation=numpy.pi,
             magnification=0.5,
             x_reflection=True,
+            repetition=gdstk.Repetition(
+                columns=2,
+                rows=3,
+                spacing=(1, 4),
+            )
         )
     )
     lib.add(c1, c2, c3, c4)
@@ -178,7 +196,10 @@ def test_rw_gds(tmpdir, sample_library):
     assert c.references[0].x_reflection
     assert c.references[0].repetition.columns == 2
     assert c.references[0].repetition.rows == 3
-    assert c.references[0].repetition.v1 == pytest.approx((-2.0, 0.0))
+    # GDSTK converts references with rotation and/or x-reflection to use
+    # v1 & v2 when reading a GDSII file. See library.cpp::read_gds(),
+    # specifically the case for GdsiiRecord::XY.
+    assert c.references[0].repetition.v1 == pytest.approx((2.0, 0.0))
     assert c.references[0].repetition.v2 == pytest.approx((0.0, 8.0))
 
 
@@ -198,15 +219,7 @@ def test_rw_gds_filter(tmpdir, sample_library):
     }
     c = cells["gl_rw_gds_1"]
     assert len(c.polygons) == 0
-    assert len(c.labels) == 1
-    assert c.labels[0].text == "label"
-    assert c.labels[0].origin[0] == 2 and c.labels[0].origin[1] == -2
-    assert c.labels[0].anchor == "w"
-    assert c.labels[0].rotation == 10
-    assert c.labels[0].magnification == 1.5
-    assert c.labels[0].x_reflection
-    assert c.labels[0].layer == 5
-    assert c.labels[0].texttype == 6
+    assert len(c.labels) == 0
 
     c = cells["gl_rw_gds_2"]
     assert len(c.polygons) == 2
@@ -231,7 +244,10 @@ def test_rw_gds_filter(tmpdir, sample_library):
     assert c.references[0].x_reflection
     assert c.references[0].repetition.columns == 2
     assert c.references[0].repetition.rows == 3
-    assert c.references[0].repetition.v1 == pytest.approx((-2.0, 0.0))
+    # GDSTK converts references with rotation and/or x-reflection to use
+    # v1 & v2 when reading a GDSII file. See library.cpp::read_gds(),
+    # specifically the case for GdsiiRecord::XY.
+    assert c.references[0].repetition.v1 == pytest.approx((2.0, 0.0))
     assert c.references[0].repetition.v2 == pytest.approx((0.0, 8.0))
 
 
@@ -243,7 +259,7 @@ def test_read_gds_missing_refs(tmpdir):
     c2 = gdstk.Cell("c2")
     c2.add(r1)
 
-    lib = gdstk.Library()
+    lib = gdstk.Library("missing_refs")
     lib.add(c2)
 
     fname = str(tmpdir.join("test_missing_refs.gds"))
@@ -264,7 +280,7 @@ def test_large_layer_number(tmpdir):
     c1.add(gdstk.rectangle((0, 0), (1, 1), 2**16 - 1, 2**16))
     c1.add(gdstk.rectangle((0, 0), (1, 1), 100000, 100001))
 
-    lib = gdstk.Library()
+    lib = gdstk.Library("large_layer_number")
     lib.add(c1)
 
     expected = {
@@ -339,12 +355,120 @@ def test_large_layer_number(tmpdir):
 #     assert c.references[0].repetition.v2 == (0.0, 8.0)
 
 
+def test_read_oas_snapshot():
+    fixture = pathlib.Path(__file__).parent / "snapshot.oas"
+    lib = gdstk.read_oas(
+        fixture,
+        filter=[
+            (36, 240),
+            (37, 245),
+            (38, 40),
+            (39, 40),
+            (40, 60),
+            (51, 70),
+            (52, 70),
+            (53, 150),
+            (54, 240),
+            (55, 240),
+            (56, 240),
+            (57, 40),
+            (58, 40),
+            (59, 60),
+            (74, 0),
+            (75, 0),
+            (84, 0),
+            (84, 2),
+            (84, 7),
+            (84, 47),
+            (85, 0),
+            (86, 0),
+            (108, 0),
+            (108, 250),
+            (110, 0),
+            (110, 2),
+            (111, 0),
+            (115, 0),
+            (116, 4),
+            (116, 6),
+            (116, 7),
+            (116, 9),
+            (116, 10),
+        ]
+    )
+
+    assert len(lib.top_level()[0].get_polygons()) == 18681511
+
+
+def test_oas_filter(tmpdir):
+    test_lib = gdstk.Library("test")
+    
+    test_lib.add(gdstk.Cell("top").add(
+            gdstk.rectangle((0, 0), (10, 10), 5, 10).set_property("a", "b"),
+            gdstk.rectangle((0, 0), (10, 10), 20, 20).set_property("a", "d"),
+            gdstk.rectangle((0, 0), (10, 10), 20, 20).set_property("a", "f"),
+            gdstk.Label("foo", (0, 0), layer=5, texttype=10).set_property("a", "h"),
+            gdstk.Label("bar", (0, 0), layer=20, texttype=20).set_property("a", "j"),
+            gdstk.FlexPath(
+                ((0, 0), (5, 5)),
+                1.2,
+                ends=(0.1, 0.0),
+                simple_path=True,
+                layer=5,
+                datatype=10
+            ).set_property("a", "l"),
+            gdstk.FlexPath(
+                ((0, 0), (5, 5)),
+                1.2,
+                ends=(0.1, 0.0),
+                simple_path=True,
+                layer=20,
+                datatype=20
+            ).set_property("a", "n"),
+        )
+    )
+    test_lib.write_oas(tmpdir / "test.oas")
+
+    # Test filtering
+    lib = gdstk.read_oas(tmpdir / "test.oas", filter={(5, 10)})
+    polys = lib.top_level()[0].get_polygons()
+    assert polys
+    assert all((p.layer, p.datatype) == (5, 10) for p in polys)
+    labels = lib.top_level()[0].get_labels()
+    assert labels
+    assert all((l.layer, l.texttype) == (5, 10) for l in labels)
+    paths = lib.top_level()[0].get_paths()
+    assert paths
+    assert all(all(l == (5, 10) for l in zip(p.layers, p.datatypes)) for p in paths)
+
+    # Test not filtering
+    lib = gdstk.read_oas(tmpdir / "test.oas")
+    assert lib.top_level()[0].get_polygons(layer=5, datatype=10)
+    assert lib.top_level()[0].get_polygons(layer=20, datatype=20)
+    assert lib.top_level()[0].get_labels(layer=20, texttype=20)
+    assert lib.top_level()[0].get_labels(layer=20, texttype=20)
+    assert lib.top_level()[0].get_paths(layer=5, datatype=10)
+    assert lib.top_level()[0].get_paths(layer=20, datatype=20)
+
+    # Test that incorrect type doesn't crash
+    with pytest.raises(TypeError):
+        gdstk.read_oas(tmpdir / "test.oas", filter="foo")
+
+    # Test filtering to only layers that don't exist in the library
+    lib = gdstk.read_oas(tmpdir / "test.oas", filter=[(0, 0)])
+    assert not lib.layers_and_datatypes()
+    assert not lib.layers_and_texttypes()
+
+    lib = gdstk.read_oas(tmpdir / "test.oas", filter=[])
+    assert not lib.layers_and_datatypes()
+    assert not lib.layers_and_texttypes()
+
+
 def test_rw_oas(tmpdir, sample_library):
     fname = str(tmpdir.join("test.oas"))
     sample_library.write_oas(fname)
     library = gdstk.read_oas(fname, unit=1e-3)
 
-    assert library.name == "LIB"
+    assert library.name is None
     assert len(library.cells) == 4
     cells = {c.name: c for c in library.cells}
     assert set(cells.keys()) == {
@@ -390,8 +514,7 @@ def test_rw_oas(tmpdir, sample_library):
     assert c.references[0].x_reflection
     assert c.references[0].repetition.columns == 2
     assert c.references[0].repetition.rows == 3
-    assert c.references[0].repetition.v1 == (-2.0, 0.0)
-    assert c.references[0].repetition.v2 == (0.0, 8.0)
+    assert c.references[0].repetition.spacing == (2.0, 8.0)
 
 
 def test_replace(tree, tmpdir):
@@ -470,7 +593,15 @@ def test_frozen_gds_with_cell_array_has_constant_hash(tmpdir):
     cell.add(gdstk.rectangle((0, 0), (100, 1000)))
     cell2 = gdstk.Cell(name="Olaf")
     cell2.add(gdstk.rectangle((0, 0), (50, 100)))
-    cell_array = gdstk.Reference(cell2, columns=5, rows=2, spacing=(60, 120), origin=(1000, 0))
+    cell_array = gdstk.Reference(
+        cell2,
+        origin=(1000, 0),
+        repetition=gdstk.Repetition(
+            columns=5,
+            rows=2,
+            spacing=(60, 120),
+        )
+    )
     cell.add(cell_array)
     lib.add(cell)
     lib.write_gds(fn1, timestamp=frozen_date)
@@ -485,6 +616,84 @@ def test_layers_and_types(sample_library):
     assert ld == {(2, 4), (0, 0)}
     lt = sample_library.layers_and_texttypes()
     assert lt == {(5, 6)}
+
+
+def test_shallow_copy(sample_library):
+    sample_library.set_property("foo", "bar")
+    library = sample_library.copy(name="foo", deep_copy=False)
+
+    assert id(library) != id(sample_library)
+
+    assert library.name == "foo"
+    assert library.unit == sample_library.unit
+    assert library.precision == sample_library.precision
+    assert library.layers_and_datatypes() == sample_library.layers_and_datatypes()
+    assert library.layers_and_texttypes() == sample_library.layers_and_texttypes()
+    assert library.properties == sample_library.properties
+
+    library_top_cells = {c.name for c in library.top_level()}
+    sample_library_top_cells = {c.name for c in sample_library.top_level()}
+    assert library_top_cells == sample_library_top_cells
+
+    library_cells = {c.name: c for c in library.cells}
+    sample_library_cells = {c.name: c for c in sample_library.cells}
+    assert set(library_cells.keys()) == set(sample_library_cells.keys())
+
+    # Copy is shallow
+    assert library.cells is not sample_library.cells
+    assert all(cell in sample_library.cells for cell in library.cells)
+
+    assert library_cells["gl_rw_gds_3"].references[0].x_reflection == True
+    sample_library_cells["gl_rw_gds_3"].references[0].x_reflection = False
+    assert library_cells["gl_rw_gds_3"].references[0].x_reflection == False
+
+
+def test_deep_copy(sample_library):
+    sample_library.set_property("foo", "bar")
+    library = sample_library.copy(deep_copy=True)
+
+    assert id(library) != id(sample_library)
+
+    assert library.name == sample_library.name
+    assert library.unit == sample_library.unit
+    assert library.precision == sample_library.precision
+    assert library.layers_and_datatypes() == sample_library.layers_and_datatypes()
+    assert library.layers_and_texttypes() == sample_library.layers_and_texttypes()
+
+    library_top_cells = {c.name for c in library.top_level()}
+    sample_library_top_cells = {c.name for c in sample_library.top_level()}
+    assert library_top_cells == sample_library_top_cells
+
+    library_cells = {c.name: c for c in library.cells}
+    sample_library_cells = {c.name: c for c in sample_library.cells}
+    assert set(library_cells.keys()) == set(sample_library_cells.keys())
+
+    # Copy is deep
+    assert library.cells is not sample_library.cells
+    assert not any(cell in sample_library.cells for cell in library.cells)
+
+    assert library_cells["gl_rw_gds_3"].references[0].x_reflection == True
+    sample_library_cells["gl_rw_gds_3"].references[0].x_reflection = False
+    assert library_cells["gl_rw_gds_3"].references[0].x_reflection == True
+
+
+def test_copy_dangling_reference():
+    top = gdstk.Cell("top")
+    bar = gdstk.Cell("bar")
+    quux = gdstk.Cell("quux")
+    top.add(
+        gdstk.Reference(gdstk.Cell("foo")),  # dangling reference
+        gdstk.Reference(bar),                # ok reference
+        gdstk.Reference(gdstk.Cell("baz")),  # dangling reference
+        gdstk.Reference(quux),               # ok reference
+        gdstk.Reference("external"),         # string reference to external cell
+    )
+
+    library = gdstk.Library()
+    library.replace(bar, quux, top)
+
+    with pytest.raises(RuntimeError):
+        _ = library.copy()
 
 
 def test_rename_cell():
@@ -556,9 +765,69 @@ def test_roundtrip_path_ends(tmpdir: pathlib.Path):
         gds_path = gdstk.read_gds(tmpdir / "path_test.gds").top_level()[0].get_paths()[0]
         oas_path = gdstk.read_oas(tmpdir / "path_test.oas").top_level()[0].get_paths()[0]
 
-        assert path.ends == gds_path.ends and path.ends == oas_path.ends, (
-            f"expected: {path.ends}, gds: {gds_path.ends}, oas: {oas_path.ends}"
+        assert path.ends == gds_path.ends, f"expected: {path.ends}, gds: {gds_path.ends}"
+        assert path.ends == oas_path.ends, f"expected: {path.ends}, gds: {oas_path.ends}"
+
+
+def test_oasis_polygon_points(complex_polygon_oasis_lib: gdstk.Library):
+    poly = complex_polygon_oasis_lib.top_level()[0].polygons[0]
+    numpy.testing.assert_allclose(
+        [3203.64, 2445.91],
+        poly.points[-1],
+        rtol=0,
+        atol=1e-13
+    )
+
+
+def test_oasis_degenerate_polygon(tmpdir: pathlib.Path):
+    """
+    Degenerate polygons must not be encoded with `CTRAPEZOID` records;
+    doing so yields non-spec-compliant OASIS files.
+    """
+    cell = gdstk.Cell("not_a_trapezoid")
+    cell.add(
+        gdstk.Polygon(
+            (
+                (-148.037, 125.407),
+                (-151.785, 129.155),
+                (-150.092, 129.155),
+                (-150.092, 125.407),
+            )
         )
+    )
+
+    wlib = gdstk.Library("degenerate_polygon")
+    wlib.add(cell)
+    wlib.write_oas(tmpdir / "degenerate_polygon.oas")
+
+    rlib = gdstk.read_oas(tmpdir / "degenerate_polygon.oas")
+    numpy.testing.assert_allclose(
+        rlib.cells[0].polygons[0].points,
+        [
+            [-148.037, 125.407],
+            [-151.785, 129.155],
+            [-150.092, 129.155],
+            [-150.092, 125.407],
+        ],
+    )
+
+
+def test_oasis_explicit_repetitions(tmpdir: pathlib.Path):
+    polygon = gdstk.rectangle((0, 0), (10, 10))
+    polygon.repetition = gdstk.Repetition(offsets=((2, 3), (6, 8)))
+    cell = gdstk.Cell("top").add(polygon)
+
+    wlib = gdstk.Library("explicit_repetition")
+    wlib.add(cell)
+    wlib.write_oas(tmpdir / "explicit_repetition.oas")
+
+    rlib = gdstk.read_oas(tmpdir / "explicit_repetition.oas")
+    rpolygon = rlib.top_level()[0].polygons[0]
+
+    assert rpolygon.repetition
+    repeats = rpolygon.apply_repetition()
+    assert repeats[0].bounding_box() == ((2, 3), (12, 13))
+    assert repeats[1].bounding_box() == ((6, 8), (16, 18))
 
 
 @pytest.mark.parametrize(
@@ -569,11 +838,12 @@ def test_roundtrip_path_ends(tmpdir: pathlib.Path):
     ),
 )
 def test_write_min_length_path(
-    write_f: Callable[[gdstk.Library, Union[str, pathlib.Path]], None],
-    read_f: Callable[Union[str, pathlib.Path], gdstk.Library],
-    tmp_path: pathlib.Path,
+    write_f: Callable[[gdstk.Library, str | pathlib.Path], None],
+    read_f: Callable[[str | pathlib.Path], gdstk.Library],
+    tmp_path: pathlib.Path
 ):
     source = gdstk.read_oas(pathlib.Path(__file__).parent / "min_length_path.oas")
+    source.name = "min_length_path"
     assert source.cells[0].paths
 
     rw_path = tmp_path / "out"
@@ -597,8 +867,8 @@ def test_write_min_length_path(
 )
 def test_empty_path_warning(
     simple_path: bool,
-    write_f: Callable[[gdstk.Library, Union[str, pathlib.Path]], None],
-    tmp_path: pathlib.Path,
+    write_f: Callable[[gdstk.Library, str | pathlib.Path], None],
+    tmp_path: pathlib.Path
 ):
     lib = gdstk.Library("test")
     tol = lib.precision / lib.unit
@@ -615,3 +885,155 @@ def test_empty_path_warning(
 
     with pytest.warns(RuntimeWarning, match="Empty path"):
         write_f(lib, tmp_path / "out")
+
+
+def test_no_stdout_stderr_logging(capfd, tmp_path):
+    top = gdstk.Cell("top")
+    top.add(gdstk.Reference(gdstk.Cell("bar")))
+
+    library = gdstk.Library("foo")
+    library.add(top)
+
+    gds_path = tmp_path / "foo.gds"
+    library.write_gds(gds_path)
+    _ = gdstk.read_gds(gds_path)
+
+    (out, err) = capfd.readouterr()
+
+    assert not out
+    assert not err
+
+
+def _read_unsigned_int(oas: BinaryIO) -> int:
+    """
+    Read an unsigned int from an OASIS byte stream.
+
+    See the OASIS spec, section 7.2, which describes the variable-length
+    encoding scheme.
+    """
+    CONTINUATION_BIT = 0x80
+    value = 0
+
+    # Don't worry about integers >64bit in size.
+    #
+    # OASIS can represent those, but gdstk cannot, so it will never
+    # write them to a file.
+    for i in range(0, 9):
+        b = oas.read(1)[0]
+
+        # For each byte read, discard the continuation bit and add the
+        # value.
+        value += (b & (CONTINUATION_BIT ^ 0xFF)) << (i * 7)
+
+        # If the continuation bit is clear, the current byte is the
+        # end of the integer. Otherwise, there's more to be read.
+        match bool(b & CONTINUATION_BIT), i:
+            case False, _:
+                break
+            case True, 8:
+                raise OverflowError("value too large to fit in 9 bytes")
+            case True, _:
+                pass
+
+    return value
+
+
+def test_oasis_roundtrip_properties(tmp_path):
+    library = gdstk.Library("test")
+    top = gdstk.Cell("top")
+    library.add(top)
+    for idx in range(10_000):
+        top.add(gdstk.rectangle((0, idx), (idx, 0)))
+
+    for idx in range(0, 20):
+        top.polygons[idx].set_property("unique", f"foo_{idx}")
+
+    library.write_oas(tmp_path / "fewprops.oas")
+
+    # With only a few unique properties added, all OASIS tables
+    # should be in strict mode.
+    #
+    # Although this test does not care about the actual offset values,
+    # the offsets must still be read because the byte size of each
+    # one is variable. Without reading those values, there's no way to
+    # accurately find where the next table entry starts.
+    with open(tmp_path / "fewprops.oas", "rb") as oas:
+        # END record with reference tables is found 256 bytes before EOF.
+        oas.seek(-256, os.SEEK_END)
+
+        # END record marker.
+        assert oas.read(1)[0] == 0x02
+
+        # Cell name table in strict mode.
+        assert oas.read(1)[0] == 0x01
+        _ = _read_unsigned_int(oas)
+
+        # Text string table in strict mode.
+        assert oas.read(1)[0] == 0x01
+        _ = _read_unsigned_int(oas)
+
+        # Property name table in strict mode.
+        assert oas.read(1)[0] == 0x01
+        _ = _read_unsigned_int(oas)
+
+        # Property string table in strict mode.
+        assert oas.read(1)[0] == 0x01
+        _ = _read_unsigned_int(oas)
+
+    for idx, polygon in enumerate(top.polygons):
+        polygon.set_property("unique", f"foo_{idx}")
+
+    library.write_oas(tmp_path / "manyprops.oas")
+
+    # Many unique property strings have been added, so some of them will
+    # have been stored inline rather than in the property string table.
+    # That table must be marked as being in non-strict mode.
+    with open(tmp_path / "manyprops.oas", "rb") as oas:
+        oas.seek(-256, os.SEEK_END)
+        assert oas.read(1)[0] == 0x02
+
+        # Cell name table in strict mode.
+        assert oas.read(1)[0] == 0x01
+        _ = _read_unsigned_int(oas)
+
+        # Text string table in strict mode.
+        assert oas.read(1)[0] == 0x01
+        _ = _read_unsigned_int(oas)
+
+        # Property name table in strict mode.
+        assert oas.read(1)[0] == 0x01
+        _ = _read_unsigned_int(oas)
+
+        # Property string table in relaxed mode.
+        assert oas.read(1)[0] == 0x00
+        _ = _read_unsigned_int(oas)
+
+    new_lib = gdstk.read_oas(tmp_path / "manyprops.oas")
+    assert sorted(
+            [f"foo_{idx}" for idx in range(10_000)]
+        ) == sorted(
+            [p.get_property("unique")[0].decode() for p in new_lib.top_level()[0].polygons]
+        )
+
+def test_library_name(tmp_path):
+    lib = gdstk.Library()
+    cell = gdstk.Cell("test")
+    lib.add(cell)
+    assert lib.name is None
+
+    lib.write_oas(tmp_path / "foo.oas")
+    with pytest.raises(RuntimeError):
+        lib.write_gds(tmp_path / "foo.gds")
+
+    lib.name = "foo"
+
+    assert lib.name == "foo"
+    lib.write_oas(tmp_path / "foo.oas")
+    lib.write_gds(tmp_path / "foo.gds")
+
+    lib.name = None
+
+    assert lib.name is None
+    lib.write_oas(tmp_path / "foo.oas")
+    with pytest.raises(RuntimeError):
+        lib.write_gds(tmp_path / "foo.gds")

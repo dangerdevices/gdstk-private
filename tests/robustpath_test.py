@@ -138,6 +138,18 @@ def test_offsets(robust_path):
     assert_close(robust_path.offsets(2, False), (-0.1, 0))
     assert_close(robust_path.offsets(2.1), (-0.1, 0))
 
+
+def test_repetition():
+    path = gdstk.RobustPath((0.5, 50), 0)
+    assert path.repetition is None
+
+    path.repetition = gdstk.Repetition(rows=5, columns=2, spacing=(8, 18))
+    assert isinstance(path.repetition, gdstk.Repetition)
+
+    _ = path.apply_repetition()
+    assert path.repetition is None
+
+
 def test_deepcopy():
     path = gdstk.RobustPath(0j, 2)
     path2 = deepcopy(path)
@@ -155,3 +167,13 @@ def test_deepcopy():
     path2.set_layers(1)
     assert path.layers == (0,)
     assert path2.layers == (1,)
+
+
+def test_zerowidth():
+    path = gdstk.RobustPath((0.5, 50), 0)
+    path.horizontal(-1, relative=True)
+    assert path.to_polygons() == []
+
+    path.vertical(1, relative=True)
+    assert path.to_polygons() == []
+

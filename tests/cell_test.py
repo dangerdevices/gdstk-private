@@ -9,7 +9,7 @@ import pytest
 import numpy
 import gdstk
 
-from conftest import assert_same_shape, assert_close
+from conftest import assert_same_shape, assert_close, repetition_transform
 
 
 @pytest.fixture
@@ -26,9 +26,44 @@ def tree():
     c2.add(p2)
     c2.add(gdstk.Reference(c1))
     c3 = gdstk.Cell("tree3")
-    c3.add(gdstk.Reference(c2, (0, 0), columns=3, rows=2, spacing=(3, 3)))
+    c3.add(
+        gdstk.Reference(
+            c2,
+            (0, 0),
+            repetition=gdstk.Repetition(columns=3, rows=2, spacing=(3, 3))
+        )
+    )
     return c3, c2, c1
 
+def test_name():
+    cell = gdstk.Cell("foo")
+    assert cell.name == "foo"
+
+    class Bar:
+        def __init__(self, name: str) -> None:
+            self._name = name
+
+        def __str__(self) -> str:
+            return self._name
+
+    cell = gdstk.Cell(Bar("bar"))
+    assert cell.name == "bar"
+
+    cell.name = Bar("foo")
+    assert cell.name == "foo"
+
+    with pytest.raises(TypeError):
+        gdstk.Cell()
+
+    with pytest.raises(ValueError):
+        gdstk.Cell("")
+
+    class Baz:
+        def __str__(self) -> str:
+            return ""
+
+    with pytest.raises(ValueError):
+        gdstk.Cell(Baz())
 
 def test_add_element():
     p = gdstk.Polygon(((0, 0), (1, 0), (0, 1)))
@@ -67,6 +102,12 @@ def test_copy():
     assert ref not in deep_copy.references
     assert deep_copy.references[0].cell is ref.cell
 
+    class Bar:
+        def __str__(self) -> str:
+            return "bar"
+
+    assert cell.copy(Bar()).name == "bar"
+
 
 def test_copy_transform(proof_cells):
     ref_cell1 = gdstk.Cell("Reference 1")
@@ -87,8 +128,35 @@ def test_copy_transform(proof_cells):
     cell.add(gdstk.rectangle((-1, -0.5), (1, 0.5), layer=2))
     cell.add(gdstk.Reference(ref_cell2))
     cell.add(gdstk.Reference(ref_cell1, (10, 7), numpy.pi / 4, 0.5, True))
-    cell.add(gdstk.Reference(ref_cell1, (-7, 15), -numpy.pi / 3, 0.5, True, 3, 2, (5, 4)))
-    cell.add(gdstk.Reference(ref_cell2, (-7, 23), numpy.pi / 3, 0.5, True, 3, 2, (5, 8)))
+    cell.add(
+        gdstk.Reference(
+            ref_cell1,
+            (-7, 15),
+            -numpy.pi / 3,
+            0.5,
+            True,
+            repetition_transform(
+                gdstk.Repetition(columns=3, rows=2, spacing=(5, 4)),
+                -numpy.pi / 3,
+                True,
+            )
+        )
+    )
+    cell.add(
+        gdstk.Reference(
+            ref_cell2,
+            (-7, 23),
+            numpy.pi / 3,
+            0.5,
+            True,
+            repetition_transform(
+                gdstk.Repetition(columns=3, rows=2, spacing=(5, 8)),
+                numpy.pi / 3,
+                True,
+            )
+        )
+    )
+
     cell_copy = cell.copy("Cell.copy", (-10, -10), numpy.pi / 2, 2, True).flatten()
     for path in cell_copy.paths:
         cell_copy.add(*path.to_polygons())

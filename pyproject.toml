@@ -7,7 +7,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "gdstk"
-version = "0.9.61"
+version = "0.9.61+dd48"
 authors = [{name = "Lucas H. Gabrielli", email = "heitzmann@gmail.com"}]
 description = "Python module for creation and manipulation of GDSII files."
 readme = "README.md"
@@ -33,7 +33,12 @@ dependencies = [
 ]
 requires-python = ">=3.9"
 
-[project.optional-dependencies]
+[dependency-groups]
+dev = [
+    "gdstk",
+    "pytest",
+    "zizmor>=1.16.3",
+]
 docs = ["sphinx", "sphinx_rtd_theme", "sphinx-inline-tabs", "matplotlib"]
 
 [project.urls]
@@ -52,3 +57,14 @@ install.components = ["_gdstk"]
 
 [tool.black]
 line-length = 100
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.uv.workspace]
+members = [
+    ".",
+]
+
+[tool.uv.sources]
+gdstk = { workspace = true }
