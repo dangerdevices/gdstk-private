@@ -173,7 +173,8 @@ Library read_gds(const char* filename, double unit, double tolerance, const Set<
 // empty, only shapes in those tags will be imported.  If not NULL, any errors
 // will be reported through error_code.
 Library read_oas(const char* filename, double unit,
-                 double tolerance,  // TODO: const Set<Tag>* shape_tags,
+                 double tolerance,
+                 const Set<Tag>* filter_layers,
                  ErrorCode* error_code);
 
 // Read the unit and precision of a GDSII file and return in the respective

@@ -37,8 +37,8 @@ static void cell_object_dealloc(CellObject* self) {
 
 static int cell_object_init(CellObject* self, PyObject* args, PyObject* kwds) {
     const char* keywords[] = {"name", NULL};
-    char* name = NULL;
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s:Cell", (char**)keywords, &name)) return -1;
+    PyObject* name_arg = NULL;
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:Cell", (char**)keywords, &name_arg)) return -1;
     Cell* cell = self->cell;
     if (cell) {
         for (uint64_t i = 0; i < cell->polygon_array.count; i++)
@@ -56,17 +56,28 @@ static int cell_object_init(CellObject* self, PyObject* args, PyObject* kwds) {
         self->cell = (Cell*)allocate_clear(sizeof(Cell));
         cell = self->cell;
     }
-    uint64_t len;
-    cell->name = copy_string(name, &len);
-    cell->owner = self;
-    if (len <= 1) {
-        free_allocation(cell->name);
-        free_allocation(cell);
-        self->cell = NULL;
-        PyErr_SetString(PyExc_ValueError, "Empty cell name.");
-        return -1;
+
+    PyObject* pystr;
+    char *pyname;
+    Py_ssize_t len;
+    if (
+        (pystr = PyObject_Str(name_arg)) &&
+        (pyname = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) &&
+        // len does not include NULL terminator.
+        len >= 1
+    ) {
+        cell->name = copy_string(pyname, NULL);
+        cell->owner = self;
+
+        Py_DECREF(pystr);
+        return 0;
     }
-    return 0;
+
+    Py_XDECREF(pystr);
+    free_allocation(cell);
+    self->cell = NULL;
+    PyErr_SetString(PyExc_ValueError, "Invalid cell name.");
+    return -1;
 }
 
 static PyObject* cell_object_add(CellObject* self, PyObject* args) {
@@ -225,21 +236,6 @@ static PyObject* cell_object_bounding_box(CellObject* self, PyObject*) {
         return Py_None;
     }
     return Py_BuildValue("((dd)(dd))", min.x, min.y, max.x, max.y);
-}
-
-static PyObject* cell_object_convex_hull(CellObject* self, PyObject*) {
-    Array<Vec2> points = {};
-    self->cell->convex_hull(points);
-    npy_intp dims[] = {(npy_intp)points.count, 2};
-    PyObject* result = PyArray_SimpleNew(2, dims, NPY_DOUBLE);
-    if (!result) {
-        PyErr_SetString(PyExc_MemoryError, "Unable to create return array.");
-        return NULL;
-    }
-    double* data = (double*)PyArray_DATA((PyArrayObject*)result);
-    memcpy(data, points.items, sizeof(double) * points.count * 2);
-    points.clear();
-    return (PyObject*)result;
 }
 
 static PyObject* cell_object_get_polygons(CellObject* self, PyObject* args, PyObject* kwds) {
@@ -537,7 +533,7 @@ static PyObject* cell_object_flatten(CellObject* self, PyObject* args, PyObject*
 }
 
 static PyObject* cell_object_copy(CellObject* self, PyObject* args, PyObject* kwds) {
-    char* name = NULL;
+    PyObject* name_arg = NULL;
     int deep_copy = 1;
     PyObject* py_trans = NULL;
     double rotation = 0;
@@ -545,11 +541,20 @@ static PyObject* cell_object_copy(CellObject* self, PyObject* args, PyObject* kw
     int x_reflection = 0;
     const char* keywords[] = {"name",         "translation", "rotation", "magnification",
                               "x_reflection", "deep_copy",   NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|Oddpp:copy", (char**)keywords, &name, &py_trans,
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|Oddpp:copy", (char**)keywords, &name_arg, &py_trans,
                                      &rotation, &magnification, &x_reflection, &deep_copy))
         return NULL;
 
-    if (name[0] == 0) {
+    const char* name = NULL;
+    PyObject* pystr = NULL;
+    Py_ssize_t len = 0;
+    if (
+        !(pystr = PyObject_Str(name_arg)) ||
+        !(name = (char *)PyUnicode_AsUTF8AndSize(pystr, &len)) ||
+        // len does not include NULL terminator.
+        len < 1
+    ) {
+        Py_XDECREF(pystr);
         PyErr_SetString(PyExc_ValueError, "Empty cell name.");
         return NULL;
     }
@@ -567,6 +572,7 @@ static PyObject* cell_object_copy(CellObject* self, PyObject* args, PyObject* kw
     Cell* cell = result->cell;
     cell->owner = result;
     cell->copy_from(*self->cell, name, deep_copy > 0);
+    Py_DECREF(pystr);
 
     Array<Polygon*>* polygon_array = &cell->polygon_array;
     if (deep_copy) {
@@ -1025,7 +1031,6 @@ static PyMethodDef cell_object_methods[] = {
     {"area", (PyCFunction)cell_object_area, METH_VARARGS, cell_object_area_doc},
     {"bounding_box", (PyCFunction)cell_object_bounding_box, METH_NOARGS,
      cell_object_bounding_box_doc},
-    {"convex_hull", (PyCFunction)cell_object_convex_hull, METH_NOARGS, cell_object_convex_hull_doc},
     {"get_polygons", (PyCFunction)cell_object_get_polygons, METH_VARARGS | METH_KEYWORDS,
      cell_object_get_polygons_doc},
     {"get_paths", (PyCFunction)cell_object_get_paths, METH_VARARGS | METH_KEYWORDS,
@@ -1059,15 +1064,17 @@ PyObject* cell_object_get_name(CellObject* self, void*) {
 }
 
 int cell_object_set_name(CellObject* self, PyObject* arg, void*) {
-    if (!PyUnicode_Check(arg)) {
-        PyErr_SetString(PyExc_TypeError, "Name must be a string.");
-        return -1;
-    }
-
+    PyObject* pystr = NULL;
     Py_ssize_t len = 0;
-    const char* src = PyUnicode_AsUTF8AndSize(arg, &len);
-    if (!src) return -1;
-    if (len <= 0) {
+    const char* src = NULL;
+
+    if (
+        !(pystr = PyObject_Str(arg)) ||
+        !(src = PyUnicode_AsUTF8AndSize(pystr, &len)) ||
+        // len does not include NULL terminator.
+        len < 1
+    ) {
+        Py_XDECREF(pystr);
         PyErr_SetString(PyExc_ValueError, "Empty cell name.");
         return -1;
     }
@@ -1076,6 +1083,7 @@ int cell_object_set_name(CellObject* self, PyObject* arg, void*) {
     if (cell->name) free_allocation(cell->name);
     cell->name = (char*)allocate(++len);
     memcpy(cell->name, src, len);
+    Py_DECREF(pystr);
     return 0;
 }
 

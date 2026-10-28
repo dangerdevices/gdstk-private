@@ -5,11 +5,13 @@
 # Boost Software License - Version 1.0.  See the accompanying
 # LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
+import math
 import pathlib
 import tempfile
-import pytest
-import numpy
+
 import gdstk
+import numpy
+import pytest
 
 
 def assert_same_shape(sh1, sh2):
@@ -42,6 +44,40 @@ def assert_same_shape(sh1, sh2):
 
 def assert_close(a, b, atol=1e-12):
     numpy.testing.assert_allclose(a, b, rtol=0, atol=atol)
+
+
+def repetition_transform(
+    rep: gdstk.Repetition, rotate: float, x_reflect: bool
+) -> gdstk.Repetition:
+    """
+    Transform a repetition by rotating and/or x-reflecting it. Returns a new,
+    modified repetition.
+
+    Prior to https://github.com/dangerdevices/gdstk-private/pull/239, this was
+    done by `reference_object_init()` when the `columns`, `rows`, and
+    `spacing` parameters were supplied. The aforementioned PR removed that
+    behavior because it was confusing and led to incorrect results when
+    round-tripping to OASIS or GDSII.
+
+    Maintain the behavior here so that the test fixtures continue to work.
+    Note that `Repetition::transform()` is C++ only, so it can't be called
+    directly as `reference_object_init()` did.
+    """
+    columns = rep.columns
+    rows = rep.rows
+    spacing = rep.spacing
+    assert columns and rows and spacing, "repetition must be rectangular"
+
+    if x_reflect:
+        spacing = (spacing[0], -spacing[1])
+
+    ca = math.cos(rotate)
+    sa = math.sin(rotate)
+
+    v1 = (spacing[0] * ca, spacing[0] * sa)
+    v2 = (-spacing[1] * sa, spacing[1] * ca)
+
+    return gdstk.Repetition(columns, rows, v1=v1, v2=v2)
 
 
 @pytest.fixture(scope="session")
@@ -151,6 +187,10 @@ def make_proof_lib():
         lib.write_oas(oas_outfile)
         print(f"Test library saved as {str(oas_outfile)}.")
 
+@pytest.fixture(scope="session")
+def complex_polygon_oasis_lib():
+    infile = pathlib.Path(__file__).parent / "complex_polygon_lib.oas"
+    return gdstk.read_oas(str(infile))
 
 if __name__ == "__main__":
     make_proof_lib()
