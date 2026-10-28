@@ -103,6 +103,9 @@ static int return_error(ErrorCode error_code) {
         case ErrorCode::ChecksumError:
             PyErr_SetString(PyExc_RuntimeError, "Checksum error.");
             return -1;
+        case ErrorCode::MissingGdsName:
+            PyErr_SetString(PyExc_RuntimeError, "Missing GDS library name.");
+            return -1;
         case ErrorCode::ZlibError:
             PyErr_SetString(PyExc_RuntimeError, "Error in zlib library.");
             return -1;
@@ -1548,18 +1551,33 @@ static PyObject* read_gds_function(PyObject* mod, PyObject* args, PyObject* kwds
 
 static PyObject* read_oas_function(PyObject* mod, PyObject* args, PyObject* kwds) {
     PyObject* pybytes = NULL;
+    PyObject* pyfilter = Py_None;
     double unit = 0;
     double tolerance = 0;
-    const char* keywords[] = {"infile", "unit", "tolerance", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O&|dd:read_oas", (char**)keywords,
-                                     PyUnicode_FSConverter, &pybytes, &unit, &tolerance))
+    const char* keywords[] = {"infile", "unit", "tolerance", "filter", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O&|dd$O:read_oas", (char**)keywords,
+                                     PyUnicode_FSConverter, &pybytes, &unit, &tolerance, &pyfilter))
         return NULL;
 
+    Set<Tag> layers_filter = {};
+    Set<Tag>* layers_filter_ptr = NULL;
+    if (pyfilter != Py_None) {
+        if (parse_tag_sequence(pyfilter, layers_filter, "filter") < 0) {
+            layers_filter.clear();
+            Py_DECREF(pybytes);
+            return NULL;
+        }
+        layers_filter_ptr = &layers_filter;
+    }
+
     const char* filename = PyBytes_AS_STRING(pybytes);
+
     Library* library = (Library*)allocate_clear(sizeof(Library));
     ErrorCode error_code = ErrorCode::NoError;
-    *library = read_oas(filename, unit, tolerance, &error_code);
+    *library = read_oas(filename, unit, tolerance, layers_filter_ptr, &error_code);
     Py_DECREF(pybytes);
+    
+    layers_filter.clear();
 
     if (return_error(error_code)) {
         library->free_all();
@@ -1996,6 +2014,10 @@ static int gdstk_exec(PyObject* module) {
             return -1;
         }
     }
+
+    // Disable logging to stderr. Code that wishes to return a warning or error
+    // to Python should use an `ErrorCode` type; see utils.hpp.
+    set_error_logger(NULL);
 
     return 0;
 }

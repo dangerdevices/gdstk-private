@@ -704,6 +704,32 @@ static bool is_trapezoid(const Array<IntVec2> points, uint8_t& type, IntVec2& co
                 }
             }
         }
+
+        // Check for invalid `CTRAPEZOID` records.
+        //
+        // If any of these checks fail, the polygon may not be encoded as a
+        // `CTRAPEZOID`; doing so will result in a spec-invalid OASIS file,
+        // and compliant OASIS tools will reject it.
+        //
+        // See section 11.17.11 of the OASIS spec, _CTRAPEZOID Exception Handling_.
+
+        // 1. For types 0 through 3 and 6 through 7, width < height should be treated as a fatal error.
+        if (((type >= 0 && type <= 3) || (type >= 6 && type <= 7)) && (size.x < size.y)) {
+            return false;
+        }
+        // 2. For types 4 through 5, width < 2*height should be treated as a fatal error.
+        else if ((type >= 4 && type <= 5) && (size.x < 2*size.y)) {
+            return false;
+        }
+        // 3. For types 8 through 11 and 14 through 15, height < width should be treated as a fatal error.
+        else if (((type >= 8 && type <= 11) || (type >= 14 && type <= 15)) && (size.y < size.x)) {
+            return false;
+        }
+        // 4. For types 12 through 13, height < 2*width should be treated as a fatal error.
+        else if ((type >= 12 && type <= 13) && (size.y < 2*size.x)) {
+            return false;
+        }
+
         return true;
     } else if (points.count == 3) {
         IntVec2 p, q, r;

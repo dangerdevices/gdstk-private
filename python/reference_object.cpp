@@ -37,19 +37,17 @@ static void reference_object_dealloc(ReferenceObject* self) {
 static int reference_object_init(ReferenceObject* self, PyObject* args, PyObject* kwds) {
     PyObject* cell_obj = NULL;
     PyObject* origin_obj = NULL;
-    PyObject* spacing_obj = Py_None;
+    PyObject* repetition_obj = Py_None;
     double rotation = 0;
     double magnification = 1;
     int x_reflection = 0;
     Vec2 origin = {0, 0};
-    uint64_t columns = 1;
-    uint64_t rows = 1;
     const char* keywords[] = {"cell",          "origin",       "rotation",
-                              "magnification", "x_reflection", "columns",
-                              "rows",          "spacing",      NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|OddpKKO:Reference", (char**)keywords, &cell_obj,
+                              "magnification", "x_reflection", "repetition",
+                              NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|OddpO:Reference", (char**)keywords, &cell_obj,
                                      &origin_obj, &rotation, &magnification, &x_reflection,
-                                     &columns, &rows, &spacing_obj))
+                                     &repetition_obj))
         return -1;
     if (parse_point(origin_obj, origin, "origin") < 0) return -1;
 
@@ -85,20 +83,13 @@ static int reference_object_init(ReferenceObject* self, PyObject* args, PyObject
         return -1;
     }
 
-    if (spacing_obj != Py_None && columns > 0 && rows > 0) {
-        Repetition* repetition = &reference->repetition;
-        Vec2 spacing;
-        if (parse_point(spacing_obj, spacing, "spacing") < 0) return -1;
-        // If any of these are zero, we won't be able to detect the AREF construction in to_gds().
-        if (columns == 1 && spacing.x == 0) spacing.x = 1;
-        if (rows == 1 && spacing.y == 0) spacing.y = 1;
-        repetition->type = RepetitionType::Rectangular;
-        repetition->columns = columns;
-        repetition->rows = rows;
-        repetition->spacing = spacing;
-        if (rotation != 0 || x_reflection) {
-            repetition->transform(1, x_reflection > 0, rotation);
+    if (repetition_obj != Py_None) {
+        if (!RepetitionObject_Check(repetition_obj)) {
+            PyErr_SetString(PyExc_TypeError, "Value must be a Repetition object.");
+            return -1;
         }
+        RepetitionObject* robj = (RepetitionObject*)repetition_obj;
+        self->reference->repetition.copy_from(robj->repetition);
     }
 
     reference->origin = origin;
@@ -132,21 +123,6 @@ static PyObject* reference_object_bounding_box(ReferenceObject* self, PyObject*)
         return Py_None;
     }
     return Py_BuildValue("((dd)(dd))", min.x, min.y, max.x, max.y);
-}
-
-static PyObject* reference_object_convex_hull(ReferenceObject* self, PyObject*) {
-    Array<Vec2> points = {};
-    self->reference->convex_hull(points);
-    npy_intp dims[] = {(npy_intp)points.count, 2};
-    PyObject* result = PyArray_SimpleNew(2, dims, NPY_DOUBLE);
-    if (!result) {
-        PyErr_SetString(PyExc_MemoryError, "Unable to create return array.");
-        return NULL;
-    }
-    double* data = (double*)PyArray_DATA((PyArrayObject*)result);
-    memcpy(data, points.items, sizeof(double) * points.count * 2);
-    points.clear();
-    return (PyObject*)result;
 }
 
 static PyObject* reference_object_get_polygons(ReferenceObject* self, PyObject* args,
@@ -408,10 +384,8 @@ static PyObject* reference_object_delete_property(ReferenceObject* self, PyObjec
 static PyObject* reference_object_set_gds_property(ReferenceObject* self, PyObject* args) {
     uint16_t attribute;
     char* value;
-    Py_ssize_t count;
-    if (!PyArg_ParseTuple(args, "Hs#:set_gds_property", &attribute, &value, &count)) return NULL;
-    if (count >= 0)
-        set_gds_property(self->reference->properties, attribute, value, (uint64_t)count);
+    if (!PyArg_ParseTuple(args, "Hs:set_gds_property", &attribute, &value)) return NULL;
+    set_gds_property(self->reference->properties, attribute, value);
     Py_INCREF(self);
     return (PyObject*)self;
 }
@@ -424,13 +398,7 @@ static PyObject* reference_object_get_gds_property(ReferenceObject* self, PyObje
         Py_INCREF(Py_None);
         return Py_None;
     }
-    PyObject* result = PyUnicode_FromStringAndSize((char*)value->bytes, (Py_ssize_t)value->count);
-    if (PyErr_Occurred()) {
-        Py_XDECREF(result);
-        PyErr_Clear();
-        result = PyBytes_FromStringAndSize((char*)value->bytes, (Py_ssize_t)value->count);
-    }
-    return result;
+    return PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
 }
 
 static PyObject* reference_object_delete_gds_property(ReferenceObject* self, PyObject* args) {
@@ -445,8 +413,6 @@ static PyMethodDef reference_object_methods[] = {
     {"copy", (PyCFunction)reference_object_copy, METH_NOARGS, reference_object_copy_doc},
     {"bounding_box", (PyCFunction)reference_object_bounding_box, METH_NOARGS,
      reference_object_bounding_box_doc},
-    {"convex_hull", (PyCFunction)reference_object_convex_hull, METH_NOARGS,
-     reference_object_convex_hull_doc},
     {"get_polygons", (PyCFunction)reference_object_get_polygons, METH_VARARGS | METH_KEYWORDS,
      reference_object_get_polygons_doc},
     {"get_paths", (PyCFunction)reference_object_get_paths, METH_VARARGS | METH_KEYWORDS,
@@ -626,6 +592,10 @@ int reference_object_set_properties(ReferenceObject* self, PyObject* arg, void*)
 }
 
 static PyObject* reference_object_get_repetition(ReferenceObject* self, void*) {
+    if(self->reference->repetition.type == RepetitionType::None) {
+        Py_RETURN_NONE;
+    }
+
     RepetitionObject* obj = PyObject_New(RepetitionObject, &repetition_object_type);
     obj = (RepetitionObject*)PyObject_Init((PyObject*)obj, &repetition_object_type);
     obj->repetition.copy_from(self->reference->repetition);

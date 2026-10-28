@@ -109,17 +109,6 @@ struct Cell {
     // return min.x > max.x.  Internally, this function simply calls the
     // caching version with an empty cache.
     void bounding_box(Vec2& min, Vec2& max) const;
-    // Caching version of the bounding box calculation.  The returned
-    // GeometryInfo is guaranteed to have the information about this cell
-    // instance (bounding_box_valid == true).
-    GeometryInfo bounding_box(Map<GeometryInfo>& cache) const;
-
-    // The convex hull of the cell is appended to result (it doesn't need to be
-    // empty).  Internally, this function simply calls the caching version with
-    // an empty cache.
-    void convex_hull(Array<Vec2>& result) const;
-    // Caching version of the convex hull calculation.
-    GeometryInfo convex_hull(Map<GeometryInfo>& cache) const;
 
     // This cell instance must be zeroed before copy_from.  If a new_name is
     // NULL, use the same name as the source cell.  If deep_copy == true, new

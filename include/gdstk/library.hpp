@@ -177,9 +177,10 @@ Library read_gds(const char* filename, double unit = 0, double tolerance = 0, co
 // paths in the library and for the creation of circles.  If shape_tags is not
 // empty, only shapes in those tags will be imported.  If not NULL, any errors
 // will be reported through error_code.
-Library read_oas(const char* filename, double unit = 0,
-                 double tolerance = 0,  // TODO: const Set<Tag>* shape_tags,
-                 ErrorCode* error_code = nullptr);
+Library read_oas(const char* filename, double unit,
+                 double tolerance,
+                 const Set<Tag>* filter_layers,
+                 ErrorCode* error_code);
 
 // Read the unit and precision of a GDSII file and return in the respective
 // arguments.

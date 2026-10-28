@@ -953,7 +953,13 @@ def read_gds(
     tolerance: float = 0,
     filter: Optional[Iterable[tuple[int, int]]] = None,
 ) -> Library: ...
-def read_oas(infile: str | pathlib.Path, unit: float = 0, tolerance: float = 0) -> Library: ...
+def read_oas(
+    infile: str | pathlib.Path,
+    unit: float = 0,
+    tolerance: float = 0,
+    *,
+    filter: Optional[Iterable[tuple[int, int]]] = None,
+) -> Library: ...
 def read_rawcells(infile: str | pathlib.Path) -> dict[str, RawCell]: ...
 def rectangle(
     corner1: tuple[float, float] | complex,

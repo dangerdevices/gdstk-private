@@ -70,16 +70,30 @@ def test_properties():
         ]
 
 
+def test_oasis_gds_property_roundtrip():
+    ref = gdstk.Reference("foo")
+    ref.set_property("S_GDS_PROPERTY", (101, "foo"))
+    assert ref.get_gds_property(101) == "foo"
+
+    # To maintain compatibility with existing OASIS files created before
+    # https://github.com/dangerdevices/gdstk-private/pull/149,
+    # `get_gds_property()` must discard extra null padding at the end
+    # of a property value.
+    ref.set_property("S_GDS_PROPERTY", (102, b"p\x00"))
+    assert ref.get_gds_property(102) == "p"
+    assert ref.get_property("S_GDS_PROPERTY") == [102, b"p\x00"]
+
+
 def test_delete_gds_property():
     def create_props(obj) -> gdstk.Reference:
-        obj.set_gds_property(100, b"ba\x00r")
+        obj.set_gds_property(100, "bar")
         obj.set_gds_property(101, "baz")
         obj.set_gds_property(102, "quux")
 
         assert obj.properties == [
             ["S_GDS_PROPERTY", 102, b"quux"],
             ["S_GDS_PROPERTY", 101, b"baz"],
-            ["S_GDS_PROPERTY", 100, b"ba\x00r"],
+            ["S_GDS_PROPERTY", 100, b"bar"],
         ]
 
         return obj
@@ -94,12 +108,12 @@ def test_delete_gds_property():
         create_props(obj)
         obj.delete_gds_property(102)
 
-        assert obj.get_gds_property(100) == "ba\x00r"
+        assert obj.get_gds_property(100) == "bar"
         assert obj.get_gds_property(101) == "baz"
         assert obj.get_gds_property(102) is None
         assert obj.properties == [
             ["S_GDS_PROPERTY", 101, b"baz"],
-            ["S_GDS_PROPERTY", 100, b"ba\x00r"],
+            ["S_GDS_PROPERTY", 100, b"bar"],
         ]
 
     for obj in (
@@ -112,12 +126,12 @@ def test_delete_gds_property():
         create_props(obj)
         obj.delete_gds_property(101)
 
-        assert obj.get_gds_property(100) == "ba\x00r"
+        assert obj.get_gds_property(100) == "bar"
         assert obj.get_gds_property(101) is None
         assert obj.get_gds_property(102) == "quux"
         assert obj.properties == [
             ["S_GDS_PROPERTY", 102, b"quux"],
-            ["S_GDS_PROPERTY", 100, b"ba\x00r"],
+            ["S_GDS_PROPERTY", 100, b"bar"],
         ]
 
     for obj in (

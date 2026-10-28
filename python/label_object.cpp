@@ -169,9 +169,8 @@ static PyObject* label_object_delete_property(LabelObject* self, PyObject* args)
 static PyObject* label_object_set_gds_property(LabelObject* self, PyObject* args) {
     uint16_t attribute;
     char* value;
-    Py_ssize_t count;
-    if (!PyArg_ParseTuple(args, "Hs#:set_gds_property", &attribute, &value, &count)) return NULL;
-    if (count >= 0) set_gds_property(self->label->properties, attribute, value, (uint64_t)count);
+    if (!PyArg_ParseTuple(args, "Hs:set_gds_property", &attribute, &value)) return NULL;
+    set_gds_property(self->label->properties, attribute, value);
     Py_INCREF(self);
     return (PyObject*)self;
 }
@@ -184,13 +183,7 @@ static PyObject* label_object_get_gds_property(LabelObject* self, PyObject* args
         Py_INCREF(Py_None);
         return Py_None;
     }
-    PyObject* result = PyUnicode_FromStringAndSize((char*)value->bytes, (Py_ssize_t)value->count);
-    if (PyErr_Occurred()) {
-        Py_XDECREF(result);
-        PyErr_Clear();
-        result = PyBytes_FromStringAndSize((char*)value->bytes, (Py_ssize_t)value->count);
-    }
-    return result;
+    return PyUnicode_FromStringAndSize((char*)value->bytes, strnlen((const char*)value->bytes, value->count));
 }
 
 static PyObject* label_object_delete_gds_property(LabelObject* self, PyObject* args) {
@@ -437,6 +430,10 @@ int label_object_set_properties(LabelObject* self, PyObject* arg, void*) {
 }
 
 static PyObject* label_object_get_repetition(LabelObject* self, void*) {
+    if(self->label->repetition.type == RepetitionType::None) {
+        Py_RETURN_NONE;
+    }
+
     RepetitionObject* obj = PyObject_New(RepetitionObject, &repetition_object_type);
     obj = (RepetitionObject*)PyObject_Init((PyObject*)obj, &repetition_object_type);
     obj->repetition.copy_from(self->label->repetition);

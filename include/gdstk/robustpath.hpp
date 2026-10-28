@@ -281,6 +281,7 @@ struct RobustPath {
     void simple_rotate(double angle);
     void x_reflection();
     void fill_widths_and_offsets(const Interpolation* width, const Interpolation* offset);
+    bool is_zero_width() const;
     ErrorCode spine_intersection(const SubPath& sub0, const SubPath& sub1, double& u0,
                                  double& u1) const;
     ErrorCode center_intersection(const SubPath& sub0, const Interpolation& offset0,

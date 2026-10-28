@@ -86,6 +86,7 @@ enum struct ErrorCode {
     FileError,
     InvalidFile,
     InsufficientMemory,
+    MissingGdsName,
     ZlibError,
 };
 

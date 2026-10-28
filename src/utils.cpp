@@ -28,9 +28,6 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #include <gdstk/utils.hpp>
 #include <gdstk/vec.hpp>
 
-// Qhull
-#include <libqhull_r/qhull_ra.h>
-
 namespace gdstk {
 
 FILE* error_logger = stderr;
@@ -628,81 +625,6 @@ void hobby_interpolation(uint64_t count, Vec2* points, double* angles, bool* ang
     }
     free_allocation(m);
     free_allocation(pivots);
-}
-
-void convex_hull(const Array<Vec2> points, Array<Vec2>& result) {
-    if (points.count < 4) {
-        result.extend(points);
-        return;
-    } else if (points.count > qh_POINTSmax) {
-        Array<Vec2> partial;
-        partial.count = qh_POINTSmax;
-        partial.items = points.items;
-        Array<Vec2> temp = {};
-        convex_hull(partial, temp);
-
-        partial.count = points.count - qh_POINTSmax;
-        partial.items = points.items + qh_POINTSmax;
-        temp.extend(partial);
-        convex_hull(temp, result);
-        temp.clear();
-        return;
-    }
-
-    qhT qh;
-    QHULL_LIB_CHECK;
-    qh_zero(&qh, error_logger);
-    char command[256] = "qhull";
-    int exitcode = qh_new_qhull(&qh, 2, (int)points.count, (double*)points.items, false, command,
-                                NULL, error_logger);
-
-    if (exitcode == 0) {
-        result.ensure_slots(qh.num_facets);
-        Vec2* point = result.items + result.count;
-        result.count += qh.num_facets;
-
-        vertexT* qh_vertex = NULL;
-        facetT* qh_facet = qh_nextfacet2d(qh.facet_list, &qh_vertex);
-        for (int64_t i = qh.num_facets; i > 0; i--, point++) {
-            point->x = qh_vertex->point[0];
-            point->y = qh_vertex->point[1];
-            qh_facet = qh_nextfacet2d(qh_facet, &qh_vertex);
-        }
-    } else if (exitcode == qh_ERRsingular) {
-        // QHull errors for singular input (collinear points in 2D)
-        Vec2 min = {DBL_MAX, DBL_MAX};
-        Vec2 max = {-DBL_MAX, -DBL_MAX};
-        Vec2* p = points.items;
-        for (uint64_t num = points.count; num > 0; num--, p++) {
-            if (p->x < min.x) min.x = p->x;
-            if (p->x > max.x) max.x = p->x;
-            if (p->y < min.y) min.y = p->y;
-            if (p->y > max.y) max.y = p->y;
-        }
-        if (min.x < max.x) {
-            result.append(min);
-            result.append(max);
-        }
-    } else {
-        // The least we can do
-        result.extend(points);
-    }
-
-#ifdef qh_NOmem
-    qh_freeqhull(&qh, qh_ALL);
-#else
-    int curlong, totlong;
-    qh_freeqhull(&qh, !qh_ALL);               /* free long memory  */
-    qh_memfreeshort(&qh, &curlong, &totlong); /* free short memory and memory allocator */
-    if (curlong || totlong) {
-        if (error_logger) {
-            fprintf(
-                error_logger,
-                "[GDSTK] Qhull internal warning: did not free %d bytes of long memory (%d pieces)\n",
-                totlong, curlong);
-        }
-    }
-#endif
 }
 
 char* double_print(double value, uint32_t precision, char* buffer, size_t buffer_size) {

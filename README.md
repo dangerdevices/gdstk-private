@@ -1,10 +1,8 @@
 # GDSTK
 
-[![Boost Software License - Version 1.0](https://img.shields.io/github/license/heitzmann/gdstk.svg)](https://www.boost.org/LICENSE_1_0.txt)
-[![Tests Runner](https://github.com/heitzmann/gdstk/actions/workflows/run-tests.yml/badge.svg)](https://github.com/heitzmann/gdstk/actions/workflows/run-tests.yml)
-[![Publish Docs](https://github.com/heitzmann/gdstk/actions/workflows/publish-docs.yml/badge.svg)](https://github.com/heitzmann/gdstk/actions/workflows/publish-docs.yml)
-[![Package Builder](https://github.com/heitzmann/gdstk/actions/workflows/publish-packages.yml/badge.svg)](https://github.com/heitzmann/gdstk/actions/workflows/publish-packages.yml)
-[![Downloads](https://img.shields.io/github/downloads/heitzmann/gdstk/total.svg)](https://github.com/heitzmann/gdstk/releases)
+Danger Devices internal fork of [gdstk](https://github.com/heitzmann/gdstk); primarily used by [Florist](https://github.com/dangerdevices/florist).
+
+## About
 
 > [!NOTE]
 > The last release of gdstk is 1.0.2 on Oct 19, 2026.
@@ -23,114 +21,79 @@ Key features for the creation of complex CAD layouts are included:
 * Polygon offset (inward and outward rescaling of polygons)
 * Efficient point-in-polygon solutions for large array sets
 
-Typical applications of Gdstk are in the fields of electronic chip design, planar lightwave circuit design, and mechanical engineering.
+## Differences from upstream
 
+Major differences from upstream include:
 
-## Documentation
+- Increased performance of OASIS serialization: [#156](https://github.com/dangerdevices/gdstk-private/pull/156)
+- Improved geometry accuracy: [#129](https://github.com/dangerdevices/gdstk-private/pull/129), [#199](https://github.com/dangerdevices/gdstk-private/pull/199)
+- Library objects are copy-able: [#132](https://github.com/dangerdevices/gdstk-private/pull/132)
+- OASIS encoding fixes: [#203](https://github.com/dangerdevices/gdstk-private/pull/203), [#208](https://github.com/dangerdevices/gdstk-private/pull/208)
+- Layer filtering when reading GDSII and OASIS files: [#214](https://github.com/dangerdevices/gdstk-private/pull/214)
 
-The complete documentation is available [here](http://heitzmann.github.io/gdstk).
+## Development
 
-The source files can be found in the _docs_ directory.
+Install a compiler supporting C++ 11, CMake 3.26 or newer, and [`uv`](https://github.com/astral-sh/uv).
 
-On Windows, filenames passed to the C++ file I/O functions must be encoded as UTF-8.
-The Python interface handles encoding of strings and `pathlib.Path` objects automatically.
-On other platforms, filenames use the native filesystem encoding.
+`pyproject.toml` is configured to install gdstk in editable mode, but because it is implemented with native code, you must run a build command after making changes to the headers or source files. Use `uv sync` with the `--reinstall-package` flag, which triggers a rebuild:
 
-
-## Installation
-
-### C++ library only
-
-The C++ library is meant to be used by including it in your own source code.
-
-If you prefer to install a static library, the included _CMakeLists.txt_ should be a good starting option (use `-DCMAKE_INSTALL_PREFIX=path` to control the installation path):
-
-```sh
-cmake -S . -B build
-cmake --build build --target install
+```
+uv sync --reinstall-package gdstk
 ```
 
-The library depends on [zlib](https://zlib.net/) and [qhull](http://www.qhull.org/)
+Use `pytest` to run the tests:
 
-### Python wrapper
-
-The Python module can be installed via pip, Conda or compiled directly from source.
-It depends on:
-
-* [zlib](https://zlib.net/)
-* [qhull](http://www.qhull.org/)
-* [CMake](https://cmake.org/)
-* [Python](https://www.python.org/)
-* [Numpy](https://numpy.org/)
-* [Sphinx](https://www.sphinx-doc.org/), [Read the Docs Theme](https://sphinx-rtd-theme.readthedocs.io/), and [Sphinx Inline Tabs](https://sphinx-inline-tabs.readthedocs.io/) (to build the [documentation](http://heitzmann.github.io/gdstk))
-
-#### From PyPI
-
-Simply run the following to install the package for the current user:
-
-```sh
-pip install --user gdstk
+```
+uv run pytest
 ```
 
-Or download and install the available wheels manually.
+### Debugging
 
-#### From source
+To build gdstk with debug info included, uncomment `cmake.build-type = "debug"` in `pyproject.toml`, then run the build command above.
 
-Installation from source requires the `build` module (plus CMake and Ninja, for faster compilation):
-
-```sh
-pip install --user build
+```
+uv sync --reinstall-package gdstk
 ```
 
-With that, simply build the wheel package using:
+You can then use `lldb` or `gdb` to run a test in the debugger, setting breakpoint(s) as necessary. Note that the full path to the Python binary must be specified, which is given by `uv run which python`.
 
-```sh
-python -m build -w
+```
+lldb $(uv run which python) -- -m pytest tests/cell_test.py::test_bb
 ```
 
-This will create a _dist_ directory containing the compiled _.whl_ package that can be installed with ``pip``.
+Python loads shared libraries lazily, so gdstk is normally not accessible to the debugger until `import gdstk` runs. This makes it difficult to accurately set breakpoints before starting a unit test. LLDB's `target modules add` command can be used to eagerly load gdstk (note that the directory and file name will change depending on the platform you're using).
 
-## Support
+```
+(lldb) target modules add build/cp313-cp313-macosx_15_0_arm64/python/_gdstk.cpython-313-darwin.so
+```
 
-Help support Gdstk development by [donating via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=JD2EUE2WPPBQQ) or [sponsoring me on GitHub](https://github.com/sponsors/heitzmann).
+Finally, set the desired breakpoint(s), and run the test:
 
+```
+(lldb) break set -n cell_object_bounding_box
+Breakpoint 1: where = _gdstk.cpython-313-darwin.so`cell_object_bounding_box(CellObject*, _object*) + 20 at cell_object.cpp:233:5, address = 0x000000000002a6e4
 
-## Benchmarks
+(lldb) r
+Process 76075 launched: '/Users/jatoben/Developer/dangerdevices/gdstk-private/.venv/bin/python' (arm64)
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-8.4.1, pluggy-1.6.0 -- /Users/jatoben/Developer/dangerdevices/gdstk-private/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/jatoben/Developer/dangerdevices/gdstk-private
+configfile: pyproject.toml
+collected 1 item
 
-The _benchmarks_ directory contains a few tests to compare the performance gain of the Python interface versus Gdspy.
-They are only for reference; the real improvement is heavily dependent on the type of layout and features used.
-If maximal performance is important, the library should be used directly from C++, without the Python interface.
+tests/cell_test.py::test_bb Process 76075 stopped
+* thread #1, queue = 'com.apple.main-thread', stop reason = breakpoint 1.1
+    frame #0: 0x0000000100ec66e4 _gdstk.cpython-313-darwin.so`cell_object_bounding_box(self=0x0000000101177690, (null)=0x0000000000000000) at cell_object.cpp:233:5
+   230
+   231  static PyObject* cell_object_bounding_box(CellObject* self, PyObject*) {
+   232      Vec2 min, max;
+-> 233      self->cell->bounding_box(min, max);
+   234      if (min.x > max.x) {
+   235          Py_INCREF(Py_None);
+   236          return Py_None;
+```
 
-Timing results were obtained with Python 3.11 on an Intel Core i7-9750H @ 2.60 GHz
-They represent the best average time to run each function out of 16 sets of 8 runs each.
+### Integration tests
 
-| Benchmark        |   Gdspy 1.6.13   |   Gdstk 0.9.41   |   Gain   |
-| :--------------- | :--------------: | :--------------: | :------: |
-| 10k_rectangles   |     80.2 ms      |     4.87 ms      |   16.5   |
-| 1k_circles       |      312 ms      |      239 ms      |   1.3    |
-| boolean-offset   |      187 μs      |     44.7 μs      |   4.19   |
-| bounding_box     |     36.7 ms      |      170 μs      |   216    |
-| curves           |     1.52 ms      |     30.9 μs      |   49.3   |
-| flatten          |      465 μs      |     8.17 μs      |   56.9   |
-| flexpath         |     2.88 ms      |     16.1 μs      |   178    |
-| flexpath-param   |      2.8 ms      |      585 μs      |   4.78   |
-| fracture         |      929 μs      |      616 μs      |   1.51   |
-| inside           |      161 μs      |      33 μs       |   4.88   |
-| read_gds         |     2.68 ms      |      94 μs       |   28.5   |
-| read_rawcells    |      363 μs      |     52.4 μs      |   6.94   |
-| robustpath       |      171 μs      |     8.68 μs      |   19.7   |
-
-Memory usage per object for 100000 objects:
-
-| Object               |   Gdspy 1.6.13   |   Gdstk 0.9.41   | Reduction |
-| :------------------- | :--------------: | :--------------: | :-------: |
-| Rectangle            |      601 B       |      232 B       |    61%    |
-| Circle (r = 10)      |     1.68 kB      |     1.27 kB      |    24%    |
-| FlexPath segment     |     1.48 kB      |      439 B       |    71%    |
-| FlexPath arc         |     2.26 kB      |     1.49 kB      |    34%    |
-| RobustPath segment   |     2.89 kB      |      920 B       |    69%    |
-| RobustPath arc       |     2.66 kB      |      920 B       |    66%    |
-| Label                |      407 B       |      215 B       |    47%    |
-| Reference            |      160 B       |      179 B       |    -12%   |
-| Reference (array)    |      189 B       |      181 B       |     4%    |
-| Cell                 |      430 B       |      229 B       |    47%    |
+Florist's test suite includes more thorough exercises for most of gdstk's functionality, including integration tests drawn from real designs. If you make any non-trivial changes to gdstk, it's a good idea to run them past the full Florist test suite as well as the tests in this repository.

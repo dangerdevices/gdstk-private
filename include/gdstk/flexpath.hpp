@@ -169,6 +169,7 @@ struct FlexPath {
    private:
     void remove_overlapping_points();
     void fill_offsets_and_widths(const double* width, const double* offset);
+    bool is_zero_width();
 };
 
 }  // namespace gdstk
