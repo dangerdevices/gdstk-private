@@ -642,17 +642,19 @@ def test_layers_and_types(sample_library):
 def test_read_gds_aref_vectors(
     tmp_path, origin, columns, rows, v1, v2, rotation, reflection, magnification, unit
 ):
-    library = gdstk.Library()
+    library = gdstk.Library("gds_aref")
     leaf = library.new_cell("LEAF").add(gdstk.rectangle((0, 0), (1, 2)))
     library.new_cell("TOP").add(
         gdstk.Reference(
             leaf,
-            columns=columns,
-            rows=rows,
-            spacing=(10, 20),
             rotation=rotation,
             x_reflection=reflection,
             magnification=magnification,
+            repetition=gdstk.Repetition(
+                columns=columns,
+                rows=rows,
+                spacing=(10, 20),
+            ),
         )
     )
     filename = tmp_path / "array.gds"
