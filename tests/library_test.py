@@ -175,9 +175,7 @@ def test_rw_gds(tmpdir, sample_library):
 
     c = cells["gl_rw_gds_2"]
     assert len(c.polygons) == 2
-    assert isinstance(c.polygons[0], gdstk.Polygon) and isinstance(
-        c.polygons[1], gdstk.Polygon
-    )
+    assert isinstance(c.polygons[0], gdstk.Polygon) and isinstance(c.polygons[1], gdstk.Polygon)
 
     c = cells["gl_rw_gds_3"]
     assert len(c.references) == 1
@@ -225,9 +223,7 @@ def test_rw_gds_filter(tmpdir, sample_library):
 
     c = cells["gl_rw_gds_2"]
     assert len(c.polygons) == 2
-    assert isinstance(c.polygons[0], gdstk.Polygon) and isinstance(
-        c.polygons[1], gdstk.Polygon
-    )
+    assert isinstance(c.polygons[0], gdstk.Polygon) and isinstance(c.polygons[1], gdstk.Polygon)
 
     c = cells["gl_rw_gds_3"]
     assert len(c.references) == 1
@@ -274,6 +270,36 @@ def test_read_gds_missing_refs(tmpdir):
 
     assert len(lib2.cells) == 1
     assert lib2.cells[0].name == "c2"
+
+
+def test_large_layer_number(tmpdir):
+    c1 = gdstk.Cell("CELL")
+    c1.add(gdstk.rectangle((0, 0), (1, 1), 255, 256))
+    c1.add(gdstk.rectangle((0, 0), (1, 1), 50000, 50001))
+    c1.add(gdstk.rectangle((0, 0), (1, 1), 60100, 60101))
+    c1.add(gdstk.rectangle((0, 0), (1, 1), 2**16 - 1, 2**16))
+    c1.add(gdstk.rectangle((0, 0), (1, 1), 100000, 100001))
+
+    lib = gdstk.Library("large_layer_number")
+    lib.add(c1)
+
+    expected = {
+        (255, 256),
+        (50000, 50001),
+        (60100, 60101),
+        (2**16 - 1, 2**16),
+        (100000, 100001),
+    }
+    assert lib.layers_and_datatypes() == expected
+
+    fname = str(tmpdir.join("test_large_layer_num.gds"))
+    lib.write_gds(fname)
+
+    lib2 = gdstk.read_gds(fname)
+    assert lib2.layers_and_datatypes() == expected
+
+    info = gdstk.gds_info(fname)
+    assert info["layers_and_datatypes"] == expected
 
 
 # def test_rw_oas_filter(tmpdir, sample_library):
@@ -739,8 +765,8 @@ def test_roundtrip_path_ends(tmpdir: pathlib.Path):
         gds_path = gdstk.read_gds(tmpdir / "path_test.gds").top_level()[0].get_paths()[0]
         oas_path = gdstk.read_oas(tmpdir / "path_test.oas").top_level()[0].get_paths()[0]
 
-        assert path.ends == gds_path.ends
-        assert path.ends == oas_path.ends
+        assert path.ends == gds_path.ends, f"expected: {path.ends}, gds: {gds_path.ends}"
+        assert path.ends == oas_path.ends, f"expected: {path.ends}, gds: {oas_path.ends}"
 
 
 def test_oasis_polygon_points(complex_polygon_oasis_lib: gdstk.Library):
@@ -832,7 +858,8 @@ def test_write_min_length_path(
 
 
 @pytest.mark.parametrize(
-    "simple_path", (True, False),
+    "simple_path",
+    (True, False),
 )
 @pytest.mark.parametrize(
     "write_f",
@@ -849,10 +876,7 @@ def test_empty_path_warning(
     # Simple paths are written to GDS & OASIS with PATH records; non-simple
     # paths are serialized as polygons.
     path = gdstk.FlexPath(
-        ((0, 0), (tol / 2, 0)),
-        width=0.01,
-        tolerance=tol,
-        simple_path=simple_path
+        ((0, 0), (tol / 2, 0)), width=0.01, tolerance=tol, simple_path=simple_path
     )
 
     cell = gdstk.Cell("top")

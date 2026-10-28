@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.60 - 2025-04-15
+### Fixed
+- Added support to 32-bit layers and datatypes.
+
+## 0.9.59 - 2025-02-11
+### Fixed
+- Treat string properties as binary byte arrays in OASIS.
+
 ## 0.9.58 - 2024-11-25
 ### Changed
 - Empty paths now give a warning when being converted to polygons or stored in GDSII/OASIS.
