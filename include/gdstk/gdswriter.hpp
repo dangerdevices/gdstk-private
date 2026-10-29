@@ -7,8 +7,6 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
 #ifndef GDSTK_HEADER_GDSWRITER
 #define GDSTK_HEADER_GDSWRITER
-
-#define __STDC_FORMAT_MACROS 1
 #define _USE_MATH_DEFINES
 
 #include <stdio.h>
@@ -66,7 +64,7 @@ inline GdsWriter gdswriter_init(const char* filename, const char* library_name, 
 
     result.out = fopen(filename, "wb");
     if (result.out == NULL) {
-        fputs("[GDSTK] Unable to open GDSII file for output.\n", error_logger);
+        if (error_logger) fputs("[GDSTK] Unable to open GDSII file for output.\n", error_logger);
         if (error_code) *error_code = ErrorCode::OutputFileOpenError;
         return result;
     }

@@ -4,12 +4,10 @@ This file is part of gdstk, distributed under the terms of the
 Boost Software License - Version 1.0.  See the accompanying
 LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 */
-
-#define __STDC_FORMAT_MACROS 1
 #define _USE_MATH_DEFINES
 
 #include <float.h>
-#include <inttypes.h>
+#include <cinttypes>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -151,7 +149,7 @@ bool Polygon::contain_all(const Array<Vec2>& points) const {
     bounding_box(min, max);
     for (uint64_t i = 0; i < points.count; i++) {
         Vec2 point = points[i];
-        if (point.x < min.x || point.x > max.x || point.y < min.y || point.x > max.x) return false;
+        if (point.x < min.x || point.x > max.x || point.y < min.y || point.y > max.y) return false;
     }
     for (uint64_t i = 0; i < points.count; i++) {
         if (!contain(points[i])) return false;
@@ -164,7 +162,7 @@ bool Polygon::contain_any(const Array<Vec2>& points) const {
     bounding_box(min, max);
     for (uint64_t i = 0; i < points.count; i++) {
         Vec2 point = points[i];
-        if (point.x >= min.x && point.x <= max.x && point.y >= min.y && point.x <= max.x &&
+        if (point.x >= min.x && point.x <= max.x && point.y >= min.y && point.y <= max.y &&
             contain(point))
             return true;
     }
@@ -1702,7 +1700,7 @@ void inside(const Array<Vec2>& points, const Array<Polygon*>& polygons, bool* re
     for (uint64_t i = 0; i < points.count; i++) {
         Vec2 point = points[i];
         result[i] = false;
-        if (point.x >= min.x && point.x <= max.x && point.y >= min.y && point.x <= max.x) {
+        if (point.x >= min.x && point.x <= max.x && point.y >= min.y && point.y <= max.y) {
             for (uint64_t j = 0; j < polygons.count; j++) {
                 if (polygons[j]->contain(point)) {
                     result[i] = true;
@@ -1726,7 +1724,7 @@ bool all_inside(const Array<Vec2>& points, const Array<Polygon*>& polygons) {
     }
     for (uint64_t i = 0; i < points.count; i++) {
         Vec2 point = points[i];
-        if (point.x < min.x || point.x > max.x || point.y < min.y || point.x > max.x) return false;
+        if (point.x < min.x || point.x > max.x || point.y < min.y || point.y > max.y) return false;
     }
     for (uint64_t i = 0; i < points.count; i++) {
         Vec2 point = points[i];
@@ -1755,7 +1753,7 @@ bool any_inside(const Array<Vec2>& points, const Array<Polygon*>& polygons) {
     }
     for (uint64_t i = 0; i < points.count; i++) {
         Vec2 point = points[i];
-        if (point.x >= min.x && point.x <= max.x && point.y >= min.y && point.x <= max.x) {
+        if (point.x >= min.x && point.x <= max.x && point.y >= min.y && point.y <= max.y) {
             for (uint64_t j = 0; j < polygons.count; j++) {
                 if (polygons[j]->contain(point)) return true;
             }

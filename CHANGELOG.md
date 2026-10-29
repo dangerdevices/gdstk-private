@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.0.2 - 2026-10-19
+### Fixed
+- Undefined behavior when linking polygon holes that could crash MSVC debug builds.
+- Unicode file paths in native I/O on Windows.
+- Doubled `RobustPath` widths in OASIS output (#335).
+- GDSII array-reference vector detection for non-zero origins and large coordinates.
+
+## 1.0.1 - 2026-07-10
+### Fixed
+- Typos to `RobustPath` and `FlexPath` "extended" ends.
+- Added default values to some C++ functions to fix provided examples.
+
+## 1.0.0 - 2026-02-21
+### Added
+- Support for layer names from/to OASIS files (#322, thanks nmz787-intel for the contribution).
+### Fixed
+- Missing docs for `gds_timestamp`.
+
+## 0.9.62 - 2026-01-03
+### Added
+- Support for exporting empty flexpaths to GDSII/OASIS.
+### Fixed
+- Bug in point-in-polygon checks.
+- Array printing.
+
+## 0.9.61 - 2025-08-28
+### Added
+- Support for non-standard repetition vectors in GDSII (#293, #299, thanks svollenweider, WesYu).
+### Fixed
+- Bug in OASIS output when using explicit repetitions (#307, thanks RedFalsh).
+- Time stamp format in GDSII (#308, thanks albachten).
+
 ## 0.9.60 - 2025-04-15
 ### Fixed
 - Added support to 32-bit layers and datatypes.

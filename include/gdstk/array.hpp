@@ -7,14 +7,12 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
 #ifndef GDSTK_HEADER_ARRAY
 #define GDSTK_HEADER_ARRAY
-
-#define __STDC_FORMAT_MACROS 1
 #define _USE_MATH_DEFINES
 
 #define ARRAY_GROWTH_FACTOR 2
 #define INITIAL_ARRAY_CAPACITY 4
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +36,7 @@ struct Array {
         printf("Array <%p>, count %" PRIu64 "/%" PRIu64 "\n", this, count, capacity);
         if (all && count > 0) {
             printf("<%p>", (void*)items[0]);
-            for (uint64_t i = 0; i < count; ++i) {
+            for (uint64_t i = 1; i < count; ++i) {
                 printf(" <%p>", (void*)items[i]);
             }
             putchar('\n');

@@ -7,8 +7,6 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
 #ifndef GDSTK_HEADER_LIBRARY
 #define GDSTK_HEADER_LIBRARY
-
-#define __STDC_FORMAT_MACROS 1
 #define _USE_MATH_DEFINES
 
 #include <stdio.h>
@@ -16,6 +14,7 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
 #include "array.hpp"
 #include "cell.hpp"
+#include "layername.hpp"
 
 namespace gdstk {
 
@@ -37,6 +36,11 @@ struct Library {
     Array<Cell*> cell_array;
     Array<RawCell*> rawcell_array;
 
+    // OASIS LAYERNAME records mapping (layer,datatype) or (textlayer,texttype)
+    // ranges to human-readable names (OASIS spec section 19).  Populated by
+    // read_oas and written by write_oas.
+    Array<LayerName> layer_names;
+
     Property* properties;
 
     // Used by the python interface to store the associated PyObject* (if any).
@@ -56,6 +60,7 @@ struct Library {
         name = NULL;
         cell_array.clear();
         rawcell_array.clear();
+        layernames_clear(layer_names);
         properties_clear(properties);
     }
 
@@ -163,8 +168,8 @@ struct LibraryInfo {
 // paths in the library.  If shape_tags is not empty, only shapes in those
 // tags will be imported.  If not NULL, any errors will be reported through
 // error_code.
-Library read_gds(const char* filename, double unit, double tolerance, const Set<Tag>* shape_tags,
-                 ErrorCode* error_code);
+Library read_gds(const char* filename, double unit = 0, double tolerance = 0, const Set<Tag>* shape_tags = nullptr,
+                 ErrorCode* error_code = nullptr);
 
 // Read the contents of an OASIS file into a new library.  If unit is not zero,
 // the units in the file are converted (all elements are properly scaled to the
@@ -184,7 +189,7 @@ ErrorCode gds_units(const char* filename, double& unit, double& precision);
 // Get/set the timestamps in the GDSII file.  If timestamp is not NULL, set the
 // timestamps of the file.  The main library timestamp before any modification
 // is returned.
-tm gds_timestamp(const char* filename, const tm* new_timestamp, ErrorCode* error_code);
+tm gds_timestamp(const char* filename, const tm* new_timestamp = nullptr, ErrorCode* error_code = nullptr);
 
 // Gather information about the GDSII file. Return argument info must be
 // properly initialized.
@@ -199,7 +204,7 @@ ErrorCode oas_precision(const char* filename, double& precision);
 // If not NULL, any errors will be reported through error_code.  If the file
 // has no checksum data, signature will be set to zero and error_code to
 // ErrorCode::ChecksumError if they are not NULL.
-bool oas_validate(const char* filename, uint32_t* signature, ErrorCode* error_code);
+bool oas_validate(const char* filename, uint32_t* signature = nullptr, ErrorCode* error_code = nullptr);
 
 // TODO: Gather information about file
 // ErrorCode oas_info(const char* filename, LibraryInfo& info);

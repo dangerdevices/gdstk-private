@@ -7,11 +7,9 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
 #ifndef GDSTK_HEADER_GDSTK
 #define GDSTK_HEADER_GDSTK
-
-#define __STDC_FORMAT_MACROS 1
 #define _USE_MATH_DEFINES
 
-#define GDSTK_VERSION "0.9.60+dd47"
+#define GDSTK_VERSION "1.0.2+dd50"
 
 // If GDSTK_CUSTOM_ALLOCATOR is defined, the user must supply implementations
 // for the following dynamic memory management functions:
@@ -35,6 +33,7 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #include "gdsii.hpp"
 #include "gdswriter.hpp"
 #include "label.hpp"
+#include "layername.hpp"
 #include "library.hpp"
 #include "map.hpp"
 #include "oasis.hpp"

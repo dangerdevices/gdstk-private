@@ -1989,7 +1989,7 @@ static PyObject* robustpath_object_get_ends(RobustPathObject* self, void*) {
                 item = PyUnicode_FromString("round");
                 break;
             case EndType::HalfWidth:
-                item = PyUnicode_FromString("extendend");
+                item = PyUnicode_FromString("extended");
                 break;
             case EndType::Smooth:
                 item = PyUnicode_FromString("smooth");

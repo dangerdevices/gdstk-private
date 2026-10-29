@@ -4,11 +4,9 @@ This file is part of gdstk, distributed under the terms of the
 Boost Software License - Version 1.0.  See the accompanying
 LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 */
-
-#define __STDC_FORMAT_MACROS 1
 #define _USE_MATH_DEFINES
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -1650,7 +1648,7 @@ ErrorCode RobustPath::to_oas(OasisStream &out, OasisState &state) const {
         oasis_write_unsigned_integer(out, get_layer(el->tag));
         oasis_write_unsigned_integer(out, get_type(el->tag));
         uint64_t half_width =
-            (uint64_t)llround(interp(el->width_array[0], 0) * width_scale * state.scaling);
+            (uint64_t)llround(0.5 * interp(el->width_array[0], 0) * width_scale * state.scaling);
         oasis_write_unsigned_integer(out, half_width);
 
         switch (el->end_type) {

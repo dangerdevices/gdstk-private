@@ -7,8 +7,6 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 
 #ifndef GDSTK_HEADER_UTILS
 #define GDSTK_HEADER_UTILS
-
-#define __STDC_FORMAT_MACROS 1
 #define _USE_MATH_DEFINES
 
 #define GDSTK_PRINT_BUFFER_COUNT 1024
@@ -63,6 +61,10 @@ LICENSE file or <http://www.boost.org/LICENSE_1_0.txt>
 #include "vec.hpp"
 
 namespace gdstk {
+
+// Open a file using a UTF-8 filename on Windows and the native filename
+// encoding elsewhere.  The mode and stream contents are unchanged.
+FILE* fopen_utf8(const char* filename, const char* mode);
 
 // Error codes
 enum struct ErrorCode {
